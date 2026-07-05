@@ -144,7 +144,7 @@ No repositório do GitHub:
 A publicação fica disponível no formato:
 
 ```text
-https://SEU_USUARIO.github.io/PrimeDocs/
+https://murillocharles97-netizen.github.io/PrimeDocs/
 ```
 
 ## Backup dos dados
@@ -169,7 +169,7 @@ O script requer Pillow.
 ## Publicação inicial no GitHub
 
 ```bash
-git remote add origin https://github.com/SEU_USUARIO/PrimeDocs.git
+git remote add origin https://github.com/murillocharles97-netizen/PrimeDocs.git
 git push -u origin main
 git push -u origin dev
 ```

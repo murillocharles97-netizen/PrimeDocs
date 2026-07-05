@@ -19,6 +19,7 @@ const Storage = {
         conferencias: "primedocs_conferencias",
         configuracoes: "primedocs_config",
         tema: "primedocs_tema",
+        empresas: "primedocs_empresas",
 
     },
 
@@ -387,6 +388,125 @@ const Storage = {
 
 
 
+    listarEmpresas() {
+
+        return JSON.parse(
+            localStorage.getItem(this.KEYS.empresas)
+        ) || [];
+
+    },
+
+
+
+    salvarEmpresas(lista) {
+
+        localStorage.setItem(
+            this.KEYS.empresas,
+            JSON.stringify(Array.isArray(lista) ? lista : [])
+        );
+
+    },
+
+
+
+    salvarEmpresa(empresa) {
+
+        const empresas = this.listarEmpresas();
+        const index = empresas.findIndex(item => String(item.id) === String(empresa.id));
+        const registro = {
+            ...empresa,
+            corPrincipal: empresa.corPrincipal || "#6D5DFD",
+            ativa: empresa.ativa !== false,
+            padrao: empresa.ativa !== false && Boolean(empresa.padrao)
+        };
+
+        if (registro.padrao) {
+            empresas.forEach(item => {
+                item.padrao = false;
+            });
+        }
+
+        if (index === -1) {
+            empresas.push(registro);
+        } else {
+            empresas[index] = registro;
+        }
+
+        if (!empresas.some(item => item.ativa !== false && item.padrao)) {
+            const primeiraAtiva = empresas.find(item => item.ativa !== false);
+            if (primeiraAtiva) primeiraAtiva.padrao = true;
+        }
+
+        this.salvarEmpresas(empresas);
+        return registro;
+
+    },
+
+
+
+    buscarEmpresaPorId(id) {
+
+        return this.listarEmpresas()
+            .find(empresa => String(empresa.id) === String(id));
+
+    },
+
+
+
+    buscarEmpresaPadrao() {
+
+        const empresasAtivas = this.listarEmpresas()
+            .filter(empresa => empresa.ativa !== false);
+
+        return empresasAtivas.find(empresa => empresa.padrao)
+            || empresasAtivas[0]
+            || null;
+
+    },
+
+
+
+    definirEmpresaPadrao(id) {
+
+        const empresas = this.listarEmpresas();
+        const selecionada = empresas.find(
+            empresa => String(empresa.id) === String(id) && empresa.ativa !== false
+        );
+
+        if (!selecionada) return false;
+
+        empresas.forEach(empresa => {
+            empresa.padrao = String(empresa.id) === String(id);
+        });
+        this.salvarEmpresas(empresas);
+        return true;
+
+    },
+
+
+
+    excluirEmpresa(id) {
+
+        const empresas = this.listarEmpresas();
+        const empresa = empresas.find(item => String(item.id) === String(id));
+
+        if (!empresa) return false;
+
+        empresa.ativa = false;
+        empresa.padrao = false;
+
+        const novaPadrao = empresas.find(item => item.ativa !== false);
+        if (novaPadrao && !empresas.some(item => item.ativa !== false && item.padrao)) {
+            novaPadrao.padrao = true;
+        }
+
+        this.salvarEmpresas(empresas);
+        return true;
+
+    },
+
+
+
     obterTodosDados() {
 
         const configuracoes = this.carregarConfiguracoes();
@@ -397,6 +517,7 @@ const Storage = {
             estoques: this.listarEstoquesLojas(),
             consignados: this.listarConsignados(),
             conferencias: this.listarConferencias(),
+            empresas: this.listarEmpresas(),
             configuracoes: {
                 ...configuracoes,
                 tema: localStorage.getItem(this.KEYS.tema)
@@ -454,7 +575,10 @@ const Storage = {
             return false;
         }
 
-        return Boolean(
+        const empresasValidas = dados.empresas === undefined
+            || Array.isArray(dados.empresas);
+
+        return empresasValidas && Boolean(
             dados.configuracoes
             && typeof dados.configuracoes === "object"
             && !Array.isArray(dados.configuracoes)
@@ -476,30 +600,36 @@ const Storage = {
 
     restaurarDados(dados) {
 
+        const dadosNormalizados = {
+            ...dados,
+            empresas: Array.isArray(dados?.empresas) ? dados.empresas : []
+        };
+
         const backupTemporario = {
             empresa: "PrimeDocs",
             versao: "1.0.0",
-            dados
+            dados: dadosNormalizados
         };
 
         if (!this.validarBackup(backupTemporario)) {
             throw new Error("Dados de backup inválidos.");
         }
 
-        this.salvarProdutos(dados.produtos);
-        this.salvarLojas(dados.lojas);
-        this.salvarEstoquesLojas(dados.estoques);
+        this.salvarProdutos(dadosNormalizados.produtos);
+        this.salvarLojas(dadosNormalizados.lojas);
+        this.salvarEstoquesLojas(dadosNormalizados.estoques);
+        this.salvarEmpresas(dadosNormalizados.empresas);
         localStorage.setItem(
             this.KEYS.consignados,
-            JSON.stringify(dados.consignados)
+            JSON.stringify(dadosNormalizados.consignados)
         );
         localStorage.setItem(
             this.KEYS.conferencias,
-            JSON.stringify(dados.conferencias)
+            JSON.stringify(dadosNormalizados.conferencias)
         );
-        this.salvarConfiguracoes(dados.configuracoes);
+        this.salvarConfiguracoes(dadosNormalizados.configuracoes);
 
-        const tema = dados.configuracoes.tema === "dark" ? "dark" : "light";
+        const tema = dadosNormalizados.configuracoes.tema === "dark" ? "dark" : "light";
         localStorage.setItem(this.KEYS.tema, tema);
 
         return true;

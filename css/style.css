@@ -2035,6 +2035,160 @@ header{
     }
 }
 
+/* Configurações, empresas e orçamentos */
+.settingsLayout{
+    display:grid;
+    gap:16px;
+}
+
+.settingsCard,
+.budgetCard{
+    padding:20px;
+    border:1px solid var(--border);
+    border-radius:22px;
+    background:var(--card);
+    box-shadow:var(--shadow);
+}
+
+.settingsCardHeader,
+.budgetCompanyHeader{
+    display:flex;
+    align-items:center;
+    gap:13px;
+    margin-bottom:18px;
+}
+
+.settingsCardHeader > div:nth-child(2),
+.budgetCompanyHeader > div:nth-child(2){
+    min-width:0;
+    flex:1;
+}
+
+.settingsCardHeader span,
+.budgetCompanyHeader span,
+.budgetFormTitle span{
+    color:var(--primary);
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.11em;
+}
+
+.settingsCardHeader h3,
+.budgetCompanyHeader h3,
+.budgetFormTitle h3{
+    margin:3px 0 2px;
+    color:var(--text);
+    font-size:17px;
+}
+
+.settingsCardHeader p{
+    margin:0;
+    color:var(--muted);
+    font-size:12px;
+}
+
+.settingsCardIcon{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex:none;
+    width:44px;
+    height:44px;
+    border-radius:15px;
+    color:white;
+    background:linear-gradient(145deg,var(--primary),var(--accent));
+    box-shadow:0 9px 22px rgba(109,93,253,.22);
+}
+
+.settingsCardIcon svg{width:21px;height:21px}
+.settingsHeaderAction{display:flex;align-items:center;gap:7px;width:auto;padding:11px 13px;white-space:nowrap}
+.settingsHeaderAction svg{width:17px;height:17px}
+
+.companiesList{display:grid;gap:11px}
+.companyCard{
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr);
+    gap:12px;
+    padding:14px;
+    border:1px solid var(--border);
+    border-radius:17px;
+    background:var(--card-secondary);
+    transition:.2s ease;
+}
+.companyCard:hover{border-color:rgba(109,93,253,.35);transform:translateY(-1px)}
+.companyCard.isInactive{opacity:.62}
+.companyLogo{
+    display:flex;align-items:center;justify-content:center;width:48px;height:48px;
+    overflow:hidden;border-radius:15px;color:white;background:var(--company-color);
+}
+.companyLogo img{width:100%;height:100%;object-fit:contain;background:white}
+.companyLogo svg{width:23px;height:23px}
+.companyMain{min-width:0}
+.companyTitleRow{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.companyTitleRow h4{margin:0;color:var(--text);font-size:14px}
+.companyMain p{margin:7px 0 0;color:var(--muted);font-size:11px;overflow-wrap:anywhere}
+.companyDefaultBadge,.companyInactiveBadge,.companyTypeBadge{
+    display:inline-flex;align-items:center;gap:4px;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:800;
+}
+.companyDefaultBadge{color:var(--primary);background:rgba(109,93,253,.11)}
+.companyDefaultBadge svg{width:10px;height:10px;fill:currentColor}
+.companyInactiveBadge{color:#E11D48;background:rgba(225,29,72,.1)}
+.companyTypeBadge{margin-top:7px;color:var(--muted);background:var(--card)}
+.companyActions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:7px;border-top:1px solid var(--border);padding-top:10px}
+.companyActions button,.companyRemoveLogo{
+    display:flex;align-items:center;gap:5px;padding:7px 9px;border:0;border-radius:9px;
+    color:var(--primary);background:rgba(109,93,253,.09);font-size:10px;font-weight:750;cursor:pointer;
+}
+.companyActions button.danger{color:#E11D48;background:rgba(225,29,72,.08)}
+.companyActions svg{width:13px;height:13px}
+.settingsEmptyState{padding:28px 18px;text-align:center;border:1px dashed var(--border);border-radius:17px;color:var(--muted)}
+.settingsEmptyState svg{width:28px;height:28px;color:var(--primary)}
+.settingsEmptyState strong{display:block;margin:8px 0 4px;color:var(--text);font-size:13px}
+.settingsEmptyState p{margin:0;font-size:11px}
+
+.themeSettingRow{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:12px}
+.themeSettingPreview{display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:15px;color:#F59E0B;background:#FFF7DD}
+.themeSettingPreview.isDark{color:#A78BFA;background:#171B36}
+.themeSettingRow strong,.themeSettingRow small{display:block}.themeSettingRow strong{font-size:13px}.themeSettingRow small{margin-top:3px;color:var(--muted);font-size:10px}
+.themeSettingRow .btnSecondary{grid-column:1/-1;width:100%}
+.pdfIdentitySummary{display:grid;grid-template-columns:auto 1fr;gap:13px;align-items:center;padding:14px;border-radius:16px;background:var(--card-secondary)}
+.pdfColorSwatch{width:42px;height:42px;border:4px solid var(--card);border-radius:14px;box-shadow:0 5px 15px rgba(15,23,42,.1)}
+.pdfIdentitySummary div{min-width:0}.pdfIdentitySummary small,.pdfIdentitySummary strong{display:block}.pdfIdentitySummary small{color:var(--muted);font-size:9px}.pdfIdentitySummary strong{margin-top:3px;font-size:11px;overflow-wrap:anywhere}
+.pdfFooterSetting{grid-column:1/-1}
+.pdfIdentityEmpty,.budgetNotice{display:flex;align-items:center;gap:9px;padding:13px;border-radius:13px;color:var(--muted);background:var(--card-secondary);font-size:11px}
+.pdfIdentityEmpty svg,.budgetNotice svg{width:17px;height:17px;color:var(--primary)}
+.settingsBackupCard{margin:0}.settingsConfirmText{color:var(--muted);font-size:13px}.settingsConfirmText strong{color:var(--text)}
+
+.companyFormGrid,.budgetFormGrid{display:grid;gap:13px}
+.companyFullField,.budgetFullField{grid-column:1/-1}
+.companyColorControl{display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid var(--border);border-radius:12px;background:var(--card-secondary)}
+.companyColorControl input{width:42px;height:34px;padding:0;border:0;background:transparent}.companyColorControl output{font-size:11px;font-weight:800}
+.companyLogoUpload{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.companyLogoPreview{display:flex;align-items:center;justify-content:center;width:55px;height:55px;overflow:hidden;border:1px dashed var(--border);border-radius:14px;color:var(--primary);background:var(--card-secondary)}
+.companyLogoPreview img{width:100%;height:100%;object-fit:contain;background:white}.companyLogoPreview svg{width:20px;height:20px}
+.companyRemoveLogo{color:#E11D48;background:rgba(225,29,72,.08)}
+.companyCheckbox{display:flex;align-items:center;gap:8px;color:var(--text);font-size:12px;font-weight:650}.companyCheckbox input{accent-color:var(--primary)}
+.companyModalActions,.modalActions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.companyModalActions button,.modalActions button{width:100%}
+
+.budgetCard{margin-bottom:16px}.budgetCompanyHeader{margin-bottom:14px}.budgetNotice{margin-top:12px}
+.budgetFormTitle{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.budgetFormTitle svg{width:30px;height:30px;color:var(--primary)}
+.budgetGenerateButton{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:18px;padding:15px}.budgetGenerateButton svg{width:18px;height:18px}
+
+@media(max-width:560px){
+    .settingsCardHeader{align-items:flex-start;flex-wrap:wrap}.settingsHeaderAction{width:100%;justify-content:center}
+}
+
+@media(min-width:700px){
+    .settingsLayout{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .settingsCompanies,.settingsBackupCard{grid-column:1/-1}
+    .companyCard{grid-template-columns:auto minmax(0,1fr) auto;align-items:center}
+    .companyActions{grid-column:auto;border-top:0;padding-top:0;justify-content:flex-end}
+    .companyActions button span{display:none}
+    .themeSettingRow{grid-template-columns:auto minmax(0,1fr) auto}.themeSettingRow .btnSecondary{grid-column:auto;width:auto}
+    .pdfIdentitySummary{grid-template-columns:auto repeat(3,minmax(0,1fr))}.pdfFooterSetting{grid-column:auto}
+    .companyFormGrid,.budgetFormGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
 @media(min-width:860px){
     .dashboardQuickGrid{
         grid-template-columns:repeat(3,minmax(0,1fr));
@@ -2204,6 +2358,13 @@ body{
     background:var(--card-secondary);
     cursor:pointer;
     box-shadow:0 5px 14px rgba(46,39,100,.08);
+}
+
+.headerActions{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex:none;
 }
 
 .themeToggle:hover{

@@ -405,7 +405,7 @@ function gerarPDFVendasConferencia() {
         return;
     }
 
-    if (PDF.gerarVendasConferencia(dados)) {
+    if (PDF.gerarVendasConferencia(dados, Storage.buscarEmpresaPadrao())) {
         salvarResultadoConferencia();
     }
 }
@@ -413,7 +413,7 @@ function gerarPDFVendasConferencia() {
 function gerarPDFEstoqueConferencia() {
     if (!validarConferenciaCarregada()) return;
 
-    if (PDF.gerarEstoqueAtualizado(montarDadosEstoqueConferencia())) {
+    if (PDF.gerarEstoqueAtualizado(montarDadosEstoqueConferencia(), Storage.buscarEmpresaPadrao())) {
         salvarResultadoConferencia();
     }
 }
@@ -429,8 +429,9 @@ function gerarDoisPDFsConferencia() {
         return;
     }
 
-    const vendasGerado = PDF.gerarVendasConferencia(dadosVendas);
-    const estoqueGerado = PDF.gerarEstoqueAtualizado(dadosEstoque);
+    const empresa = Storage.buscarEmpresaPadrao();
+    const vendasGerado = PDF.gerarVendasConferencia(dadosVendas, empresa);
+    const estoqueGerado = PDF.gerarEstoqueAtualizado(dadosEstoque, empresa);
 
     if (vendasGerado && estoqueGerado) {
         salvarResultadoConferencia();

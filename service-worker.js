@@ -1,4 +1,4 @@
-const CACHE_VERSION = "primedocs-v3";
+const CACHE_VERSION = "primedocs-v4";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -65,19 +65,61 @@ self.addEventListener("install", event => {
     );
 });
 
-self.addEventListener("activate", event => {
-    event.waitUntil(
-        caches.keys()
-            .then(chaves => Promise.all(
-                chaves
-                    .filter(chave => chave.startsWith("primedocs-")
-                        && chave !== APP_CACHE
-                        && chave !== RUNTIME_CACHE)
-                    .map(chave => caches.delete(chave))
-            ))
-            .then(() => self.clients.claim())
+async function ativarNovaVersao() {
+    const chaves = await caches.keys();
+
+    await Promise.all(
+        chaves
+            .filter(chave => chave.startsWith("primedocs-")
+                && chave !== APP_CACHE
+                && chave !== RUNTIME_CACHE)
+            .map(chave => caches.delete(chave))
     );
+
+    await self.clients.claim();
+
+    const janelas = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true
+    });
+
+    await Promise.allSettled(
+        janelas.map(janela => janela.navigate(janela.url))
+    );
+}
+
+self.addEventListener("activate", event => {
+    event.waitUntil(ativarNovaVersao());
 });
+
+async function buscarRecursoLocal(requisicao) {
+    try {
+        const resposta = await fetch(requisicao);
+
+        if (resposta?.ok) {
+            const cache = await caches.open(RUNTIME_CACHE);
+            await cache.put(requisicao, resposta.clone());
+        }
+
+        return resposta;
+    } catch (erro) {
+        return caches.match(requisicao, { ignoreSearch: true });
+    }
+}
+
+async function buscarRecursoExterno(requisicao) {
+    const respostaEmCache = await caches.match(requisicao);
+    if (respostaEmCache) return respostaEmCache;
+
+    const resposta = await fetch(requisicao);
+
+    if (resposta && (resposta.ok || resposta.type === "opaque")) {
+        const cache = await caches.open(RUNTIME_CACHE);
+        await cache.put(requisicao, resposta.clone());
+    }
+
+    return resposta;
+}
 
 self.addEventListener("fetch", event => {
     const requisicao = event.request;
@@ -98,21 +140,11 @@ self.addEventListener("fetch", event => {
         return;
     }
 
+    const url = new URL(requisicao.url);
+
     event.respondWith(
-        caches.match(requisicao).then(respostaEmCache => {
-            const buscarAtualizacao = fetch(requisicao)
-                .then(resposta => {
-                    if (resposta && (resposta.ok || resposta.type === "opaque")) {
-                        const copia = resposta.clone();
-                        caches.open(RUNTIME_CACHE)
-                            .then(cache => cache.put(requisicao, copia));
-                    }
-
-                    return resposta;
-                })
-                .catch(() => respostaEmCache);
-
-            return respostaEmCache || buscarAtualizacao;
-        })
+        url.origin === self.location.origin
+            ? buscarRecursoLocal(requisicao)
+            : buscarRecursoExterno(requisicao)
     );
 });

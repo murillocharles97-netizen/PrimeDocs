@@ -36,10 +36,17 @@ function alternarTemaPrimeDocs() {
 function registrarServiceWorkerPrimeDocs() {
     if (!("serviceWorker" in navigator)) return;
 
-    window.addEventListener("load", () => {
-        navigator.serviceWorker
-            .register("./service-worker.js")
-            .catch(erro => console.error("Falha ao registrar o service worker.", erro));
+    window.addEventListener("load", async () => {
+        try {
+            const registro = await navigator.serviceWorker.register(
+                "./service-worker.js",
+                { updateViaCache: "none" }
+            );
+
+            await registro.update();
+        } catch (erro) {
+            console.error("Falha ao registrar o service worker.", erro);
+        }
     });
 }
 

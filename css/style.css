@@ -2035,6 +2035,254 @@ header{
     }
 }
 
+/* Itens do orçamento */
+.budgetItemsSection{
+    display:grid;
+    gap:14px;
+    margin-top:4px;
+    padding:16px;
+    border:1px solid var(--border);
+    border-radius:18px;
+    background:var(--card-secondary);
+}
+
+.budgetItemsHeader{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+}
+
+.budgetItemsHeader span{
+    color:var(--primary);
+    font-size:9px;
+    font-weight:800;
+    letter-spacing:.11em;
+}
+
+.budgetItemsHeader h3{
+    margin:2px 0;
+    color:var(--text);
+    font-size:16px;
+}
+
+.budgetItemsHeader small{
+    color:var(--muted);
+    font-size:10px;
+}
+
+.budgetItemActions{
+    display:grid;
+    gap:9px;
+}
+
+.budgetItemActions button,
+.budgetPrimaryAction .btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    width:100%;
+}
+
+.budgetItemActions .btnSecondary{
+    padding:13px 14px;
+    border:1px solid rgba(109,93,253,.32);
+    border-radius:13px;
+    color:var(--primary);
+    font-weight:750;
+    background:rgba(109,93,253,.08);
+    cursor:pointer;
+    transition:.2s ease;
+}
+
+.budgetItemActions .btnSecondary:hover{
+    border-color:var(--primary);
+    background:rgba(109,93,253,.14);
+    transform:translateY(-1px);
+}
+
+.budgetItemActions svg,
+.budgetPrimaryAction svg{
+    width:17px;
+    height:17px;
+}
+
+.budgetItemsList{
+    display:grid;
+    gap:11px;
+}
+
+.budgetItemsEmpty,
+.budgetPickerEmpty{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    min-height:150px;
+    padding:22px;
+    border:1px dashed var(--border);
+    border-radius:15px;
+    color:var(--muted);
+    text-align:center;
+    background:var(--card);
+}
+
+.budgetItemsEmpty svg,
+.budgetPickerEmpty svg{
+    width:27px;
+    height:27px;
+    color:var(--primary);
+}
+
+.budgetItemsEmpty strong{margin-top:9px;color:var(--text);font-size:12px}
+.budgetItemsEmpty p,.budgetPickerEmpty p{margin:4px 0 0;font-size:10px}
+
+.budgetItemCard{
+    padding:14px;
+    border:1px solid var(--border);
+    border-radius:16px;
+    background:var(--card);
+    box-shadow:0 7px 18px rgba(15,23,42,.04);
+}
+
+.budgetItemCard.isCustom{
+    border-color:rgba(139,92,246,.3);
+    background:linear-gradient(145deg,var(--card),rgba(139,92,246,.04));
+}
+
+.budgetItemTop{
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr) auto;
+    gap:10px;
+    align-items:start;
+}
+
+.budgetItemTypeIcon{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:38px;
+    height:38px;
+    border-radius:12px;
+    color:var(--primary);
+    background:rgba(109,93,253,.11);
+}
+
+.budgetItemTypeIcon svg{width:18px;height:18px}
+.budgetItemIdentity{min-width:0}
+.budgetItemIdentity > strong,.budgetItemIdentity > small{display:block}
+.budgetItemIdentity > strong{color:var(--text);font-size:13px;overflow-wrap:anywhere}
+.budgetItemIdentity > small{margin-top:4px;color:var(--muted);font-size:9px}
+.budgetItemIdentity label,.budgetItemValue,.budgetItemObservation{display:grid;gap:5px}
+.budgetItemIdentity label span,.budgetItemValue span,.budgetItemObservation span,.budgetItemQuantity > span,.budgetItemTotal span{
+    color:var(--muted);
+    font-size:9px;
+    font-weight:700;
+}
+
+.budgetItemIdentity input,
+.budgetItemValue input,
+.budgetItemObservation textarea,
+.budgetItemQuantity input{
+    width:100%;
+    border:1px solid var(--border);
+    border-radius:10px;
+    color:var(--text);
+    background:var(--card-secondary);
+}
+
+.budgetItemIdentity input,.budgetItemValue input{padding:10px}
+.budgetItemObservation textarea{padding:10px;resize:vertical}
+
+.budgetItemRemove{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:34px;
+    height:34px;
+    border:0;
+    border-radius:10px;
+    color:#E11D48;
+    background:rgba(225,29,72,.08);
+    cursor:pointer;
+}
+
+.budgetItemRemove svg{width:16px;height:16px}
+.budgetItemControls{display:grid;gap:11px;margin-top:14px}
+.budgetItemQuantity{display:grid;gap:5px}
+.budgetItemQuantity > div{display:grid;grid-template-columns:36px minmax(48px,1fr) 36px}
+.budgetItemQuantity button{
+    display:flex;align-items:center;justify-content:center;border:1px solid var(--border);
+    color:var(--primary);background:var(--card-secondary);cursor:pointer;
+}
+.budgetItemQuantity button:first-child{border-radius:10px 0 0 10px}
+.budgetItemQuantity button:last-child{border-radius:0 10px 10px 0}
+.budgetItemQuantity button svg{width:14px;height:14px}
+.budgetItemQuantity input{padding:9px 4px;border-width:1px 0;border-radius:0;text-align:center}
+.budgetItemTotal{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:11px;background:var(--card-secondary)}
+.budgetItemTotal strong{color:var(--primary);font-size:13px}
+.budgetItemObservation{margin-top:12px}
+
+.budgetItemsSummary{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+}
+
+.budgetItemsSummary > div{
+    padding:11px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:var(--card);
+}
+
+.budgetItemsSummary span,.budgetItemsSummary strong{display:block}
+.budgetItemsSummary span{color:var(--muted);font-size:9px}
+.budgetItemsSummary strong{margin-top:4px;color:var(--text);font-size:14px}
+.budgetItemsSummary .budgetSummaryValue{grid-column:1/-1;border-color:rgba(109,93,253,.25);background:rgba(109,93,253,.08)}
+.budgetItemsSummary .budgetSummaryValue strong{color:var(--primary);font-size:17px}
+.budgetPrimaryAction{margin-top:18px}
+
+.budgetProductPicker{
+    display:grid;
+    gap:8px;
+    max-height:55vh;
+    margin-top:13px;
+    overflow:auto;
+}
+
+.budgetPickerProduct{
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr) auto;
+    gap:10px;
+    align-items:center;
+    width:100%;
+    padding:11px;
+    border:1px solid var(--border);
+    border-radius:13px;
+    color:var(--text);
+    text-align:left;
+    background:var(--card-secondary);
+    cursor:pointer;
+}
+
+.budgetPickerProduct:hover{border-color:var(--primary);transform:translateY(-1px)}
+.budgetPickerIcon{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:11px;color:var(--primary);background:rgba(109,93,253,.1)}
+.budgetPickerIcon svg{width:17px;height:17px}
+.budgetPickerInfo{min-width:0}
+.budgetPickerInfo strong,.budgetPickerInfo small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.budgetPickerInfo strong{font-size:11px}.budgetPickerInfo small{margin-top:3px;color:var(--muted);font-size:8px}
+.budgetPickerPrice{color:var(--primary);font-size:10px;white-space:nowrap}
+
+@media(min-width:700px){
+    .budgetItemsSection{padding:20px}
+    .budgetItemsHeader{flex-direction:row;align-items:end;justify-content:space-between}
+    .budgetItemActions{grid-template-columns:1fr 1fr}
+    .budgetItemControls{grid-template-columns:1.1fr 1fr 1fr;align-items:end}
+    .budgetItemsSummary{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .budgetItemsSummary .budgetSummaryValue{grid-column:auto}
+}
+
 /* Configurações, empresas e orçamentos */
 .settingsLayout{
     display:grid;

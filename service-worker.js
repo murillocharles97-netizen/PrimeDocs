@@ -1,4 +1,4 @@
-const CACHE_VERSION = "primedocs-v4";
+const CACHE_VERSION = "primedocs-v6";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -67,6 +67,11 @@ self.addEventListener("install", event => {
 
 async function ativarNovaVersao() {
     const chaves = await caches.keys();
+    const haviaVersaoAnterior = chaves.some(chave =>
+        chave.startsWith("primedocs-")
+        && chave !== APP_CACHE
+        && chave !== RUNTIME_CACHE
+    );
 
     await Promise.all(
         chaves
@@ -77,6 +82,8 @@ async function ativarNovaVersao() {
     );
 
     await self.clients.claim();
+
+    if (!haviaVersaoAnterior) return;
 
     const janelas = await self.clients.matchAll({
         type: "window",

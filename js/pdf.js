@@ -429,16 +429,38 @@ const PDF = {
                 formatarMoeda(dados.valorFinal)
             ]];
         } else if (tipo === "impressao3d") {
+            const itens = Array.isArray(dados.itens) && dados.itens.length
+                ? dados.itens
+                : [{
+                    nome: dados.produto || "-",
+                    quantidade: Number(dados.quantidade || 1),
+                    valorUnitario: Number(dados.valorFinal || 0) / Number(dados.quantidade || 1),
+                    valorTotal: Number(dados.valorFinal || 0)
+                }];
+
             colunas = [
-                { titulo: "PRODUTO / SERVIÇO", largura: 110 },
-                { titulo: "QTD.", largura: 25, alinhar: "center" },
-                { titulo: "VALOR FINAL", largura: 43, alinhar: "right", destaque: true }
+                { titulo: "PRODUTO", largura: 95 },
+                { titulo: "QTD.", largura: 20, alinhar: "center" },
+                { titulo: "VALOR UNIT.", largura: 30, alinhar: "right" },
+                { titulo: "TOTAL", largura: 33, alinhar: "right", destaque: true }
             ];
-            linhas = [[
-                dados.produto || "-",
-                Number(dados.quantidade || 1),
-                formatarMoeda(dados.valorFinal)
-            ]];
+            linhas = itens.map(item => {
+                const detalhes = [item.codigo, item.categoria]
+                    .filter(Boolean)
+                    .join(" - ");
+                const produto = [
+                    item.nome || "-",
+                    detalhes,
+                    item.observacao ? `Obs.: ${item.observacao}` : ""
+                ].filter(Boolean).join("\n");
+
+                return [
+                    produto,
+                    Number(item.quantidade || 0),
+                    formatarMoeda(item.valorUnitario),
+                    formatarMoeda(item.valorTotal)
+                ];
+            });
         } else {
             colunas = [
                 { titulo: "DESCRIÇÃO", largura: 135 },
@@ -453,7 +475,13 @@ const PDF = {
             informacoes,
             colunas,
             linhas,
-            resumo: [{ rotulo: "Valor final", valor: formatarMoeda(dados.valorFinal) }],
+            resumo: tipo === "impressao3d" && Array.isArray(dados.itens)
+                ? [
+                    { rotulo: "Itens", valor: dados.totalItens ?? dados.itens.length },
+                    { rotulo: "Total de peças", valor: dados.totalPecas ?? dados.itens.reduce((total, item) => total + Number(item.quantidade || 0), 0) },
+                    { rotulo: "Valor final", valor: formatarMoeda(dados.valorFinal) }
+                ]
+                : [{ rotulo: "Valor final", valor: formatarMoeda(dados.valorFinal) }],
             observacoes: dados.observacoes,
             nomeArquivo: `orcamento_${nomeSeguroPDF(empresa.nome)}_${nomeSeguroPDF(dados.cliente)}_${dados.data || Utils.hoje()}.pdf`
         }, empresa);

@@ -20,6 +20,10 @@ const Storage = {
         configuracoes: "primedocs_config",
         tema: "primedocs_tema",
         empresas: "primedocs_empresas",
+        clientes: "primedocs_clientes",
+        pedidos: "primedocs_pedidos",
+        filamentos: "primedocs_filamentos",
+        configCustos: "primedocs_config_custos",
 
     },
 
@@ -507,6 +511,128 @@ const Storage = {
 
 
 
+    listarClientes() {
+        return JSON.parse(localStorage.getItem(this.KEYS.clientes)) || [];
+    },
+
+    salvarClientes(lista) {
+        localStorage.setItem(this.KEYS.clientes, JSON.stringify(Array.isArray(lista) ? lista : []));
+    },
+
+    salvarCliente(cliente) {
+        const lista = this.listarClientes();
+        const index = lista.findIndex(item => String(item.id) === String(cliente.id));
+        if (index === -1) lista.push(cliente);
+        else lista[index] = cliente;
+        this.salvarClientes(lista);
+        return cliente;
+    },
+
+    buscarClientePorId(id) {
+        return this.listarClientes().find(item => String(item.id) === String(id));
+    },
+
+
+
+    listarPedidos() {
+        return JSON.parse(localStorage.getItem(this.KEYS.pedidos)) || [];
+    },
+
+    salvarPedidos(lista) {
+        localStorage.setItem(this.KEYS.pedidos, JSON.stringify(Array.isArray(lista) ? lista : []));
+    },
+
+    salvarPedido(pedido) {
+        const lista = this.listarPedidos();
+        const index = lista.findIndex(item => String(item.id) === String(pedido.id));
+        if (index === -1) lista.push(pedido);
+        else lista[index] = pedido;
+        this.salvarPedidos(lista);
+        return pedido;
+    },
+
+    buscarPedidoPorId(id) {
+        return this.listarPedidos().find(item => String(item.id) === String(id));
+    },
+
+    excluirPedido(id) {
+        const pedido = this.buscarPedidoPorId(id);
+        if (!pedido) return false;
+        pedido.ativo = false;
+        pedido.atualizadoEm = new Date().toISOString();
+        this.salvarPedido(pedido);
+        return true;
+    },
+
+
+
+    listarFilamentos() {
+        return JSON.parse(localStorage.getItem(this.KEYS.filamentos)) || [];
+    },
+
+    salvarFilamentos(lista) {
+        localStorage.setItem(this.KEYS.filamentos, JSON.stringify(Array.isArray(lista) ? lista : []));
+    },
+
+    salvarFilamento(filamento) {
+        const lista = this.listarFilamentos();
+        const index = lista.findIndex(item => String(item.id) === String(filamento.id));
+        if (index === -1) lista.push(filamento);
+        else lista[index] = filamento;
+        this.salvarFilamentos(lista);
+        return filamento;
+    },
+
+    buscarFilamentoPorId(id) {
+        return this.listarFilamentos().find(item => String(item.id) === String(id));
+    },
+
+    excluirFilamento(id) {
+        const filamento = this.buscarFilamentoPorId(id);
+        if (!filamento) return false;
+        filamento.ativo = false;
+        filamento.atualizadoEm = new Date().toISOString();
+        this.salvarFilamento(filamento);
+        return true;
+    },
+
+    baixarFilamento(id, quantidadeKg) {
+        const filamento = this.buscarFilamentoPorId(id);
+        const consumo = Math.max(0, Number(quantidadeKg) || 0);
+        if (!filamento || consumo <= 0) return false;
+        filamento.pesoAtualKg = Math.max(0, Number(filamento.pesoAtualKg || 0) - consumo);
+        filamento.atualizadoEm = new Date().toISOString();
+        this.salvarFilamento(filamento);
+        return filamento;
+    },
+
+
+
+    salvarConfigCustos(config) {
+        localStorage.setItem(this.KEYS.configCustos, JSON.stringify({
+            ...this.carregarConfigCustos(),
+            ...config
+        }));
+    },
+
+    carregarConfigCustos() {
+        const padrao = {
+            precoKgFilamentoPadrao: 85,
+            custoEnergiaHora: 0.20,
+            custoDepreciacaoHora: 0.50,
+            valorMaoDeObraHora: 0,
+            margemLucroPadrao: 100,
+            custoEmbalagemPadrao: 0,
+            taxaImpostoPercentual: 0,
+            perdaPercentual: 5,
+            cobrarMaoDeObraPorPadrao: false
+        };
+        const salvo = JSON.parse(localStorage.getItem(this.KEYS.configCustos)) || {};
+        return { ...padrao, ...salvo };
+    },
+
+
+
     obterTodosDados() {
 
         const configuracoes = this.carregarConfiguracoes();
@@ -518,6 +644,10 @@ const Storage = {
             consignados: this.listarConsignados(),
             conferencias: this.listarConferencias(),
             empresas: this.listarEmpresas(),
+            clientes: this.listarClientes(),
+            pedidos: this.listarPedidos(),
+            filamentos: this.listarFilamentos(),
+            configuracoesCustos: this.carregarConfigCustos(),
             configuracoes: {
                 ...configuracoes,
                 tema: localStorage.getItem(this.KEYS.tema)
@@ -578,7 +708,12 @@ const Storage = {
         const empresasValidas = dados.empresas === undefined
             || Array.isArray(dados.empresas);
 
-        return empresasValidas && Boolean(
+        const novosDadosValidos = ["clientes", "pedidos", "filamentos"]
+            .every(campo => dados[campo] === undefined || Array.isArray(dados[campo]));
+        const custosValidos = dados.configuracoesCustos === undefined
+            || (dados.configuracoesCustos && typeof dados.configuracoesCustos === "object" && !Array.isArray(dados.configuracoesCustos));
+
+        return empresasValidas && novosDadosValidos && custosValidos && Boolean(
             dados.configuracoes
             && typeof dados.configuracoes === "object"
             && !Array.isArray(dados.configuracoes)
@@ -602,7 +737,11 @@ const Storage = {
 
         const dadosNormalizados = {
             ...dados,
-            empresas: Array.isArray(dados?.empresas) ? dados.empresas : []
+            empresas: Array.isArray(dados?.empresas) ? dados.empresas : [],
+            clientes: Array.isArray(dados?.clientes) ? dados.clientes : [],
+            pedidos: Array.isArray(dados?.pedidos) ? dados.pedidos : [],
+            filamentos: Array.isArray(dados?.filamentos) ? dados.filamentos : [],
+            configuracoesCustos: dados?.configuracoesCustos || this.carregarConfigCustos()
         };
 
         const backupTemporario = {
@@ -619,6 +758,10 @@ const Storage = {
         this.salvarLojas(dadosNormalizados.lojas);
         this.salvarEstoquesLojas(dadosNormalizados.estoques);
         this.salvarEmpresas(dadosNormalizados.empresas);
+        this.salvarClientes(dadosNormalizados.clientes);
+        this.salvarPedidos(dadosNormalizados.pedidos);
+        this.salvarFilamentos(dadosNormalizados.filamentos);
+        this.salvarConfigCustos(dadosNormalizados.configuracoesCustos);
         localStorage.setItem(
             this.KEYS.consignados,
             JSON.stringify(dadosNormalizados.consignados)

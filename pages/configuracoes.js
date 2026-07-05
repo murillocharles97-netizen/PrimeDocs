@@ -67,6 +67,7 @@ function renderConfiguracoes() {
                 ${renderResumoPDFConfiguracoes(empresaPadrao)}
             </section>
 
+            ${renderCardCustosConfiguracoes()}
             ${renderCardBackupConfiguracoes()}
         </div>
     `;
@@ -291,6 +292,49 @@ function iconeTipoEmpresa(tipo) {
     return ({ impressao3d: "box", transporte: "car", geral: "building-2" })[tipo] || "building-2";
 }
 
+function renderCardCustosConfiguracoes() {
+    const config = Storage.carregarConfigCustos();
+    const campos = [
+        ["Preço padrão do kg", "custoPrecoKg", config.precoKgFilamentoPadrao],
+        ["Energia por hora", "custoEnergiaHora", config.custoEnergiaHora],
+        ["Depreciação por hora", "custoDepreciacaoHora", config.custoDepreciacaoHora],
+        ["Mão de obra por hora", "custoMaoDeObraHora", config.valorMaoDeObraHora],
+        ["Margem padrão (%)", "custoMargemPadrao", config.margemLucroPadrao],
+        ["Embalagem padrão", "custoEmbalagemPadrao", config.custoEmbalagemPadrao],
+        ["Taxa / imposto (%)", "custoTaxaImposto", config.taxaImpostoPercentual],
+        ["Falha / perda (%)", "custoPerda", config.perdaPercentual]
+    ];
+
+    return `
+        <section class="settingsCard settingsCostsCard">
+            <div class="settingsCardHeader">
+                <div class="settingsCardIcon"><i data-lucide="calculator"></i></div>
+                <div><span>PRODUÇÃO 3D</span><h3>Custos e Precificação</h3><p>Parâmetros padrão usados pela calculadora.</p></div>
+            </div>
+            <div class="costSettingsGrid">
+                ${campos.map(([label, id, valor]) => `<label class="inputGroup"><span>${label}</span><input id="${id}" type="number" min="0" step="0.01" value="${Number(valor || 0)}"></label>`).join("")}
+            </div>
+            <label class="companyCheckbox costLaborToggle"><input id="custoCobrarMaoDeObra" type="checkbox" ${config.cobrarMaoDeObraPorPadrao ? "checked" : ""}> Cobrar mão de obra por padrão</label>
+            <button class="btn settingsCostSave" type="button" onclick="salvarConfiguracoesCustos()"><i data-lucide="save"></i> Salvar parâmetros</button>
+        </section>`;
+}
+
+function salvarConfiguracoesCustos() {
+    const numero = id => Math.max(0, Number(document.getElementById(id)?.value) || 0);
+    Storage.salvarConfigCustos({
+        precoKgFilamentoPadrao: numero("custoPrecoKg"),
+        custoEnergiaHora: numero("custoEnergiaHora"),
+        custoDepreciacaoHora: numero("custoDepreciacaoHora"),
+        valorMaoDeObraHora: numero("custoMaoDeObraHora"),
+        margemLucroPadrao: numero("custoMargemPadrao"),
+        custoEmbalagemPadrao: numero("custoEmbalagemPadrao"),
+        taxaImpostoPercentual: numero("custoTaxaImposto"),
+        perdaPercentual: numero("custoPerda"),
+        cobrarMaoDeObraPorPadrao: Boolean(document.getElementById("custoCobrarMaoDeObra")?.checked)
+    });
+    Toast.show("Parâmetros de custo salvos!");
+}
+
 function renderCardBackupConfiguracoes() {
     return `
         <section class="backupCard settingsBackupCard">
@@ -298,7 +342,7 @@ function renderCardBackupConfiguracoes() {
                 <div class="backupCardIcon"><i data-lucide="database-backup"></i></div>
                 <div><span>SEGURANÇA DOS DADOS</span><h3>Backup e Sincronização</h3><p>Transfira todos os dados do PrimeDocs entre seus dispositivos.</p></div>
             </div>
-            <div class="backupInfo"><i data-lucide="shield-check"></i><p>O arquivo inclui empresas, produtos, lojas, estoques, históricos, tema e configurações.</p></div>
+            <div class="backupInfo"><i data-lucide="shield-check"></i><p>O arquivo inclui empresas, clientes, pedidos, filamentos, produtos, lojas, estoques, históricos, tema e configurações.</p></div>
             <div class="backupActions">
                 <button class="backupActionButton backupExportButton" type="button" onclick="exportarDadosPrimeDocs()"><span class="backupActionIcon"><i data-lucide="upload"></i></span><span><strong>Exportar Dados</strong><small>Baixar backup em JSON</small></span><i data-lucide="download"></i></button>
                 <button class="backupActionButton" type="button" onclick="selecionarArquivoBackup()"><span class="backupActionIcon"><i data-lucide="file-down"></i></span><span><strong>Importar Dados</strong><small>Restaurar outro dispositivo</small></span><i data-lucide="chevron-right"></i></button>

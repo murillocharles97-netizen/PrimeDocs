@@ -32,6 +32,18 @@ function navegar(pagina){
             renderOrcamento();
             break;
 
+        case "filamentos":
+            renderFilamentos();
+            break;
+
+        case "custos":
+            renderCustos();
+            break;
+
+        case "pedidos":
+            renderPedidos();
+            break;
+
         default:
             renderHome();
 

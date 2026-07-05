@@ -128,6 +128,14 @@ function calcularResumoDashboard() {
             0
         ),
     0);
+    const pedidos = Storage.listarPedidos().filter(pedido => pedido.ativo !== false);
+    const filamentos = Storage.listarFilamentos().filter(filamento => filamento.ativo !== false);
+    const pedidosProducao = pedidos.filter(p => p.statusPedido === "em_producao").length;
+    const pedidosProntos = pedidos.filter(p => p.statusPedido === "pronto").length;
+    const pedidosPendentes = pedidos.filter(p => !["entregue", "cancelado"].includes(p.statusPedido)).length;
+    const valorPedidosPendente = pedidos.reduce((total, p) => total + Number(p.valorPendente || 0), 0);
+    const filamentosBaixos = filamentos.filter(f => Number(f.pesoAtualKg || 0) <= Number(f.alertaMinimoKg || 0)).length;
+    const estoqueFilamentoKg = filamentos.reduce((total, f) => total + Number(f.pesoAtualKg || 0), 0);
 
     return {
         produtos,
@@ -142,7 +150,13 @@ function calcularResumoDashboard() {
             { icone: "layers-3", valor: estoquesAtivos.length, descricao: "Consignados ativos" },
             { icone: "scan-line", valor: conferencias.length, descricao: "Conferências realizadas" },
             { icone: "badge-dollar-sign", valor: Utils.moeda(valorConsignado), descricao: "Valor em consignado" },
-            { icone: "boxes", valor: totalPecas, descricao: "Peças em consignado" }
+            { icone: "boxes", valor: totalPecas, descricao: "Peças em consignado" },
+            { icone: "printer", valor: pedidosProducao, descricao: "Pedidos em produção" },
+            { icone: "package-check", valor: pedidosProntos, descricao: "Pedidos prontos" },
+            { icone: "clock-3", valor: pedidosPendentes, descricao: "Pedidos pendentes" },
+            { icone: "wallet", valor: Utils.moeda(valorPedidosPendente), descricao: "A receber de pedidos" },
+            { icone: "triangle-alert", valor: filamentosBaixos, descricao: "Filamentos em baixo estoque" },
+            { icone: "spool", valor: `${estoqueFilamentoKg.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg`, descricao: "Estoque de filamento" }
         ],
         financeiro: [
             { descricao: "Valor total em consignado", valor: Utils.moeda(valorConsignado) },
@@ -162,7 +176,9 @@ function calcularResumoDashboard() {
             }
         ],
         valorConsignado,
-        totalPecas
+        totalPecas,
+        pedidos,
+        filamentos
     };
 }
 
@@ -274,6 +290,18 @@ function carregarAlertas(dados) {
         }
     });
 
+    const hoje = Utils.hoje();
+    dados.pedidos.forEach(pedido => {
+        if (pedido.dataEntregaPrevista && pedido.dataEntregaPrevista < hoje && !["entregue", "cancelado"].includes(pedido.statusPedido)) {
+            alertas.push({ icone: "calendar-x", texto: `Pedido de ${pedido.clienteNome} está atrasado.` });
+        }
+    });
+    const pagamentosPendentes = dados.pedidos.filter(p => Number(p.valorPendente || 0) > 0 && p.statusPedido !== "cancelado").length;
+    if (pagamentosPendentes) alertas.push({ icone: "wallet-cards", texto: `${pagamentosPendentes} pedido(s) aguardando pagamento.` });
+    dados.filamentos.filter(f => Number(f.pesoAtualKg || 0) <= Number(f.alertaMinimoKg || 0)).forEach(f => {
+        alertas.push({ icone: "spool", texto: `${f.material} ${f.cor} está abaixo do estoque mínimo.` });
+    });
+
     return alertas;
 }
 
@@ -284,6 +312,14 @@ function renderDashboard() {
     const valorPorLoja = calcularValorPorLoja(dados.estoques, dados.lojas);
     const topProdutos = calcularTopProdutos(dados.estoques);
     const categorias = calcularCategorias(dados.estoques);
+    const pedidosPorStatus = Object.entries(STATUS_PEDIDOS).map(([status, nome]) => ({
+        nome,
+        quantidade: dados.pedidos.filter(p => p.statusPedido === status).length
+    })).filter(item => item.quantidade > 0);
+    const pendentePorCliente = [...dados.pedidos.reduce((mapa, pedido) => {
+        mapa.set(pedido.clienteNome || "Cliente", (mapa.get(pedido.clienteNome || "Cliente") || 0) + Number(pedido.valorPendente || 0));
+        return mapa;
+    }, new Map()).entries()].map(([nome, valor]) => ({ nome, valor })).filter(item => item.valor > 0).sort((a,b)=>b.valor-a.valor).slice(0,5);
     const movimentacoes = carregarUltimasMovimentacoes(
         dados.consignados,
         dados.conferencias
@@ -334,6 +370,8 @@ function renderDashboard() {
                     "quantidade",
                     valor => `${valor} peças`
                 )}
+                ${renderGraficoHorizontal("Pedidos por status", pedidosPorStatus, "quantidade", valor => `${valor} pedido(s)`)}
+                ${renderGraficoHorizontal("Valor pendente por cliente", pendentePorCliente, "valor", valor => Utils.moeda(valor))}
             </section>
 
             <section class="dashboardSection">
@@ -345,6 +383,9 @@ function renderDashboard() {
                     <i data-lucide="zap"></i>
                 </div>
                 <div class="dashboardQuickGrid">
+                    ${criarCard("clipboard-list", "Novo Pedido", "Produção e entrega", "pedidos")}
+                    ${criarCard("spool", "Filamentos", "Controlar estoque", "filamentos")}
+                    ${criarCard("calculator", "Calcular Custos", "Precificar projeto", "custos")}
                     ${criarCard("layers-3", "Novo Consignado", "Enviar produtos", "consignado")}
                     ${criarCard("scan-line", "Nova Conferência", "Registrar vendas", "conferencia")}
                     ${criarCard("printer", "Novo Orçamento", "Preparar documento", "orcamento")}

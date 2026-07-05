@@ -28,6 +28,10 @@ function navegar(pagina){
             renderConfiguracoes();
             break;
 
+        case "orcamento":
+            renderOrcamento();
+            break;
+
         default:
             renderHome();
 

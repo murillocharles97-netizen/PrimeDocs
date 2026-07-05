@@ -1,4 +1,4 @@
-const CACHE_VERSION = "primedocs-v2";
+const CACHE_VERSION = "primedocs-v3";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -30,7 +30,8 @@ const APP_SHELL = [
     "./pages/consignado.js",
     "./pages/lojas.js",
     "./pages/conferencia.js",
-    "./pages/configuracoes.js"
+    "./pages/configuracoes.js",
+    "./pages/orcamento.js"
 ];
 
 const EXTERNAL_RESOURCES = [

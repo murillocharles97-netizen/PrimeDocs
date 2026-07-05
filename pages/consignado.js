@@ -327,7 +327,7 @@ function gerarPDFConsignado() {
         itens: itensConsignado.map(item => ({ ...item }))
     };
 
-    const pdfGerado = PDF.gerarConsignado(dados);
+    const pdfGerado = PDF.gerarConsignado(dados, Storage.buscarEmpresaPadrao());
 
     if (!pdfGerado) return;
 

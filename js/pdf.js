@@ -29,7 +29,49 @@ function nomeSeguroPDF(valor) {
         .replace(/^-+|-+$/g, "") || "loja";
 }
 
-function criarPDFTabela(config) {
+function obterEmpresaPDF(empresa) {
+    const padrao = typeof Storage !== "undefined" && Storage.buscarEmpresaPadrao
+        ? Storage.buscarEmpresaPadrao()
+        : null;
+
+    return empresa || padrao || {
+        nome: "PrimeLine 3D",
+        tipo: "impressao3d",
+        logo: "",
+        corPrincipal: "#6D5DFD",
+        whatsapp: "",
+        rodapePDF: "Documento gerado pelo PrimeDocs"
+    };
+}
+
+function corHexParaRGB(hexadecimal) {
+    const valor = String(hexadecimal || "#6D5DFD").replace("#", "");
+    const valido = /^[0-9a-f]{6}$/i.test(valor) ? valor : "6D5DFD";
+    return [
+        parseInt(valido.slice(0, 2), 16),
+        parseInt(valido.slice(2, 4), 16),
+        parseInt(valido.slice(4, 6), 16)
+    ];
+}
+
+function adicionarLogoEmpresaPDF(doc, empresa, x, y, largura, altura) {
+    if (!empresa.logo || !String(empresa.logo).startsWith("data:image/")) return false;
+
+    try {
+        const formato = String(empresa.logo).startsWith("data:image/png")
+            ? "PNG"
+            : String(empresa.logo).startsWith("data:image/webp")
+                ? "WEBP"
+                : "JPEG";
+        doc.addImage(empresa.logo, formato, x, y, largura, altura, undefined, "FAST");
+        return true;
+    } catch (erro) {
+        console.warn("Logo ignorado no PDF por formato incompatível.", erro);
+        return false;
+    }
+}
+
+function criarPDFTabela(config, empresaInformada) {
     if (!window.jspdf?.jsPDF) {
         Toast.show("Não foi possível carregar o gerador de PDF.");
         return false;
@@ -37,7 +79,8 @@ function criarPDFTabela(config) {
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const azul = [37, 99, 235];
+    const empresa = obterEmpresaPDF(empresaInformada);
+    const azul = corHexParaRGB(empresa.corPrincipal);
     const texto = [51, 65, 85];
     const textoSuave = [100, 116, 139];
     const linha = [226, 232, 240];
@@ -56,14 +99,16 @@ function criarPDFTabela(config) {
     });
 
     function desenharCabecalho() {
+        const temLogo = adicionarLogoEmpresaPDF(doc, empresa, margem, 10, 16, 16);
+        const inicioTexto = temLogo ? margem + 20 : margem;
         doc.setTextColor(...azul);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
-        doc.text("PrimeLine 3D", margem, 18);
+        doc.text(String(empresa.nome || "PrimeDocs"), inicioTexto, 18);
 
         doc.setTextColor(...texto);
         doc.setFontSize(12);
-        doc.text(config.titulo, margem, 27);
+        doc.text(config.titulo, inicioTexto, 27);
 
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8.5);
@@ -240,8 +285,11 @@ function criarPDFTabela(config) {
         doc.setTextColor(...textoSuave);
         doc.setFont("helvetica", "normal");
         doc.setFontSize(7.5);
-        doc.text("Documento gerado pelo PrimeDocs", margem, alturaPagina - 10);
-        doc.text("PrimeLine 3D", larguraPagina / 2, alturaPagina - 10, { align: "center" });
+        doc.text(String(empresa.rodapePDF || "Documento gerado pelo PrimeDocs"), margem, alturaPagina - 10);
+        const contatoRodape = empresa.whatsapp
+            ? `${empresa.nome || "PrimeDocs"} - ${empresa.whatsapp}`
+            : String(empresa.nome || "PrimeDocs");
+        doc.text(contatoRodape, larguraPagina / 2, alturaPagina - 10, { align: "center" });
         doc.text(`Página ${pagina} de ${totalPaginas}`, larguraPagina - margem, alturaPagina - 10, {
             align: "right"
         });
@@ -252,7 +300,7 @@ function criarPDFTabela(config) {
 }
 
 const PDF = {
-    gerarConsignado(dados) {
+    gerarConsignado(dados, empresa) {
         const totalPecas = dados.itens.reduce(
             (total, item) => total + Number(item.quantidade || 0),
             0
@@ -289,10 +337,10 @@ const PDF = {
             ],
             observacoes: dados.observacoes,
             nomeArquivo: `consignado_${nomeSeguroPDF(dados.loja)}_${dados.data || Utils.hoje()}.pdf`
-        });
+        }, empresa);
     },
 
-    gerarVendasConferencia(dados) {
+    gerarVendasConferencia(dados, empresa) {
         return criarPDFTabela({
             titulo: "RELATÓRIO DE VENDAS",
             tituloSecao: "PRODUTOS VENDIDOS",
@@ -323,10 +371,10 @@ const PDF = {
                 { rotulo: "Valor total de repasse", valor: formatarMoeda(dados.valorTotalVendido) }
             ],
             nomeArquivo: `vendas_${nomeSeguroPDF(dados.loja)}_${dados.dataConferencia || Utils.hoje()}.pdf`
-        });
+        }, empresa);
     },
 
-    gerarEstoqueAtualizado(dados) {
+    gerarEstoqueAtualizado(dados, empresa) {
         return criarPDFTabela({
             titulo: "ESTOQUE ATUALIZADO",
             tituloSecao: "PRODUTOS EM ESTOQUE",
@@ -353,6 +401,61 @@ const PDF = {
                 { rotulo: "Valor de repasse", valor: formatarMoeda(dados.valorRepasse) }
             ],
             nomeArquivo: `estoque_atualizado_${nomeSeguroPDF(dados.loja)}_${dados.dataConferencia || Utils.hoje()}.pdf`
-        });
+        }, empresa);
+    },
+
+    gerarOrcamento(dados, empresaInformada) {
+        const empresa = obterEmpresaPDF(empresaInformada);
+        const tipo = dados.tipo || empresa.tipo || "geral";
+        let colunas;
+        let linhas;
+        let informacoes = [
+            { rotulo: "Cliente", valor: dados.cliente },
+            { rotulo: "Data", valor: formatarDataBR(dados.data) },
+            { rotulo: "Empresa", valor: empresa.nome }
+        ];
+
+        if (tipo === "transporte") {
+            colunas = [
+                { titulo: "ORIGEM", largura: 60 },
+                { titulo: "DESTINO", largura: 60 },
+                { titulo: "VIAGEM", largura: 30 },
+                { titulo: "VALOR", largura: 28, alinhar: "right", destaque: true }
+            ];
+            linhas = [[
+                dados.origem || "-",
+                dados.destino || "-",
+                dados.tipoViagem === "ida-e-volta" ? "Ida e volta" : "Ida",
+                formatarMoeda(dados.valorFinal)
+            ]];
+        } else if (tipo === "impressao3d") {
+            colunas = [
+                { titulo: "PRODUTO / SERVIÇO", largura: 110 },
+                { titulo: "QTD.", largura: 25, alinhar: "center" },
+                { titulo: "VALOR FINAL", largura: 43, alinhar: "right", destaque: true }
+            ];
+            linhas = [[
+                dados.produto || "-",
+                Number(dados.quantidade || 1),
+                formatarMoeda(dados.valorFinal)
+            ]];
+        } else {
+            colunas = [
+                { titulo: "DESCRIÇÃO", largura: 135 },
+                { titulo: "VALOR FINAL", largura: 43, alinhar: "right", destaque: true }
+            ];
+            linhas = [[dados.descricao || "-", formatarMoeda(dados.valorFinal)]];
+        }
+
+        return criarPDFTabela({
+            titulo: "ORÇAMENTO",
+            tituloSecao: "DETALHES DO ORÇAMENTO",
+            informacoes,
+            colunas,
+            linhas,
+            resumo: [{ rotulo: "Valor final", valor: formatarMoeda(dados.valorFinal) }],
+            observacoes: dados.observacoes,
+            nomeArquivo: `orcamento_${nomeSeguroPDF(empresa.nome)}_${nomeSeguroPDF(dados.cliente)}_${dados.data || Utils.hoje()}.pdf`
+        }, empresa);
     }
 };

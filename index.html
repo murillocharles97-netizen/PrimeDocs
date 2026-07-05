@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>PrimeDocs</title>
+
+    <meta id="themeColorMeta" name="theme-color" content="#6D5DFD">
+
+    <meta
+        name="description"
+        content="Sistema de gestão para impressão 3D e consignado.">
+
+    <meta name="application-name" content="PrimeDocs">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PrimeDocs">
+
+    <link rel="manifest" href="manifest.json">
+
+    <link rel="icon" href="assets/brand.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+    <script>
+        try {
+            const tema = localStorage.getItem("primedocs_tema");
+            const escuro = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+            document.documentElement.dataset.theme = tema || (escuro ? "dark" : "light");
+        } catch (erro) {
+            document.documentElement.dataset.theme = "light";
+        }
+    </script>
+
+    <link rel="stylesheet" href="css/style.css">
+
+</head>
+
+<body>
+
+    <!-- SPLASH -->
+
+    <div id="splash">
+
+        <div class="brandMark brandMarkLarge" aria-hidden="true">
+            <i data-lucide="box"></i>
+        </div>
+
+        <h1>PrimeDocs</h1>
+
+        <p>PrimeLine 3D</p>
+
+    </div>
+
+
+
+    <!-- APP -->
+
+    <div id="app">
+
+        <!-- HEADER -->
+
+        <header class="appHeader">
+
+            <div class="headerBrand">
+                <div class="brandMark" aria-hidden="true">
+                    <i data-lucide="box"></i>
+                </div>
+                <div>
+                    <h1>PrimeDocs</h1>
+                    <span>Gestão inteligente para impressão 3D</span>
+                </div>
+            </div>
+
+            <button
+                id="themeToggle"
+                class="themeToggle"
+                type="button"
+                onclick="alternarTemaPrimeDocs()"
+                aria-label="Alternar tema claro e escuro"
+                title="Alternar tema">
+                <i class="themeIconSun" data-lucide="sun"></i>
+                <i class="themeIconMoon" data-lucide="moon"></i>
+            </button>
+
+        </header>
+
+
+
+        <!-- CONTEÚDO -->
+
+        <main id="content">
+
+        </main>
+
+    </div>
+
+
+
+    <!-- jsPDF -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- html2canvas -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script src="js/config/app.js"></script>
+<script src="js/config/categorias.js"></script>
+<script src="js/config/menu.js"></script>
+
+<script src="js/storage.js"></script>
+<script src="js/utils.js"></script>
+
+<script src="js/components/card.js"></script>
+<script src="js/components/button.js"></script>
+<script src="js/components/input.js"></script>
+<script src="js/components/modal.js"></script>
+<script src="js/components/page.js"></script>
+<script src="js/components/toast.js"></script>
+
+<script src="js/pdf.js"></script>
+
+<script src="js/router.js"></script>
+
+<script src="pages/home.js"></script>
+<script src="pages/produtos.js"></script>
+<script src="pages/consignado.js"></script>
+<script src="pages/lojas.js"></script>
+<script src="pages/conferencia.js"></script>
+<script src="pages/configuracoes.js"></script>
+
+<script src="js/app.js"></script>
+</body>
+
+</html>

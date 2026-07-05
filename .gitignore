@@ -1,0 +1,29 @@
+# Sistema operacional e editores
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs e arquivos temporários
+*.log
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Dependências e saídas locais
+node_modules/
+dist/
+build/
+coverage/
+
+# Variáveis e segredos locais
+.env
+.env.*
+!.env.example
+
+# Arquivos de backup gerados pelo aplicativo
+backup_primedocs_*.json

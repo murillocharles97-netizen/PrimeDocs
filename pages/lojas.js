@@ -266,6 +266,7 @@ function salvarLoja() {
 
     const loja = {
         id: lojaEditando?.id || Utils.gerarId(),
+        clienteId: lojaEditando?.clienteId || null,
         nome,
         responsavel: document.getElementById("responsavelLoja").value.trim(),
         whatsapp: document.getElementById("whatsappLoja").value.trim(),
@@ -276,6 +277,10 @@ function salvarLoja() {
     };
 
     Storage.salvarLoja(loja);
+    if (loja.clienteId) {
+        const cliente = Storage.buscarClientePorId(loja.clienteId);
+        if (cliente) Storage.salvarCliente({...cliente,nome:loja.nome,whatsapp:loja.whatsapp||cliente.whatsapp,endereco:loja.endereco||cliente.endereco,observacoes:loja.observacoes||cliente.observacoes,tipo:"loja_parceira",lojaId:loja.id,ativo:loja.ativo,atualizadoEm:new Date().toISOString()});
+    }
     lojaEditando = null;
     Modal.fechar();
     listarLojas();

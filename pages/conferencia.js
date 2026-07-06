@@ -375,6 +375,9 @@ function salvarResultadoConferencia() {
         criadoEm: agora
     });
 
+    Financeiro.sincronizar();
+    gerarNotificacoesOperacionais();
+
     Storage.salvarEstoqueLoja({
         lojaId: conferenciaAtual.lojaId,
         lojaNome: conferenciaAtual.lojaNome,

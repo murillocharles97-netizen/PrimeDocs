@@ -128,6 +128,17 @@ function calcularResumoDashboard() {
             0
         ),
     0);
+    const pedidos = Storage.listarPedidos().filter(pedido => pedido.ativo !== false);
+    const clientes = Storage.listarClientes().filter(cliente => cliente.ativo !== false);
+    const orcamentos = Storage.listarOrcamentos().filter(orcamento => orcamento.ativo !== false);
+    const pagamentos = Storage.listarPagamentos();
+    const filamentos = Storage.listarFilamentos().filter(filamento => filamento.ativo !== false);
+    const pedidosProducao = pedidos.filter(p => p.statusPedido === "em_producao").length;
+    const pedidosProntos = pedidos.filter(p => p.statusPedido === "pronto").length;
+    const pedidosPendentes = pedidos.filter(p => !["entregue", "cancelado"].includes(p.statusPedido)).length;
+    const valorPedidosPendente = pedidos.reduce((total, p) => total + Number(p.valorPendente || 0), 0);
+    const filamentosBaixos = filamentos.filter(f => Number(f.pesoAtualKg || 0) <= Number(f.alertaMinimoKg || 0)).length;
+    const estoqueFilamentoKg = filamentos.reduce((total, f) => total + Number(f.pesoAtualKg || 0), 0);
 
     return {
         produtos,
@@ -142,7 +153,13 @@ function calcularResumoDashboard() {
             { icone: "layers-3", valor: estoquesAtivos.length, descricao: "Consignados ativos" },
             { icone: "scan-line", valor: conferencias.length, descricao: "Conferências realizadas" },
             { icone: "badge-dollar-sign", valor: Utils.moeda(valorConsignado), descricao: "Valor em consignado" },
-            { icone: "boxes", valor: totalPecas, descricao: "Peças em consignado" }
+            { icone: "boxes", valor: totalPecas, descricao: "Peças em consignado" },
+            { icone: "printer", valor: pedidosProducao, descricao: "Pedidos em produção" },
+            { icone: "package-check", valor: pedidosProntos, descricao: "Pedidos prontos" },
+            { icone: "clock-3", valor: pedidosPendentes, descricao: "Pedidos pendentes" },
+            { icone: "wallet", valor: Utils.moeda(valorPedidosPendente), descricao: "A receber de pedidos" },
+            { icone: "triangle-alert", valor: filamentosBaixos, descricao: "Filamentos em baixo estoque" },
+            { icone: "spool", valor: `${estoqueFilamentoKg.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg`, descricao: "Estoque de filamento" }
         ],
         financeiro: [
             { descricao: "Valor total em consignado", valor: Utils.moeda(valorConsignado) },
@@ -162,7 +179,12 @@ function calcularResumoDashboard() {
             }
         ],
         valorConsignado,
-        totalPecas
+        totalPecas,
+        pedidos,
+        clientes,
+        orcamentos,
+        pagamentos,
+        filamentos
     };
 }
 
@@ -274,6 +296,18 @@ function carregarAlertas(dados) {
         }
     });
 
+    const hoje = Utils.hoje();
+    dados.pedidos.forEach(pedido => {
+        if (pedido.dataEntregaPrevista && pedido.dataEntregaPrevista < hoje && !["entregue", "cancelado"].includes(pedido.statusPedido)) {
+            alertas.push({ icone: "calendar-x", texto: `Pedido de ${pedido.clienteNome} está atrasado.` });
+        }
+    });
+    const pagamentosPendentes = dados.pedidos.filter(p => Number(p.valorPendente || 0) > 0 && p.statusPedido !== "cancelado").length;
+    if (pagamentosPendentes) alertas.push({ icone: "wallet-cards", texto: `${pagamentosPendentes} pedido(s) aguardando pagamento.` });
+    dados.filamentos.filter(f => Number(f.pesoAtualKg || 0) <= Number(f.alertaMinimoKg || 0)).forEach(f => {
+        alertas.push({ icone: "spool", texto: `${f.material} ${f.cor} está abaixo do estoque mínimo.` });
+    });
+
     return alertas;
 }
 
@@ -284,6 +318,14 @@ function renderDashboard() {
     const valorPorLoja = calcularValorPorLoja(dados.estoques, dados.lojas);
     const topProdutos = calcularTopProdutos(dados.estoques);
     const categorias = calcularCategorias(dados.estoques);
+    const pedidosPorStatus = Object.entries(STATUS_PEDIDOS).map(([status, nome]) => ({
+        nome,
+        quantidade: dados.pedidos.filter(p => p.statusPedido === status).length
+    })).filter(item => item.quantidade > 0);
+    const pendentePorCliente = [...dados.pedidos.reduce((mapa, pedido) => {
+        mapa.set(pedido.clienteNome || "Cliente", (mapa.get(pedido.clienteNome || "Cliente") || 0) + Number(pedido.valorPendente || 0));
+        return mapa;
+    }, new Map()).entries()].map(([nome, valor]) => ({ nome, valor })).filter(item => item.valor > 0).sort((a,b)=>b.valor-a.valor).slice(0,5);
     const movimentacoes = carregarUltimasMovimentacoes(
         dados.consignados,
         dados.conferencias
@@ -334,6 +376,8 @@ function renderDashboard() {
                     "quantidade",
                     valor => `${valor} peças`
                 )}
+                ${renderGraficoHorizontal("Pedidos por status", pedidosPorStatus, "quantidade", valor => `${valor} pedido(s)`)}
+                ${renderGraficoHorizontal("Valor pendente por cliente", pendentePorCliente, "valor", valor => Utils.moeda(valor))}
             </section>
 
             <section class="dashboardSection">
@@ -345,6 +389,9 @@ function renderDashboard() {
                     <i data-lucide="zap"></i>
                 </div>
                 <div class="dashboardQuickGrid">
+                    ${criarCard("clipboard-list", "Novo Pedido", "Produção e entrega", "pedidos")}
+                    ${criarCard("spool", "Filamentos", "Controlar estoque", "filamentos")}
+                    ${criarCard("calculator", "Calcular Custos", "Precificar projeto", "custos")}
                     ${criarCard("layers-3", "Novo Consignado", "Enviar produtos", "consignado")}
                     ${criarCard("scan-line", "Nova Conferência", "Registrar vendas", "conferencia")}
                     ${criarCard("printer", "Novo Orçamento", "Preparar documento", "orcamento")}
@@ -548,3 +595,64 @@ function escaparHtmlDashboard(valor) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
 }
+
+/* Dashboard executivo - camada de apresentação */
+function renderDashboard() {
+    Storage.limparDadosOrfaosLojas();
+    const dados=calcularResumoDashboard(),alertas=carregarAlertas(dados),agora=new Date(),hora=agora.getHours();
+    const receberClientes=dados.pedidos.reduce((t,p)=>t+Number(p.valorPendente||0),0);
+    const receberConsignado=dados.conferencias.reduce((t,c)=>t+Number(c.valorTotalVendido||0),0);
+    const emProducao=dados.pedidos.filter(p=>p.statusPedido==="em_producao").length;
+    const prontos=dados.pedidos.filter(p=>p.statusPedido==="pronto").length;
+    const atrasados=dados.pedidos.filter(p=>p.dataEntregaPrevista&&p.dataEntregaPrevista<Utils.hoje()&&!["entregue","cancelado"].includes(p.statusPedido)).length;
+    const lojasAguardando=dados.estoques.filter(e=>(e.itens||[]).some(i=>Number(i.quantidade||0)>0)).length;
+    const filamentosCriticos=dados.filamentos.filter(f=>Number(f.pesoAtualKg||0)<=Number(f.alertaMinimoKg||0)).length;
+    const estoqueFilamento=dados.filamentos.reduce((t,f)=>t+Number(f.pesoAtualKg||0),0);
+    const pedidosPorStatus=Object.entries(STATUS_PEDIDOS).map(([status,nome])=>({nome,quantidade:dados.pedidos.filter(p=>p.statusPedido===status).length})).filter(i=>i.quantidade);
+    const recebimentos=[{nome:"Clientes",valor:receberClientes},{nome:"Consignado",valor:receberConsignado}].filter(i=>i.valor);
+    const topProdutos=calcularTopProdutosVendidosDashboard(dados.conferencias);
+    const movimentacoes=carregarMovimentacoesExecutivas(dados);
+    const saudacao=hora<12?"Bom dia":hora<18?"Boa tarde":"Boa noite";
+    const dataAtual=agora.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long"});
+    app.innerHTML=`<div class="executiveDashboard">
+        <section class="executiveWelcome"><div><span>VISÃO EXECUTIVA</span><h2>${saudacao}, vamos produzir?</h2><p>${escaparHtmlDashboard(capitalizarDashboard(dataAtual))}</p></div><div class="executiveCube"><i data-lucide="blocks"></i></div></section>
+        <section class="executiveSummaryGrid">${renderResumoExecutivo("wallet",Utils.moeda(receberClientes+receberConsignado),"Receber","Valor total pendente")}${renderResumoExecutivo("printer",emProducao,"Produção","Pedidos em produção")}${renderResumoExecutivo("store",lojasAguardando,"Consignado","Lojas aguardando conferência")}${renderResumoExecutivo("triangle-alert",alertas.length,"Alertas","Atenção necessária",alertas.length?"warning":"success")}</section>
+        <section class="executiveModulesGrid">${renderModuloExecutivo("landmark","Financeiro","Fluxo de recebimentos",[["Receber de clientes",Utils.moeda(receberClientes)],["Receber de consignado",Utils.moeda(receberConsignado)],["Total pendente",Utils.moeda(receberClientes+receberConsignado)]],"financeiro")}${renderModuloExecutivo("factory","Produção","Situação dos pedidos",[["Em produção",emProducao],["Prontos",prontos],["Atrasados",atrasados]],"producao")}${renderModuloExecutivo("store","Consignado","Operação nas lojas",[["Valor em lojas",Utils.moeda(dados.valorConsignado)],["Próximas visitas","Em preparação"],["Últimas conferências",dados.conferencias.length]],"consignado")}${renderModuloExecutivo("spool","Filamentos","Saúde do estoque",[["Filamentos críticos",filamentosCriticos],["Estoque total",`${estoqueFilamento.toLocaleString("pt-BR",{maximumFractionDigits:2})} kg`],["Consumo futuro","Em preparação"]],"filamentos")}</section>
+        <section class="executiveCharts">${renderGraficoExecutivo("Recebimentos","Clientes x Consignado",recebimentos,"valor",v=>Utils.moeda(v))}${renderGraficoExecutivo("Produção","Pedidos por status",pedidosPorStatus,"quantidade",v=>`${v}`)}${renderGraficoExecutivo("Vendas","Produtos mais vendidos",topProdutos,"quantidade",v=>`${v} peças`)}</section>
+        <section class="executiveTimelineSection"><div class="executiveSectionHeader"><div><span>ATIVIDADE</span><h3>Últimas movimentações</h3></div><i data-lucide="history"></i></div>${renderTimelineExecutiva(movimentacoes)}</section>
+    </div>`;lucide.createIcons();
+}
+
+function renderResumoExecutivo(icone,valor,titulo,descricao,estado=""){return `<article class="executiveSummaryCard ${estado}"><div><i data-lucide="${icone}"></i></div><span>${titulo}</span><strong>${escaparHtmlDashboard(valor)}</strong><small>${descricao}</small></article>`;}
+function renderModuloExecutivo(icone,titulo,subtitulo,linhas,chave){return `<article class="executiveModule" data-dashboard-module="${chave}"><div class="executiveSectionHeader"><div><span>${subtitulo}</span><h3>${titulo}</h3></div><i data-lucide="${icone}"></i></div><div class="executiveMetricList">${linhas.map(([l,v],i)=>`<div class="${i===linhas.length-1?"isTotal":""}"><span>${l}</span><strong>${escaparHtmlDashboard(v)}</strong></div>`).join("")}</div></article>`;}
+function renderGraficoExecutivo(secao,titulo,itens,campo,formatar){const max=Math.max(...itens.map(i=>Number(i[campo]||0)),0);return `<article class="executiveChartCard"><div class="executiveSectionHeader"><div><span>${secao}</span><h3>${titulo}</h3></div><i data-lucide="chart-no-axes-column-increasing"></i></div>${itens.length?`<div class="executiveBars">${itens.slice(0,6).map(i=>`<div><header><span>${escaparHtmlDashboard(i.nome)}</span><strong>${escaparHtmlDashboard(formatar(Number(i[campo]||0)))}</strong></header><div><span style="width:${max?Math.max(4,Number(i[campo]||0)/max*100):0}%"></span></div></div>`).join("")}</div>`:renderDashboardVazio("Sem dados para este período.")}</article>`;}
+function calcularTopProdutosVendidosDashboard(conferencias){const mapa=new Map();conferencias.forEach(c=>(c.itens||[]).forEach(i=>{const qtd=Number(i.quantidadeVendida||0);if(qtd)mapa.set(i.nome||"Produto",(mapa.get(i.nome||"Produto")||0)+qtd);}));return [...mapa.entries()].map(([nome,quantidade])=>({nome,quantidade})).sort((a,b)=>b.quantidade-a.quantidade).slice(0,5);}
+function carregarMovimentacoesExecutivas(dados){return [...dados.pedidos.map(p=>({tipo:"Pedido",icone:"package",descricao:`${p.clienteNome||"Cliente"} · ${STATUS_PEDIDOS[p.statusPedido]||"Criado"}`,data:p.criadoEm||p.dataPedido,timestamp:obterTimestampDashboard(p.criadoEm||p.dataPedido)})),...(dados.orcamentos||[]).map(o=>({tipo:"Orçamento",icone:"file-text",descricao:`${o.clienteNome||o.cliente||"Cliente"} · ${o.status||"Enviado"}`,data:o.criadoEm||o.data,timestamp:obterTimestampDashboard(o.criadoEm||o.data)})),...(dados.pagamentos||[]).map(p=>({tipo:"Pagamento",icone:"badge-dollar-sign",descricao:`${p.clienteNome||"Cliente"} · ${Utils.moeda(p.valor)}`,data:p.criadoEm||p.data,timestamp:obterTimestampDashboard(p.criadoEm||p.data)})),...dados.consignados.map(c=>({tipo:"Consignado",icone:"store",descricao:c.lojaNome||"Loja",data:c.criadoEm||c.data,timestamp:obterTimestampDashboard(c.criadoEm||c.data)})),...dados.conferencias.map(c=>({tipo:"Conferência",icone:"badge-check",descricao:c.lojaNome||"Loja",data:c.criadoEm||c.data,timestamp:obterTimestampDashboard(c.criadoEm||c.data)}))].sort((a,b)=>b.timestamp-a.timestamp).slice(0,6);}
+function renderTimelineExecutiva(itens){if(!itens.length)return renderDashboardVazio("Nenhuma movimentação registrada.");return `<div class="executiveTimeline">${itens.map(i=>`<div><span class="executiveTimelineIcon"><i data-lucide="${i.icone}"></i></span><section><strong>${i.tipo}</strong><p>${escaparHtmlDashboard(i.descricao)}</p></section><time>${formatarDataDashboard(i.data)}</time></div>`).join("")}</div>`;}
+
+/* Central de Operações */
+function renderDashboard(){
+    Storage.limparDadosOrfaosLojas();
+    const financeiro=Financeiro.sincronizar(),resumo=Financeiro.calcularResumo(financeiro),notificacoes=gerarNotificacoesOperacionais(),hoje=Utils.hoje();
+    const pedidos=Storage.listarPedidos().filter(p=>p.ativo!==false),filamentos=Storage.listarFilamentos().filter(f=>f.ativo!==false),lojasVisitar=calcularLojasParaVisitar();
+    const producao=pedidos.filter(p=>p.statusPedido==='em_producao'),prontos=pedidos.filter(p=>p.statusPedido==='pronto'),atrasados=pedidos.filter(p=>p.dataEntregaPrevista&&p.dataEntregaPrevista<hoje&&!['entregue','cancelado'].includes(p.statusPedido));
+    const criticos=filamentos.filter(f=>Number(f.pesoAtualKg||0)<=Number(f.alertaMinimoKg||0));
+    const pendentes=financeiro.filter(i=>!['pago','cancelado'].includes(i.status)),maior=pendentes.sort((a,b)=>b.valorRestante-a.valorRestante)[0];
+    const acoes=montarAcoesOperacionais({financeiro,pedidos,filamentos,lojasVisitar});
+    const agora=new Date(),saudacao=agora.getHours()<12?'Bom dia':agora.getHours()<18?'Boa tarde':'Boa noite';
+    app.innerHTML=`<div class="operationsDashboard">
+        <section class="operationsHero"><div><span>CENTRAL DE OPERAÇÕES</span><h1>${saudacao}. Aqui está o que pede atenção.</h1><p>${capitalizarDashboard(agora.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'}))}</p></div><button onclick="abrirCentralNotificacoes()"><i data-lucide="bell-ring"></i><strong>${notificacoes.filter(n=>!n.visualizada).length}</strong><span>notificações</span></button></section>
+        <section class="operationsSummaryGrid">${resumoOperacao('calendar-clock',Utils.moeda(resumo.hoje),'Receber hoje')}${resumoOperacao('calendar-range',Utils.moeda(resumo.mes),'Receber no mês')}${resumoOperacao('clock-alert',atrasados.length,'Pedidos atrasados',atrasados.length?'danger':'')}${resumoOperacao('printer',producao.length,'Em produção')}${resumoOperacao('spool',criticos.length,'Filamentos críticos',criticos.length?'warning':'')}${resumoOperacao('map-pinned',lojasVisitar.length,'Lojas para visitar')}</section>
+        <section class="operationsActionSection"><div class="operationsSectionTitle"><div><span>PRIORIDADES</span><h2>Ação do dia</h2></div><small>${acoes.length} ações sugeridas</small></div>${acoes.length?`<div class="operationsActionList">${acoes.slice(0,10).map(renderAcaoOperacional).join('')}</div>`:`<div class="operationsAllClear"><i data-lucide="circle-check-big"></i><div><strong>Operação em dia</strong><p>Nenhuma pendência crítica encontrada.</p></div></div>`}</section>
+        <section class="operationsModulesGrid">
+            ${moduloOperacao('wallet-cards','Financeiro','Recebimentos',[['Receber hoje',Utils.moeda(resumo.hoje)],['Em atraso',Utils.moeda(resumo.atraso)],['Maior recebimento',maior?`${maior.clienteNome} · ${Utils.moeda(maior.valorRestante)}`:'Nenhum']], 'financeiro')}
+            ${moduloOperacao('factory','Produção','Pedidos',[['Em produção',producao.length],['Prontos',prontos.length],['Atrasados',atrasados.length]],'pedidos')}
+            ${moduloOperacao('store','Consignado','Próximas visitas',lojasVisitar.length?lojasVisitar.slice(0,3).map(i=>[i.loja.nome,`${i.dias} dias`]):[['Situação','Nenhuma visita sugerida']],'conferencia')}
+            ${moduloOperacao('spool','Filamentos','Alertas de estoque',criticos.length?criticos.slice(0,3).map(f=>[`${f.material} ${f.cor}`,`${(Number(f.pesoAtualKg||0)*1000).toFixed(0)} g`]):[['Situação','Estoque saudável']],'filamentos')}
+        </section>
+    </div>`;lucide.createIcons();
+}
+function resumoOperacao(icone,valor,rotulo,estado=''){return `<article class="operationsSummaryCard ${estado}"><i data-lucide="${icone}"></i><strong>${escaparHtmlDashboard(valor)}</strong><span>${rotulo}</span></article>`;}
+function montarAcoesOperacionais({financeiro,pedidos,filamentos,lojasVisitar}){const hoje=Utils.hoje(),acoes=[];financeiro.filter(i=>i.status==='atrasado'||i.vencimento===hoje).forEach(i=>acoes.push({icone:'hand-coins',titulo:`Receber ${Utils.moeda(i.valorRestante)}`,descricao:i.clienteNome,prioridade:i.status==='atrasado'?'alta':'media',modulo:'financeiro'}));pedidos.filter(p=>p.statusPedido==='em_producao').forEach(p=>acoes.push({icone:'printer',titulo:`Produzir pedido de ${p.clienteNome}`,descricao:p.dataEntregaPrevista?`Entrega ${formatarDataBR(p.dataEntregaPrevista)}`:'Sem previsão',prioridade:p.dataEntregaPrevista&&p.dataEntregaPrevista<=hoje?'alta':'media',modulo:'pedidos'}));pedidos.filter(p=>p.statusPedido==='pronto').forEach(p=>acoes.push({icone:'package-check',titulo:`Entregar pedido de ${p.clienteNome}`,descricao:'Pedido pronto',prioridade:'media',modulo:'pedidos'}));lojasVisitar.forEach(i=>acoes.push({icone:'store',titulo:`Conferir ${i.loja.nome}`,descricao:`Última visita há ${i.dias} dias`,prioridade:i.dias>=30?'alta':'media',modulo:'conferencia'}));filamentos.filter(f=>Number(f.pesoAtualKg||0)<=Number(f.alertaMinimoKg||0)).forEach(f=>acoes.push({icone:'shopping-cart',titulo:`Comprar ${f.material} ${f.cor}`,descricao:`Restam ${(Number(f.pesoAtualKg||0)*1000).toFixed(0)} g`,prioridade:Number(f.pesoAtualKg||0)<=0?'alta':'media',modulo:'filamentos'}));return acoes.sort((a,b)=>(a.prioridade==='alta'?0:1)-(b.prioridade==='alta'?0:1));}
+function renderAcaoOperacional(a){return `<article class="operationsAction priority-${a.prioridade}"><span><i data-lucide="${a.icone}"></i></span><div><strong>${escaparHtmlDashboard(a.titulo)}</strong><small>${escaparHtmlDashboard(a.descricao)}</small></div><b>${a.prioridade==='alta'?'Urgente':'Hoje'}</b><button onclick="navegar('${a.modulo}')">Abrir <i data-lucide="arrow-up-right"></i></button></article>`;}
+function moduloOperacao(icone,titulo,subtitulo,linhas,modulo){return `<article class="operationsModule"><header><span><i data-lucide="${icone}"></i></span><div><small>${subtitulo}</small><h3>${titulo}</h3></div><button onclick="navegar('${modulo}')" aria-label="Abrir ${titulo}"><i data-lucide="arrow-up-right"></i></button></header><div>${linhas.map(([l,v])=>`<p><span>${escaparHtmlDashboard(l)}</span><strong>${escaparHtmlDashboard(v)}</strong></p>`).join('')}</div></article>`;}

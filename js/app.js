@@ -59,12 +59,16 @@ if (window.lucide) {
 
 document.addEventListener("DOMContentLoaded",()=>{
 
+renderNavegacaoPrimeDocs();
+
 setTimeout(()=>{
 
 document.getElementById("splash").style.display="none";
 
 document.getElementById("app").style.display="block";
 
+Financeiro.sincronizar();
+gerarNotificacoesOperacionais();
 navegar("home");
 
 },1800);

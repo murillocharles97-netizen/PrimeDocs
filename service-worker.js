@@ -1,4 +1,4 @@
-const CACHE_VERSION = "primedocs-v4";
+const CACHE_VERSION = "primedocs-v12";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -16,22 +16,32 @@ const APP_SHELL = [
     "./js/router.js",
     "./js/storage.js",
     "./js/utils.js",
+    "./js/financeiro.js",
+    "./js/calculadoraCustos.js",
     "./js/config/app.js",
     "./js/config/categorias.js",
     "./js/config/menu.js",
+    "./js/config/status.js",
     "./js/components/button.js",
     "./js/components/card.js",
     "./js/components/input.js",
     "./js/components/modal.js",
     "./js/components/page.js",
     "./js/components/toast.js",
+    "./js/components/navigation.js",
     "./pages/home.js",
     "./pages/produtos.js",
     "./pages/consignado.js",
     "./pages/lojas.js",
     "./pages/conferencia.js",
     "./pages/configuracoes.js",
-    "./pages/orcamento.js"
+    "./pages/orcamento.js",
+    "./pages/filamentos.js",
+    "./pages/custos.js",
+    "./pages/pedidos.js",
+    "./pages/clientes.js",
+    "./pages/relatorios.js",
+    "./pages/financeiro.js"
 ];
 
 const EXTERNAL_RESOURCES = [
@@ -67,6 +77,11 @@ self.addEventListener("install", event => {
 
 async function ativarNovaVersao() {
     const chaves = await caches.keys();
+    const haviaVersaoAnterior = chaves.some(chave =>
+        chave.startsWith("primedocs-")
+        && chave !== APP_CACHE
+        && chave !== RUNTIME_CACHE
+    );
 
     await Promise.all(
         chaves
@@ -77,6 +92,8 @@ async function ativarNovaVersao() {
     );
 
     await self.clients.claim();
+
+    if (!haviaVersaoAnterior) return;
 
     const janelas = await self.clients.matchAll({
         type: "window",

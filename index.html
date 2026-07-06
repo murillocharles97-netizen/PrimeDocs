@@ -38,7 +38,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=4">
+    <link rel="stylesheet" href="css/style.css?v=12">
 
 </head>
 
@@ -64,29 +64,27 @@
 
     <div id="app">
 
+        <div id="drawerOverlay" class="drawerOverlay" onclick="fecharDrawerPrimeDocs()"></div>
+        <aside id="appDrawer" class="appDrawer" aria-hidden="true"><div id="drawerNavigation"></div></aside>
+
         <!-- HEADER -->
 
         <header class="appHeader">
 
+            <button class="headerIconButton menuTrigger" type="button" onclick="alternarDrawerPrimeDocs()" aria-label="Abrir menu"><i data-lucide="menu"></i></button>
+
             <div class="headerBrand">
-                <div class="brandMark" aria-hidden="true">
+                <div id="headerCompanyLogo" class="brandMark" aria-hidden="true">
                     <i data-lucide="box"></i>
                 </div>
                 <div>
-                    <h1>PrimeDocs</h1>
-                    <span>Gestão inteligente para impressão 3D</span>
+                    <h1 id="headerCompanyName">PrimeLine 3D</h1>
+                    <span id="headerGreeting">PrimeDocs</span>
                 </div>
             </div>
 
             <div class="headerActions">
-                <button
-                    class="themeToggle"
-                    type="button"
-                    onclick="navegar('configuracoes')"
-                    aria-label="Abrir configurações"
-                    title="Configurações">
-                    <i data-lucide="settings"></i>
-                </button>
+                <button class="headerIconButton notificationButton" type="button" onclick="abrirCentralNotificacoes()" aria-label="Notificações" title="Notificações"><i data-lucide="bell"></i><span class="notificationDot"></span></button>
                 <button
                     id="themeToggle"
                     class="themeToggle"
@@ -125,10 +123,13 @@
 
   <script src="js/config/app.js?v=4"></script>
 <script src="js/config/categorias.js?v=4"></script>
-<script src="js/config/menu.js?v=4"></script>
+<script src="js/config/menu.js?v=7"></script>
+<script src="js/config/status.js?v=7"></script>
 
-<script src="js/storage.js?v=4"></script>
+<script src="js/storage.js?v=12"></script>
 <script src="js/utils.js?v=4"></script>
+<script src="js/financeiro.js?v=12"></script>
+<script src="js/calculadoraCustos.js?v=7"></script>
 
 <script src="js/components/card.js?v=4"></script>
 <script src="js/components/button.js?v=4"></script>
@@ -136,20 +137,27 @@
 <script src="js/components/modal.js?v=4"></script>
 <script src="js/components/page.js?v=4"></script>
 <script src="js/components/toast.js?v=4"></script>
+<script src="js/components/navigation.js?v=12"></script>
 
-<script src="js/pdf.js?v=4"></script>
+<script src="js/pdf.js?v=6"></script>
 
-<script src="js/router.js?v=4"></script>
+<script src="js/router.js?v=12"></script>
 
-<script src="pages/home.js?v=4"></script>
+<script src="pages/home.js?v=12"></script>
 <script src="pages/produtos.js?v=4"></script>
 <script src="pages/consignado.js?v=4"></script>
-<script src="pages/lojas.js?v=4"></script>
-<script src="pages/conferencia.js?v=4"></script>
-<script src="pages/configuracoes.js?v=4"></script>
-<script src="pages/orcamento.js?v=4"></script>
+<script src="pages/lojas.js?v=11"></script>
+<script src="pages/conferencia.js?v=12"></script>
+<script src="pages/configuracoes.js?v=12"></script>
+<script src="pages/orcamento.js?v=11"></script>
+<script src="pages/filamentos.js?v=7"></script>
+<script src="pages/custos.js?v=7"></script>
+<script src="pages/pedidos.js?v=12"></script>
+<script src="pages/clientes.js?v=12"></script>
+<script src="pages/relatorios.js?v=11"></script>
+<script src="pages/financeiro.js?v=12"></script>
 
-<script src="js/app.js?v=4"></script>
+<script src="js/app.js?v=12"></script>
 </body>
 
 </html>

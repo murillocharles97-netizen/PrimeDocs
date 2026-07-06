@@ -29,11 +29,11 @@ function renderCardsPedidos(lista){if(!lista.length)return `<div class="erpEmpty
     <div class="orderQuickStatus"><select onchange="alterarStatusPedido('${p.id}',this.value)">${Object.entries(STATUS_PEDIDOS).map(([v,l])=>`<option value="${v}" ${p.statusPedido===v?"selected":""}>${l}</option>`).join("")}</select><span class="erpBadge payment-${p.statusPagamento}">${STATUS_PAGAMENTOS[p.statusPagamento]||p.statusPagamento}</span></div>
     <div class="erpCardActions"><button onclick="abrirModalPedido('${p.id}')"><i data-lucide="pencil"></i> Editar</button><button class="danger" onclick="inativarPedido('${p.id}')"><i data-lucide="archive"></i> Inativar</button></div></article>`).join("");}
 
-function alterarStatusPedido(id,status){const p=Storage.buscarPedidoPorId(id);if(!p)return;p.statusPedido=status;p.atualizadoEm=new Date().toISOString();Storage.salvarPedido(p);renderPedidos();Toast.show("Status atualizado!");}
-function inativarPedido(id){Storage.excluirPedido(id);renderPedidos();Toast.show("Pedido inativado.");}
+function alterarStatusPedido(id,status){const p=Storage.buscarPedidoPorId(id);if(!p)return;p.statusPedido=status;p.atualizadoEm=new Date().toISOString();Storage.salvarPedido(p);Financeiro.sincronizar();gerarNotificacoesOperacionais();renderPedidos();Toast.show("Status atualizado!");}
+function inativarPedido(id){Storage.excluirPedido(id);Financeiro.sincronizar();renderPedidos();Toast.show("Pedido inativado.");}
 
-function abrirModalPedido(id=null){const p=id?Storage.buscarPedidoPorId(id):null;pedidoEditandoId=p?.id||null;itensPedidoEdicao=(p?.itens||[]).map(i=>({...i}));const clientes=Storage.listarClientes();Modal.abrir(p?"Editar pedido":"Novo pedido",`<div class="orderForm">
-    <div class="erpFormGrid"><label class="inputGroup"><span>Cliente *</span><select id="pedidoCliente"><option value="">Selecione</option>${clientes.map(c=>`<option value="${c.id}" ${String(c.id)===String(p?.clienteId)?"selected":""}>${escaparPedido(c.nome)}</option>`).join("")}</select></label><button class="btnSecondary quickClientButton" onclick="alternarClienteRapido()"><i data-lucide="user-plus"></i> Cliente rápido</button>
+function abrirModalPedido(id=null,clienteIdInicial=null){const p=id?Storage.buscarPedidoPorId(id):null;pedidoEditandoId=p?.id||null;itensPedidoEdicao=(p?.itens||[]).map(i=>({...i}));const clientes=Storage.listarClientes().filter(c=>c.ativo!==false).sort((a,b)=>String(a.nome).localeCompare(String(b.nome),"pt-BR"));const clienteSelecionado=p?.clienteId||clienteIdInicial;Modal.abrir(p?"Editar pedido":"Novo pedido",`<div class="orderForm">
+    <div class="erpFormGrid"><label class="inputGroup"><span>Cliente *</span><select id="pedidoCliente"><option value="">Selecione</option>${clientes.map(c=>`<option value="${c.id}" ${String(c.id)===String(clienteSelecionado)?"selected":""}>${escaparPedido(c.nome)}</option>`).join("")}</select></label><button class="btnSecondary quickClientButton" onclick="alternarClienteRapido()"><i data-lucide="user-plus"></i> Cadastrar cliente</button>
     <div id="clienteRapidoPedido" class="quickClientFields erpFull" hidden>${Input.text("Nome *","clienteRapidoNome","Nome do cliente")}${Input.text("WhatsApp","clienteRapidoWhatsapp","(00) 00000-0000")}</div>
     <label class="inputGroup"><span>Data do pedido</span><input id="pedidoData" type="date" value="${p?.dataPedido||Utils.hoje()}"></label><label class="inputGroup"><span>Previsão de entrega</span><input id="pedidoEntrega" type="date" value="${p?.dataEntregaPrevista||Utils.hoje()}"></label>
     <label class="inputGroup"><span>Status</span><select id="pedidoStatus">${Object.entries(STATUS_PEDIDOS).map(([v,l])=>`<option value="${v}" ${(p?.statusPedido||"aguardando_orcamento")===v?"selected":""}>${l}</option>`).join("")}</select></label><label class="inputGroup"><span>Valor pago</span><input id="pedidoValorPago" type="number" min="0" step="0.01" value="${Number(p?.valorPago||0)}"></label></div>
@@ -52,3 +52,26 @@ function atualizarTotalPedidoEditor(){const total=itensPedidoEdicao.reduce((t,i)
 
 function salvarPedido(){let cliente=Storage.buscarClientePorId(document.getElementById("pedidoCliente")?.value);const nomeRapido=document.getElementById("clienteRapidoNome")?.value.trim();if(!cliente&&nomeRapido){cliente={id:`cli-${Date.now()}`,nome:nomeRapido,whatsapp:document.getElementById("clienteRapidoWhatsapp")?.value.trim()||"",ativo:true,criadoEm:new Date().toISOString()};Storage.salvarCliente(cliente);}if(!cliente)return Toast.show("Selecione ou cadastre um cliente.");if(!itensPedidoEdicao.length||itensPedidoEdicao.some(i=>!i.nome))return Toast.show("Adicione e preencha os itens.");const anterior=pedidoEditandoId?Storage.buscarPedidoPorId(pedidoEditandoId):null;const total=itensPedidoEdicao.reduce((t,i)=>{i.valorTotal=Number(i.quantidade)*Number(i.valorUnitario);return t+i.valorTotal;},0);const pago=Math.min(total,Number(document.getElementById("pedidoValorPago")?.value)||0);const agora=new Date().toISOString();Storage.salvarPedido({id:anterior?.id||`ped-${Date.now()}`,clienteId:cliente.id,clienteNome:cliente.nome,clienteWhatsapp:cliente.whatsapp||"",dataPedido:document.getElementById("pedidoData").value,dataEntregaPrevista:document.getElementById("pedidoEntrega").value,itens:itensPedidoEdicao,statusPedido:document.getElementById("pedidoStatus").value,statusPagamento:pago<=0?"pendente":pago>=total?"pago":"parcial",valorTotal:total,valorPago:pago,valorPendente:total-pago,observacoes:document.getElementById("pedidoObservacoes").value.trim(),ativo:true,criadoEm:anterior?.criadoEm||agora,atualizadoEm:agora});Modal.fechar();renderPedidos();Toast.show("Pedido salvo!");}
 function escaparPedido(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
+
+function salvarPedido(){
+    let cliente=Storage.buscarClientePorId(document.getElementById("pedidoCliente")?.value);
+    const nomeRapido=document.getElementById("clienteRapidoNome")?.value.trim();
+    if(!cliente&&nomeRapido){
+        const agoraCliente=new Date().toISOString();
+        cliente={id:`cli-${Date.now()}`,nome:nomeRapido,whatsapp:document.getElementById("clienteRapidoWhatsapp")?.value.trim()||"",telefone:"",email:"",cpfCnpj:"",cidade:"",endereco:"",instagram:"",observacoes:"",tipo:"particular",ativo:true,criadoEm:agoraCliente,atualizadoEm:agoraCliente};
+        Storage.salvarCliente(cliente);
+    }
+    if(!cliente)return Toast.show("Selecione ou cadastre um cliente.");
+    if(!itensPedidoEdicao.length||itensPedidoEdicao.some(i=>!i.nome))return Toast.show("Adicione e preencha os itens.");
+    const anterior=pedidoEditandoId?Storage.buscarPedidoPorId(pedidoEditandoId):null;
+    const total=itensPedidoEdicao.reduce((t,i)=>{i.valorTotal=Number(i.quantidade)*Number(i.valorUnitario);return t+i.valorTotal;},0);
+    const pago=Math.min(total,Number(document.getElementById("pedidoValorPago")?.value)||0);
+    const agora=new Date().toISOString();
+    const pedido={id:anterior?.id||`ped-${Date.now()}`,clienteId:cliente.id,clienteNome:cliente.nome,clienteWhatsapp:cliente.whatsapp||"",dataPedido:document.getElementById("pedidoData").value,dataEntregaPrevista:document.getElementById("pedidoEntrega").value,itens:itensPedidoEdicao,statusPedido:document.getElementById("pedidoStatus").value,statusPagamento:pago<=0?"pendente":pago>=total?"pago":"parcial",valorTotal:total,valorPago:pago,valorPendente:total-pago,observacoes:document.getElementById("pedidoObservacoes").value.trim(),ativo:true,criadoEm:anterior?.criadoEm||agora,atualizadoEm:agora};
+    Storage.salvarPedido(pedido);
+    const diferencaPago=pago-Number(anterior?.valorPago||0);
+    if(diferencaPago>0)Storage.salvarPagamento({id:`pag-${Date.now()}`,clienteId:cliente.id,clienteNome:cliente.nome,pedidoId:pedido.id,valor:diferencaPago,data:Utils.hoje(),tipo:"pedido",criadoEm:agora});
+    Financeiro.sincronizar();
+    gerarNotificacoesOperacionais();
+    Modal.fechar();renderPedidos();Toast.show("Pedido salvo!");
+}

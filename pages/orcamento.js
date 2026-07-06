@@ -1,5 +1,6 @@
 let empresaOrcamentoId = null;
 let itensOrcamento = [];
+let clienteOrcamentoId = null;
 
 function renderOrcamento() {
     const empresas = Storage.listarEmpresas().filter(empresa => empresa.ativa !== false);
@@ -64,7 +65,8 @@ function alterarEmpresaOrcamento(id) {
 }
 
 function renderCamposOrcamento(tipo) {
-    const cliente = Input.text("Cliente *", "orcamentoCliente", "Nome do cliente");
+    const clientes = Storage.listarClientes().filter(item => item.ativo !== false).sort((a,b)=>String(a.nome).localeCompare(String(b.nome),"pt-BR"));
+    const cliente = `<div class="budgetClientPicker"><label class="inputGroup"><span>Cliente *</span><select id="orcamentoClienteId" onchange="clienteOrcamentoId=this.value"><option value="">Selecione um cliente</option>${clientes.map(item=>`<option value="${escaparHtmlOrcamento(item.id)}" ${String(item.id)===String(clienteOrcamentoId)?"selected":""}>${escaparHtmlOrcamento(item.nome)}</option>`).join("")}</select></label><button class="btnSecondary" type="button" onclick="abrirModalCliente(null,'orcamento')"><i data-lucide="user-plus"></i> Cadastrar</button></div>`;
     const data = `<label class="inputGroup"><span>Data</span><input id="orcamentoData" type="date" value="${Utils.hoje()}"></label>`;
     const observacoes = `<label class="inputGroup budgetFullField"><span>Observações gerais</span><textarea id="orcamentoObservacoes" rows="4" placeholder="Condições, prazo e informações adicionais"></textarea></label>`;
     const valorFinal = `<label class="inputGroup"><span>Valor final *</span><input id="orcamentoValorFinal" type="number" min="0" step="0.01" placeholder="0,00"></label>`;
@@ -300,7 +302,9 @@ function atualizarResumoOrcamento() {
 
 function gerarPDFOrcamento() {
     const empresa = obterEmpresaOrcamento();
-    const cliente = valorCampoOrcamento("orcamentoCliente");
+    const clienteId = document.getElementById("orcamentoClienteId")?.value || clienteOrcamentoId;
+    const cadastroCliente = Storage.buscarClientePorId(clienteId);
+    const cliente = cadastroCliente?.nome || "";
 
     if (!cliente) {
         Toast.show("Informe o cliente.");
@@ -362,7 +366,11 @@ function gerarPDFOrcamento() {
         }
     }
 
-    if (PDF.gerarOrcamento(dados, empresa)) Toast.show("Orçamento gerado com sucesso!");
+    if (PDF.gerarOrcamento(dados, empresa)) {
+        const agora = new Date().toISOString();
+        Storage.salvarOrcamento({...dados,id:`orc-${Date.now()}`,clienteId:cadastroCliente.id,clienteNome:cadastroCliente.nome,empresaId:empresa.id,status:"enviado",ativo:true,criadoEm:agora,atualizadoEm:agora});
+        Toast.show("Orçamento gerado e registrado no histórico!");
+    }
 }
 
 function normalizarNumeroOrcamento(valor) {

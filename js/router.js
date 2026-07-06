@@ -2,6 +2,8 @@ const app = document.getElementById("content");
 
 function navegar(pagina){
 
+    fecharDrawerPrimeDocs();
+
     switch(pagina){
 
         case "home":
@@ -44,10 +46,25 @@ function navegar(pagina){
             renderPedidos();
             break;
 
+        case "financeiro":
+            renderFinanceiro();
+            break;
+
+        case "clientes":
+            renderClientes();
+            break;
+
+        case "relatorios":
+            renderRelatorios();
+            break;
+
         default:
             renderHome();
 
     }
+
+    atualizarNavegacaoAtivaPrimeDocs(pagina);
+    atualizarCabecalhoPrimeDocs();
 
     if(window.lucide){
         lucide.createIcons();

@@ -67,6 +67,7 @@ function renderConfiguracoes() {
                 ${renderResumoPDFConfiguracoes(empresaPadrao)}
             </section>
 
+            ${renderCardDashboardConfiguracoes()}
             ${renderCardCustosConfiguracoes()}
             ${renderCardBackupConfiguracoes()}
         </div>
@@ -319,6 +320,11 @@ function renderCardCustosConfiguracoes() {
         </section>`;
 }
 
+function renderCardDashboardConfiguracoes() {
+    const modulos = ["Financeiro", "Produção", "Consignado", "Filamentos", "Clientes", "Timeline"];
+    return `<section class="settingsCard settingsDashboardCard"><div class="settingsCardHeader"><div class="settingsCardIcon"><i data-lucide="layout-dashboard"></i></div><div><span>EXPERIÊNCIA</span><h3>Dashboard</h3><p>Estrutura preparada para personalização futura.</p></div></div><div class="dashboardModuleOptions">${modulos.map(modulo=>`<label><input type="checkbox" checked disabled><span>${modulo}</span><small>Visível</small></label>`).join("")}</div><div class="settingsPreparedNotice"><i data-lucide="sparkles"></i><span>Em breve você poderá ocultar, ordenar e personalizar estes módulos.</span></div></section>`;
+}
+
 function salvarConfiguracoesCustos() {
     const numero = id => Math.max(0, Number(document.getElementById(id)?.value) || 0);
     Storage.salvarConfigCustos({
@@ -342,7 +348,7 @@ function renderCardBackupConfiguracoes() {
                 <div class="backupCardIcon"><i data-lucide="database-backup"></i></div>
                 <div><span>SEGURANÇA DOS DADOS</span><h3>Backup e Sincronização</h3><p>Transfira todos os dados do PrimeDocs entre seus dispositivos.</p></div>
             </div>
-            <div class="backupInfo"><i data-lucide="shield-check"></i><p>O arquivo inclui empresas, clientes, pedidos, filamentos, produtos, lojas, estoques, históricos, tema e configurações.</p></div>
+            <div class="backupInfo"><i data-lucide="shield-check"></i><p>O arquivo inclui empresas, clientes, pedidos, financeiro, notificações, filamentos, produtos, lojas, estoques, históricos, tema e configurações.</p></div>
             <div class="backupActions">
                 <button class="backupActionButton backupExportButton" type="button" onclick="exportarDadosPrimeDocs()"><span class="backupActionIcon"><i data-lucide="upload"></i></span><span><strong>Exportar Dados</strong><small>Baixar backup em JSON</small></span><i data-lucide="download"></i></button>
                 <button class="backupActionButton" type="button" onclick="selecionarArquivoBackup()"><span class="backupActionIcon"><i data-lucide="file-down"></i></span><span><strong>Importar Dados</strong><small>Restaurar outro dispositivo</small></span><i data-lucide="chevron-right"></i></button>

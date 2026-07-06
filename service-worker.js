@@ -1,4 +1,4 @@
-const CACHE_VERSION = "primedocs-v7";
+const CACHE_VERSION = "primedocs-v12";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -16,6 +16,7 @@ const APP_SHELL = [
     "./js/router.js",
     "./js/storage.js",
     "./js/utils.js",
+    "./js/financeiro.js",
     "./js/calculadoraCustos.js",
     "./js/config/app.js",
     "./js/config/categorias.js",
@@ -27,6 +28,7 @@ const APP_SHELL = [
     "./js/components/modal.js",
     "./js/components/page.js",
     "./js/components/toast.js",
+    "./js/components/navigation.js",
     "./pages/home.js",
     "./pages/produtos.js",
     "./pages/consignado.js",
@@ -36,7 +38,10 @@ const APP_SHELL = [
     "./pages/orcamento.js",
     "./pages/filamentos.js",
     "./pages/custos.js",
-    "./pages/pedidos.js"
+    "./pages/pedidos.js",
+    "./pages/clientes.js",
+    "./pages/relatorios.js",
+    "./pages/financeiro.js"
 ];
 
 const EXTERNAL_RESOURCES = [

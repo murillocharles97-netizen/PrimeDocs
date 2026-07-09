@@ -1,4 +1,5 @@
 let backupPendente = null;
+let migracaoInicialPendente = null;
 let empresaEditandoId = null;
 let logoEmpresaPendente = "";
 
@@ -529,6 +530,215 @@ function confirmarImportacaoBackup() {
     } catch (erro) {
         console.error("Erro ao restaurar backup.", erro);
         Toast.show("Não foi possível restaurar o backup.");
+    }
+}
+
+function renderCardBackupConfiguracoes() {
+    const status = window.PrimeSync?.getSyncStatus?.() || {};
+    const ultimaSync = status.ultimaSincronizacao ? formatarDataHoraBackup(status.ultimaSincronizacao) : "Ainda não sincronizado";
+    const pendencias = Number(status.pendencias || 0);
+
+    return `
+        <section class="backupCard settingsBackupCard">
+            <div class="backupCardHeader">
+                <div class="backupCardIcon"><i data-lucide="database-backup"></i></div>
+                <div><span>SEGURANÇA DOS DADOS</span><h3>Backup e Sincronização</h3><p>O PrimeDocs salva localmente e sincroniza com a nuvem em segundo plano.</p></div>
+            </div>
+            <div class="backupInfo"><i data-lucide="cloud-check"></i><p><strong>Status da nuvem:</strong> <span id="syncStatusLabel">${escaparHtmlConfiguracoes(status.status || "Sincronização automática")}</span></p></div>
+            <div class="syncStatusGrid">
+                <div><small>Logado como</small><strong>${escaparHtmlConfiguracoes(status.usuario || "Não informado")}</strong></div>
+                <div><small>Workspace atual</small><strong>${escaparHtmlConfiguracoes(status.workspaceId || "Não carregado")}</strong></div>
+                <div><small>Última sincronização</small><strong>${escaparHtmlConfiguracoes(ultimaSync)}</strong></div>
+                <div><small>Pendências</small><strong>${pendencias}</strong></div>
+                <div><small>Conexão</small><strong>${status.online === false ? "Offline" : "Online"}</strong></div>
+                <div><small>Sincronização automática</small><strong>Ativada</strong></div>
+            </div>
+
+            <div class="settingsSubsection">
+                <h4>Migração Inicial</h4>
+                <p>Use esta opção uma única vez para importar um backup antigo e subir tudo para este workspace.</p>
+                <div class="backupActions">
+                    <button class="backupActionButton" type="button" onclick="selecionarBackupInicial()"><span class="backupActionIcon"><i data-lucide="file-up"></i></span><span><strong>Importar Backup Inicial JSON</strong><small>Aceita formatos antigos e novos</small></span><i data-lucide="chevron-right"></i></button>
+                    <button class="backupActionButton" type="button" onclick="confirmarEnviarLocalNuvemConfiguracoes()"><span class="backupActionIcon"><i data-lucide="cloud-upload"></i></span><span><strong>Enviar dados locais para nuvem</strong><small>Ferramenta de suporte/migração</small></span><i data-lucide="arrow-up"></i></button>
+                </div>
+            </div>
+
+            <div class="settingsSubsection">
+                <h4>Backup Manual</h4>
+                <div class="backupActions">
+                    <button class="backupActionButton backupExportButton" type="button" onclick="exportarDadosPrimeDocs()"><span class="backupActionIcon"><i data-lucide="upload"></i></span><span><strong>Exportar JSON</strong><small>Baixar backup em arquivo</small></span><i data-lucide="download"></i></button>
+                    <button class="backupActionButton" type="button" onclick="selecionarArquivoBackup()"><span class="backupActionIcon"><i data-lucide="file-down"></i></span><span><strong>Importar JSON</strong><small>Restaurar backup neste dispositivo</small></span><i data-lucide="chevron-right"></i></button>
+                </div>
+            </div>
+
+            <div class="settingsSubsection">
+                <h4>Ferramentas Avançadas</h4>
+                <div class="backupActions">
+                    <button class="backupActionButton" type="button" onclick="diagnosticoNuvemConfiguracoes()"><span class="backupActionIcon"><i data-lucide="bug"></i></span><span><strong>Diagnóstico da Nuvem</strong><small>Testar login, workspace e permissões</small></span><i data-lucide="terminal"></i></button>
+                    <button class="backupActionButton" type="button" onclick="confirmarBaixarNuvemConfiguracoes()"><span class="backupActionIcon"><i data-lucide="cloud-download"></i></span><span><strong>Baixar dados da nuvem</strong><small>Atualiza o cache local</small></span><i data-lucide="arrow-down"></i></button>
+                    <button class="backupActionButton" type="button" onclick="sincronizarNuvemAgoraConfiguracoes()"><span class="backupActionIcon"><i data-lucide="refresh-cw"></i></span><span><strong>Forçar sincronização agora</strong><small>Processa pendências locais</small></span><i data-lucide="cloud"></i></button>
+                    <button class="backupActionButton" type="button" onclick="confirmarLimparCacheLocalConfiguracoes()"><span class="backupActionIcon"><i data-lucide="trash-2"></i></span><span><strong>Limpar cache local</strong><small>Não apaga dados da nuvem</small></span><i data-lucide="alert-triangle"></i></button>
+                </div>
+            </div>
+
+            <input id="arquivoBackupInicial" class="backupFileInput" type="file" accept=".json,application/json" onchange="lerBackupInicial(this)">
+            <input id="arquivoBackup" class="backupFileInput" type="file" accept=".json,application/json" onchange="lerArquivoBackup(this)">
+        </section>
+    `;
+}
+
+function selecionarBackupInicial() {
+    const input = document.getElementById("arquivoBackupInicial");
+    if (!input) return;
+    input.value = "";
+    input.click();
+}
+
+async function lerBackupInicial(input) {
+    const arquivo = input.files?.[0];
+    if (!arquivo) return;
+
+    try {
+        const json = JSON.parse(await arquivo.text());
+        const dados = Backup.normalizarBackup(json);
+        migracaoInicialPendente = dados;
+        abrirPreviaMigracaoInicial(dados);
+    } catch (erro) {
+        console.error("Erro ao normalizar backup inicial.", erro);
+        Toast.show("Arquivo de backup inválido.");
+    } finally {
+        input.value = "";
+    }
+}
+
+function abrirPreviaMigracaoInicial(dados) {
+    const resumo = Backup.contarDados(dados);
+    Modal.abrir("Importar backup inicial?", `
+        <div class="backupWarning">
+            <div class="backupWarningIcon"><i data-lucide="file-up"></i></div>
+            <div><strong>Importar esses dados para este workspace?</strong><p>Os dados serão salvos localmente e enviados para o Firestore.</p></div>
+        </div>
+        <div class="backupMetadata migrationPreviewGrid">
+            ${["produtos", "clientes", "lojas", "pedidos", "financeiro", "consignados", "conferencias", "filamentos", "empresas"].map(campo => `
+                <div><span>${campo}</span><strong>${resumo[campo] || 0}</strong></div>
+            `).join("")}
+        </div>
+        <div class="backupModalActions">
+            <button class="backupCancelButton" type="button" onclick="cancelarMigracaoInicial()">Cancelar</button>
+            <button class="btn" type="button" onclick="confirmarMigracaoInicial()">Importar e enviar para nuvem</button>
+        </div>
+    `);
+    lucide.createIcons();
+}
+
+function cancelarMigracaoInicial() {
+    migracaoInicialPendente = null;
+    Modal.fechar();
+}
+
+async function confirmarMigracaoInicial() {
+    if (!migracaoInicialPendente) {
+        Toast.show("Nenhum backup inicial selecionado.");
+        return;
+    }
+
+    try {
+        Storage.restaurarDados(migracaoInicialPendente);
+        if (window.Sync?.markPendingSync) Sync.markPendingSync("todos");
+        const ok = await (window.Sync || window.PrimeSync)?.pushLocalToCloud?.();
+        migracaoInicialPendente = null;
+        Modal.fechar();
+        renderConfiguracoes();
+        Toast.show(ok ? "Migração concluída com sucesso." : "Backup importado localmente. Sincronização pendente.");
+    } catch (erro) {
+        console.error("Erro na migração inicial.", erro);
+        Toast.show("Não foi possível concluir a migração.");
+    }
+}
+
+function confirmarLimparCacheLocalConfiguracoes() {
+    Modal.abrir("Limpar cache local?", `
+        <div class="backupWarning">
+            <div class="backupWarningIcon"><i data-lucide="trash-2"></i></div>
+            <div><strong>Isso remove apenas os dados deste dispositivo.</strong><p>Os dados já salvos na nuvem não serão apagados. Exporte um backup antes se tiver dúvidas.</p></div>
+        </div>
+        <div class="backupModalActions">
+            <button class="backupCancelButton" type="button" onclick="Modal.fechar()">Cancelar</button>
+            <button class="btn" type="button" onclick="limparCacheLocalConfiguracoes()">Limpar cache</button>
+        </div>
+    `);
+    lucide.createIcons();
+}
+
+function limparCacheLocalConfiguracoes() {
+    Storage.limparTudo();
+    Modal.fechar();
+    Toast.show("Cache local limpo.");
+    navegar("home");
+}
+
+async function diagnosticoNuvemConfiguracoes() {
+    const sync = window.Sync || window.PrimeSync;
+    if (!sync?.diagnostico) {
+        Toast.show("Diagnóstico online indisponível.");
+        return;
+    }
+
+    Toast.show("Rodando diagnóstico da nuvem...");
+    const resultado = await sync.diagnostico();
+    const local = resultado?.dadosLocais || {};
+    const nuvem = resultado?.dadosNuvem || {};
+
+    Modal.abrir("Diagnóstico da Nuvem", `
+        <div class="backupMetadata migrationPreviewGrid">
+            <div><span>Firebase</span><strong>${resultado?.firebaseAppOk ? "OK" : "Falhou"}</strong></div>
+            <div><span>Usuário</span><strong>${resultado?.usuarioLogado ? "Logado" : "Não logado"}</strong></div>
+            <div><span>UID</span><strong>${escaparHtmlConfiguracoes(resultado?.uid || "-")}</strong></div>
+            <div><span>Email</span><strong>${escaparHtmlConfiguracoes(resultado?.email || "-")}</strong></div>
+            <div><span>Workspace</span><strong>${escaparHtmlConfiguracoes(resultado?.workspaceAtual || "-")}</strong></div>
+            <div><span>Workspace existe</span><strong>${resultado?.workspaceExiste ? "Sim" : "Não"}</strong></div>
+            <div><span>Membro existe</span><strong>${resultado?.membroExiste ? "Sim" : "Não"}</strong></div>
+            <div><span>Escrita teste</span><strong>${resultado?.escritaOk ? "OK" : "Falhou"}</strong></div>
+            <div><span>Leitura teste</span><strong>${resultado?.leituraOk ? "OK" : "Falhou"}</strong></div>
+            <div><span>Pendências</span><strong>${resultado?.pendencias || 0}</strong></div>
+            <div><span>Produtos local/nuvem</span><strong>${local.produtos || 0}/${nuvem.produtos || 0}</strong></div>
+            <div><span>Clientes local/nuvem</span><strong>${local.clientes || 0}/${nuvem.clientes || 0}</strong></div>
+            <div><span>Pedidos local/nuvem</span><strong>${local.pedidos || 0}/${nuvem.pedidos || 0}</strong></div>
+        </div>
+        <div class="backupModalActions">
+            <button class="btn" type="button" onclick="Modal.fechar()">Fechar</button>
+        </div>
+    `);
+    lucide.createIcons();
+}
+
+async function lerArquivoBackup(input) {
+    const arquivo = input.files?.[0];
+    if (!arquivo) return;
+    if (!arquivo.name.toLocaleLowerCase("pt-BR").endsWith(".json")) {
+        Toast.show("Arquivo inválido.");
+        input.value = "";
+        return;
+    }
+
+    try {
+        const bruto = JSON.parse(await arquivo.text());
+        const backup = Storage.validarBackup(bruto)
+            ? bruto
+            : {
+                empresa: "PrimeDocs",
+                versao: "1.0.0",
+                dataBackup: new Date().toISOString(),
+                dados: Backup.normalizarBackup(bruto)
+            };
+
+        backupPendente = backup;
+        abrirConfirmacaoImportacaoBackup(backup);
+    } catch (erro) {
+        console.error("Erro ao importar JSON.", erro);
+        Toast.show("Arquivo inválido.");
+    } finally {
+        input.value = "";
     }
 }
 

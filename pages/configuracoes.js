@@ -352,6 +352,9 @@ function renderCardBackupConfiguracoes() {
             <div class="backupActions">
                 <button class="backupActionButton backupExportButton" type="button" onclick="exportarDadosPrimeDocs()"><span class="backupActionIcon"><i data-lucide="upload"></i></span><span><strong>Exportar Dados</strong><small>Baixar backup em JSON</small></span><i data-lucide="download"></i></button>
                 <button class="backupActionButton" type="button" onclick="selecionarArquivoBackup()"><span class="backupActionIcon"><i data-lucide="file-down"></i></span><span><strong>Importar Dados</strong><small>Restaurar outro dispositivo</small></span><i data-lucide="chevron-right"></i></button>
+                <button class="backupActionButton" type="button" onclick="sincronizarNuvemAgoraConfiguracoes()"><span class="backupActionIcon"><i data-lucide="refresh-cw"></i></span><span><strong>Sincronizar agora</strong><small>Escolher melhor fonte</small></span><i data-lucide="cloud"></i></button>
+                <button class="backupActionButton" type="button" onclick="confirmarEnviarLocalNuvemConfiguracoes()"><span class="backupActionIcon"><i data-lucide="cloud-upload"></i></span><span><strong>Enviar local para nuvem</strong><small>Substitui a nuvem por este dispositivo</small></span><i data-lucide="arrow-up"></i></button>
+                <button class="backupActionButton" type="button" onclick="confirmarBaixarNuvemConfiguracoes()"><span class="backupActionIcon"><i data-lucide="cloud-download"></i></span><span><strong>Baixar dados da nuvem</strong><small>Atualiza este dispositivo</small></span><i data-lucide="arrow-down"></i></button>
             </div>
             <input id="arquivoBackup" class="backupFileInput" type="file" accept=".json,application/json" onchange="lerArquivoBackup(this)">
         </section>
@@ -387,6 +390,73 @@ function selecionarArquivoBackup() {
     if (!input) return;
     input.value = "";
     input.click();
+}
+
+async function sincronizarNuvemAgoraConfiguracoes() {
+    if (!window.PrimeSync) {
+        Toast.show("Sincronização online indisponível.");
+        return;
+    }
+
+    Toast.show("Verificando dados locais e da nuvem...");
+    await PrimeSync.sincronizarComResolucaoManual();
+}
+
+function confirmarEnviarLocalNuvemConfiguracoes() {
+    Modal.abrir("Enviar dados locais para a nuvem?", `
+        <div class="backupWarning">
+            <div class="backupWarningIcon"><i data-lucide="cloud-upload"></i></div>
+            <div>
+                <strong>Os dados deste dispositivo serão enviados para o Firestore.</strong>
+                <p>Use esta opção no celular ou computador que possui os dados mais completos.</p>
+            </div>
+        </div>
+        <div class="backupModalActions">
+            <button class="backupCancelButton" type="button" onclick="Modal.fechar()">Cancelar</button>
+            <button class="btn" type="button" onclick="enviarLocalNuvemConfiguracoes()">Enviar para nuvem</button>
+        </div>
+    `);
+    lucide.createIcons();
+}
+
+async function enviarLocalNuvemConfiguracoes() {
+    if (!window.PrimeSync) {
+        Toast.show("Sincronização online indisponível.");
+        return;
+    }
+
+    Modal.fechar();
+    Toast.show("Enviando dados para a nuvem...");
+    await PrimeSync.enviarLocalParaNuvem();
+}
+
+function confirmarBaixarNuvemConfiguracoes() {
+    Modal.abrir("Baixar dados da nuvem?", `
+        <div class="backupWarning">
+            <div class="backupWarningIcon"><i data-lucide="cloud-download"></i></div>
+            <div>
+                <strong>Os dados da nuvem serão aplicados neste dispositivo.</strong>
+                <p>Os dados locais serão mantidos apenas se também existirem na nuvem. Exporte um backup antes se quiser guardar uma cópia.</p>
+            </div>
+        </div>
+        <div class="backupModalActions">
+            <button class="backupCancelButton" type="button" onclick="Modal.fechar()">Cancelar</button>
+            <button class="btn" type="button" onclick="baixarNuvemConfiguracoes()">Baixar da nuvem</button>
+        </div>
+    `);
+    lucide.createIcons();
+}
+
+async function baixarNuvemConfiguracoes() {
+    if (!window.PrimeSync) {
+        Toast.show("Sincronização online indisponível.");
+        return;
+    }
+
+    Modal.fechar();
+    Toast.show("Baixando dados da nuvem...");
+    const ok = await PrimeSync.baixarNuvemParaLocal();
+    if (ok) renderConfiguracoes();
 }
 
 async function lerArquivoBackup(input) {

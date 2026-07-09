@@ -10,6 +10,10 @@ function navegar(pagina){
             renderHome();
             break;
 
+        case "dashboard":
+            renderDashboardExecutivo();
+            break;
+
         case "consignado":
             renderConsignado();
             break;

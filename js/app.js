@@ -50,6 +50,19 @@ function registrarServiceWorkerPrimeDocs() {
     });
 }
 
+function renderizarERPPrimeDocs() {
+    document.getElementById("splash").style.display = "none";
+    document.getElementById("authScreen")?.remove();
+    document.getElementById("app").style.display = "block";
+
+    renderNavegacaoPrimeDocs();
+    Financeiro.sincronizar();
+    gerarNotificacoesOperacionais();
+    navegar("home");
+
+    console.log("[PrimeDocs] App renderizado");
+}
+
 carregarTemaPrimeDocs();
 registrarServiceWorkerPrimeDocs();
 
@@ -57,20 +70,14 @@ if (window.lucide) {
     lucide.createIcons();
 }
 
-document.addEventListener("DOMContentLoaded",()=>{
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("app").style.display = "none";
 
-renderNavegacaoPrimeDocs();
+    if (!window.PrimeAuth) {
+        document.getElementById("splash").style.display = "none";
+        console.error("[PrimeDocs] Auth não carregado. O ERP não será aberto sem autenticação.");
+        return;
+    }
 
-setTimeout(()=>{
-
-document.getElementById("splash").style.display="none";
-
-document.getElementById("app").style.display="block";
-
-Financeiro.sincronizar();
-gerarNotificacoesOperacionais();
-navegar("home");
-
-},1800);
-
+    PrimeAuth.iniciar(renderizarERPPrimeDocs);
 });

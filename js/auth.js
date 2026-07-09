@@ -227,6 +227,7 @@ function traduzirErroFirebase(erro) {
     if (codigo.includes("email-already-in-use")) return "Este e-mail já está cadastrado.";
     if (codigo.includes("weak-password")) return "Use uma senha com pelo menos 6 caracteres.";
     if (codigo.includes("network-request-failed")) return "Sem conexão com o Firebase.";
+    if (codigo.includes("permission-denied")) return "Sem permissão no Firestore. Verifique as regras do Firebase.";
     if (codigo.includes("too-many-requests")) return "Muitas tentativas. Aguarde um pouco e tente novamente.";
     return erro?.message || "Não foi possível concluir a operação.";
 }

@@ -52,13 +52,18 @@ const PrimeSync = (() => {
         }
 
         if (snap.exists && snap.data()?.workspaceAtual) {
-            workspaceId = snap.data().workspaceAtual;
+            const dadosUsuario = snap.data();
+            workspaceId = dadosUsuario.workspaceAtual;
             localStorage.setItem(WORKSPACE_KEY, workspaceId);
+            await garantirMembroWorkspace(user, workspaceId);
             return workspaceId;
         }
 
         workspaceId = `workspace-${user.uid}`;
         const agora = firebase.firestore.FieldValue.serverTimestamp();
+        const workspaceRef = db.collection("workspaces").doc(workspaceId);
+        const membroRef = workspaceRef.collection("membros").doc(user.uid);
+
         await userRef.set({
             nome: user.displayName || "",
             email: user.email || "",
@@ -67,15 +72,62 @@ const PrimeSync = (() => {
             criadoEm: agora,
             atualizadoEm: agora
         }, { merge: true });
-        await db.collection("workspaces").doc(workspaceId).set({
+
+        await workspaceRef.set({
             nome: "PrimeLine 3D",
             criadoPor: user.uid,
             criadoEm: agora,
             atualizadoEm: agora
         }, { merge: true });
 
+        await membroRef.set({
+            uid: user.uid,
+            email: user.email || "",
+            nome: user.displayName || "",
+            papel: "admin",
+            ativo: true,
+            criadoEm: agora,
+            atualizadoEm: agora
+        }, { merge: true });
+
         localStorage.setItem(WORKSPACE_KEY, workspaceId);
         return workspaceId;
+    }
+
+    async function garantirMembroWorkspace(user, idWorkspace) {
+        if (!user || !idWorkspace || !PrimeFirebase.disponivel()) return;
+
+        const db = PrimeFirebase.db;
+        const agora = firebase.firestore.FieldValue.serverTimestamp();
+        const workspaceRef = db.collection("workspaces").doc(idWorkspace);
+        const membroRef = workspaceRef.collection("membros").doc(user.uid);
+
+        const dadosMembro = {
+            uid: user.uid,
+            email: user.email || "",
+            nome: user.displayName || "",
+            papel: "admin",
+            ativo: true,
+            atualizadoEm: agora
+        };
+
+        try {
+            await membroRef.set(dadosMembro, { merge: true });
+        } catch (erro) {
+            if (idWorkspace !== `workspace-${user.uid}`) throw erro;
+
+            await workspaceRef.set({
+                nome: "PrimeLine 3D",
+                criadoPor: user.uid,
+                criadoEm: agora,
+                atualizadoEm: agora
+            }, { merge: true });
+
+            await membroRef.set({
+                ...dadosMembro,
+                criadoEm: agora
+            }, { merge: true });
+        }
     }
 
     async function carregarFirestoreParaLocal() {

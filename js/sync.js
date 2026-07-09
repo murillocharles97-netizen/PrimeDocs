@@ -232,3 +232,5 @@ const PrimeSync = (() => {
         obterEstado
     };
 })();
+
+window.PrimeSync = PrimeSync;

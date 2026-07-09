@@ -63,6 +63,29 @@ function renderizarERPPrimeDocs() {
     console.log("[PrimeDocs] App renderizado");
 }
 
+function renderizarErroAutenticacaoPrimeDocs() {
+    document.getElementById("splash").style.display = "none";
+    document.getElementById("app").style.display = "none";
+
+    let tela = document.getElementById("authScreen");
+    if (!tela) {
+        tela = document.createElement("main");
+        tela.id = "authScreen";
+        document.body.appendChild(tela);
+    }
+
+    tela.innerHTML = `
+        <section class="authLoading authErrorState">
+            <div class="brandMark brandMarkLarge"><i data-lucide="triangle-alert"></i></div>
+            <strong>Erro ao carregar autenticação.</strong>
+            <span>Recarregue a página. Se continuar, limpe o cache do aplicativo no navegador/celular.</span>
+            <button class="btn" type="button" onclick="location.reload()">Recarregar página</button>
+        </section>
+    `;
+
+    if (window.lucide) lucide.createIcons();
+}
+
 carregarTemaPrimeDocs();
 registrarServiceWorkerPrimeDocs();
 
@@ -74,8 +97,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("app").style.display = "none";
 
     if (!window.PrimeAuth) {
-        document.getElementById("splash").style.display = "none";
         console.error("[PrimeDocs] Auth não carregado. O ERP não será aberto sem autenticação.");
+        renderizarErroAutenticacaoPrimeDocs();
         return;
     }
 

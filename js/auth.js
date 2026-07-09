@@ -140,6 +140,8 @@ const PrimeAuth = (() => {
     return { iniciar, entrar, criarConta, recuperarSenha, sair, liberarEntrada };
 })();
 
+window.PrimeAuth = PrimeAuth;
+
 async function entrarPrimeDocs(event) {
     event.preventDefault();
     const email = document.getElementById("authEmail")?.value.trim();

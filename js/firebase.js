@@ -63,3 +63,5 @@ const PrimeFirebase = (() => {
         }
     };
 })();
+
+window.PrimeFirebase = PrimeFirebase;

@@ -28,6 +28,7 @@ const Storage = {
         notificacoes: "primedocs_notificacoes",
         filamentos: "primedocs_filamentos",
         configCustos: "primedocs_config_custos",
+        gerador3d: "primedocs_gerador_3d",
 
     },
 
@@ -730,6 +731,67 @@ const Storage = {
 
 
 
+    salvarConfigGerador3D(config) {
+        localStorage.setItem(this.KEYS.gerador3d, JSON.stringify({
+            ...this.carregarConfigGerador3D(),
+            ...config
+        }));
+    },
+
+    carregarConfigGerador3D() {
+        const padrao = {
+            largura: 120,
+            altura: 120,
+            linhas: 2,
+            colunas: 2,
+            espessura: 3,
+            folga: 0.30,
+            raioCantos: 3,
+            diametroEncaixe: 18,
+            diametroIma: 8.2,
+            profundidadeIma: 2.1,
+            alturaMascara: 15,
+            folgaMascara: 0.05,
+            alturaCortador: 12,
+            larguraLinha: 1.2,
+            posX: 0,
+            posY: 0,
+            centralizarOrigem: true,
+            corteImaAtivo: true,
+            imaOffsetX: 0,
+            imaOffsetY: 0,
+            modoPosicaoIma: "centro",
+            ima1X: -30,
+            ima1Y: 30,
+            ima2X: 30,
+            ima2Y: 30,
+            ima3X: -30,
+            ima3Y: -30,
+            ima4X: 30,
+            ima4Y: -30,
+            alturaLogo: 0.8,
+            logoX: 0,
+            logoY: 0,
+            logoEscala: 1,
+            logoRotacao: 0,
+            separarPecas: true,
+            espacoVisual: 5,
+            logoSvg: "",
+            imagemOriginal: "",
+            svgVetorizado: "",
+            vetorAceito: false,
+            vectorCores: 4,
+            vectorSuavizacao: 1,
+            vectorEspessuraMinima: 1,
+            vectorRemoverRuido: 8,
+            debugModo: "stl"
+        };
+        const salvo = JSON.parse(localStorage.getItem(this.KEYS.gerador3d)) || {};
+        return { ...padrao, ...salvo };
+    },
+
+
+
     obterTodosDados() {
 
         const configuracoes = this.carregarConfiguracoes();
@@ -749,6 +811,7 @@ const Storage = {
             notificacoes: this.listarNotificacoes(),
             filamentos: this.listarFilamentos(),
             configuracoesCustos: this.carregarConfigCustos(),
+            gerador3d: this.carregarConfigGerador3D(),
             configuracoes: {
                 ...configuracoes,
                 tema: localStorage.getItem(this.KEYS.tema)
@@ -813,8 +876,10 @@ const Storage = {
             .every(campo => dados[campo] === undefined || Array.isArray(dados[campo]));
         const custosValidos = dados.configuracoesCustos === undefined
             || (dados.configuracoesCustos && typeof dados.configuracoesCustos === "object" && !Array.isArray(dados.configuracoesCustos));
+        const gerador3dValido = dados.gerador3d === undefined
+            || (dados.gerador3d && typeof dados.gerador3d === "object" && !Array.isArray(dados.gerador3d));
 
-        return empresasValidas && novosDadosValidos && custosValidos && Boolean(
+        return empresasValidas && novosDadosValidos && custosValidos && gerador3dValido && Boolean(
             dados.configuracoes
             && typeof dados.configuracoes === "object"
             && !Array.isArray(dados.configuracoes)
@@ -846,7 +911,8 @@ const Storage = {
             financeiro: Array.isArray(dados?.financeiro) ? dados.financeiro : [],
             notificacoes: Array.isArray(dados?.notificacoes) ? dados.notificacoes : [],
             filamentos: Array.isArray(dados?.filamentos) ? dados.filamentos : [],
-            configuracoesCustos: dados?.configuracoesCustos || this.carregarConfigCustos()
+            configuracoesCustos: dados?.configuracoesCustos || this.carregarConfigCustos(),
+            gerador3d: dados?.gerador3d || this.carregarConfigGerador3D()
         };
 
         const backupTemporario = {
@@ -871,6 +937,7 @@ const Storage = {
         this.salvarNotificacoes(dadosNormalizados.notificacoes);
         this.salvarFilamentos(dadosNormalizados.filamentos);
         this.salvarConfigCustos(dadosNormalizados.configuracoesCustos);
+        this.salvarConfigGerador3D(dadosNormalizados.gerador3d);
         localStorage.setItem(
             this.KEYS.consignados,
             JSON.stringify(dadosNormalizados.consignados)

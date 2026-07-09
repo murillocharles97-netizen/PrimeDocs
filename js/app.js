@@ -57,20 +57,23 @@ if (window.lucide) {
     lucide.createIcons();
 }
 
-document.addEventListener("DOMContentLoaded",()=>{
+document.addEventListener("DOMContentLoaded", () => {
+    const abrirERP = () => {
+        renderNavegacaoPrimeDocs();
 
-renderNavegacaoPrimeDocs();
+        setTimeout(() => {
+            document.getElementById("splash").style.display = "none";
+            document.getElementById("app").style.display = "block";
 
-setTimeout(()=>{
+            Financeiro.sincronizar();
+            gerarNotificacoesOperacionais();
+            navegar("home");
+        }, 600);
+    };
 
-document.getElementById("splash").style.display="none";
-
-document.getElementById("app").style.display="block";
-
-Financeiro.sincronizar();
-gerarNotificacoesOperacionais();
-navegar("home");
-
-},1800);
-
+    if (window.PrimeAuth) {
+        PrimeAuth.iniciar(abrirERP);
+    } else {
+        abrirERP();
+    }
 });

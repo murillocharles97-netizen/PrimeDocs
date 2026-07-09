@@ -1,4 +1,4 @@
-const CACHE_VERSION = "primedocs-v12";
+const CACHE_VERSION = "primedocs-v21";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -18,6 +18,9 @@ const APP_SHELL = [
     "./js/utils.js",
     "./js/financeiro.js",
     "./js/calculadoraCustos.js",
+    "./js/firebase.js",
+    "./js/sync.js",
+    "./js/auth.js",
     "./js/config/app.js",
     "./js/config/categorias.js",
     "./js/config/menu.js",
@@ -30,6 +33,7 @@ const APP_SHELL = [
     "./js/components/toast.js",
     "./js/components/navigation.js",
     "./pages/home.js",
+    "./pages/dashboard.js",
     "./pages/produtos.js",
     "./pages/consignado.js",
     "./pages/lojas.js",
@@ -47,7 +51,10 @@ const APP_SHELL = [
 const EXTERNAL_RESOURCES = [
     "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
     "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
-    "https://unpkg.com/lucide@latest"
+    "https://unpkg.com/lucide@latest",
+    "https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js",
+    "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js",
+    "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"
 ];
 
 async function armazenarRecursosExternos() {

@@ -1,34 +1,59 @@
 const PrimeAuth = (() => {
     let iniciado = false;
+    let entrando = false;
 
     function iniciar(onReady) {
         if (iniciado) return;
         iniciado = true;
 
-        PrimeFirebase.iniciar();
-        PrimeSync.interceptarStorage();
+        try {
+            PrimeFirebase.iniciar();
+            PrimeSync.interceptarStorage();
+        } catch (erro) {
+            console.error("[PrimeDocs] Falha ao inicializar Firebase/Auth.", erro);
+            mostrarLoginPrimeDocs("Não foi possível inicializar o Firebase.");
+            return;
+        }
 
         if (!PrimeFirebase.disponivel()) {
             mostrarLoginPrimeDocs("Não foi possível carregar o Firebase. Verifique sua conexão.");
             return;
         }
 
+        console.log("[PrimeDocs] Firebase inicializado");
+
         PrimeFirebase.auth.onAuthStateChanged(async user => {
             if (!user) {
+                console.log("[PrimeDocs] Nenhum usuário logado");
+                entrando = false;
                 mostrarLoginPrimeDocs();
                 return;
             }
 
+            console.log("[PrimeDocs] Usuário logado", user.uid);
             mostrarCarregandoAuth("Carregando seus dados...");
+
             try {
-                await PrimeSync.prepararUsuario(user);
+                const workspaceId = await PrimeSync.prepararUsuario(user);
+                console.log("[PrimeDocs] Perfil carregado");
+                console.log("[PrimeDocs] Workspace carregado", workspaceId);
+
                 await PrimeSync.carregarFirestoreParaLocal();
+                console.log("[PrimeDocs] Dados sincronizados");
+
                 esconderLoginPrimeDocs();
+                entrando = false;
                 onReady?.(user);
             } catch (erro) {
-                console.error("Erro ao iniciar sessão.", erro);
+                console.error("[PrimeDocs] Erro ao iniciar sessão.", erro);
+                entrando = false;
                 mostrarLoginPrimeDocs("Não foi possível carregar sua conta. Tente novamente.");
+                Toast.show("Não foi possível carregar sua conta.");
             }
+        }, erro => {
+            console.error("[PrimeDocs] Erro no listener de autenticação.", erro);
+            entrando = false;
+            mostrarLoginPrimeDocs("Erro ao verificar autenticação.");
         });
     }
 
@@ -59,8 +84,8 @@ const PrimeAuth = (() => {
                     ${mensagem ? `<div class="authMessage">${escaparAuth(mensagem)}</div>` : ""}
                     <label>E-mail<input id="authEmail" type="email" autocomplete="email" required placeholder="voce@email.com"></label>
                     <label>Senha<input id="authSenha" type="password" autocomplete="current-password" required placeholder="Sua senha"></label>
-                    <button class="btn" type="submit">Entrar</button>
-                    <button class="btnSecondary" type="button" onclick="criarContaPrimeDocs()">Criar conta</button>
+                    <button id="authEntrarBtn" class="btn" type="submit">Entrar</button>
+                    <button id="authCriarBtn" class="btnSecondary" type="button" onclick="criarContaPrimeDocs()">Criar conta</button>
                     <button class="authLinkButton" type="button" onclick="recuperarSenhaPrimeDocs()">Esqueci minha senha</button>
                     <small id="authFeedback"></small>
                 </form>
@@ -83,17 +108,18 @@ const PrimeAuth = (() => {
 
     function esconderLoginPrimeDocs() {
         document.getElementById("authScreen")?.remove();
-        document.getElementById("app").style.display = "block";
     }
 
     async function entrar(email, senha) {
+        if (entrando) return;
+        entrando = true;
         await PrimeFirebase.auth.signInWithEmailAndPassword(email, senha);
     }
 
     async function criarConta(email, senha) {
-        const credencial = await PrimeFirebase.auth.createUserWithEmailAndPassword(email, senha);
-        await PrimeSync.prepararUsuario(credencial.user);
-        await PrimeSync.sincronizarAgora();
+        if (entrando) return;
+        entrando = true;
+        await PrimeFirebase.auth.createUserWithEmailAndPassword(email, senha);
     }
 
     async function recuperarSenha(email) {
@@ -107,7 +133,11 @@ const PrimeAuth = (() => {
         mostrarLoginPrimeDocs();
     }
 
-    return { iniciar, entrar, criarConta, recuperarSenha, sair };
+    function liberarEntrada() {
+        entrando = false;
+    }
+
+    return { iniciar, entrar, criarConta, recuperarSenha, sair, liberarEntrada };
 })();
 
 async function entrarPrimeDocs(event) {
@@ -115,11 +145,25 @@ async function entrarPrimeDocs(event) {
     const email = document.getElementById("authEmail")?.value.trim();
     const senha = document.getElementById("authSenha")?.value;
     const feedback = document.getElementById("authFeedback");
+    const botao = document.getElementById("authEntrarBtn");
+
     try {
         if (feedback) feedback.textContent = "Entrando...";
+        if (botao) {
+            botao.disabled = true;
+            botao.textContent = "Entrando...";
+        }
         await PrimeAuth.entrar(email, senha);
+        if (feedback) feedback.textContent = "Login confirmado. Carregando dados...";
     } catch (erro) {
-        if (feedback) feedback.textContent = traduzirErroFirebase(erro);
+        PrimeAuth.liberarEntrada();
+        if (botao) {
+            botao.disabled = false;
+            botao.textContent = "Entrar";
+        }
+        const mensagem = traduzirErroFirebase(erro);
+        if (feedback) feedback.textContent = mensagem;
+        Toast.show(mensagem);
     }
 }
 
@@ -127,12 +171,26 @@ async function criarContaPrimeDocs() {
     const email = document.getElementById("authEmail")?.value.trim();
     const senha = document.getElementById("authSenha")?.value;
     const feedback = document.getElementById("authFeedback");
+    const botao = document.getElementById("authCriarBtn");
+
     try {
         if (!email || !senha) throw new Error("Informe e-mail e senha.");
         if (feedback) feedback.textContent = "Criando conta...";
+        if (botao) {
+            botao.disabled = true;
+            botao.textContent = "Criando...";
+        }
         await PrimeAuth.criarConta(email, senha);
+        if (feedback) feedback.textContent = "Conta criada. Carregando workspace...";
     } catch (erro) {
-        if (feedback) feedback.textContent = traduzirErroFirebase(erro);
+        PrimeAuth.liberarEntrada();
+        if (botao) {
+            botao.disabled = false;
+            botao.textContent = "Criar conta";
+        }
+        const mensagem = traduzirErroFirebase(erro);
+        if (feedback) feedback.textContent = mensagem;
+        Toast.show(mensagem);
     }
 }
 
@@ -143,8 +201,11 @@ async function recuperarSenhaPrimeDocs() {
         if (!email) throw new Error("Informe seu e-mail para recuperar a senha.");
         await PrimeAuth.recuperarSenha(email);
         if (feedback) feedback.textContent = "E-mail de recuperação enviado.";
+        Toast.show("E-mail de recuperação enviado.");
     } catch (erro) {
-        if (feedback) feedback.textContent = traduzirErroFirebase(erro);
+        const mensagem = traduzirErroFirebase(erro);
+        if (feedback) feedback.textContent = mensagem;
+        Toast.show(mensagem);
     }
 }
 
@@ -164,6 +225,7 @@ function traduzirErroFirebase(erro) {
     if (codigo.includes("email-already-in-use")) return "Este e-mail já está cadastrado.";
     if (codigo.includes("weak-password")) return "Use uma senha com pelo menos 6 caracteres.";
     if (codigo.includes("network-request-failed")) return "Sem conexão com o Firebase.";
+    if (codigo.includes("too-many-requests")) return "Muitas tentativas. Aguarde um pouco e tente novamente.";
     return erro?.message || "Não foi possível concluir a operação.";
 }
 

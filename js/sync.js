@@ -39,7 +39,17 @@ const PrimeSync = (() => {
 
         const db = PrimeFirebase.db;
         const userRef = db.collection("users").doc(user.uid);
-        const snap = await userRef.get();
+        let snap = null;
+
+        try {
+            snap = await userRef.get();
+        } catch (erro) {
+            if (workspaceId) {
+                console.warn("[PrimeDocs] Perfil remoto indisponível. Usando workspace local em cache.", erro);
+                return workspaceId;
+            }
+            throw erro;
+        }
 
         if (snap.exists && snap.data()?.workspaceAtual) {
             workspaceId = snap.data().workspaceAtual;

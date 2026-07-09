@@ -355,6 +355,7 @@ function renderCardBackupConfiguracoes() {
                 <button class="backupActionButton" type="button" onclick="sincronizarNuvemAgoraConfiguracoes()"><span class="backupActionIcon"><i data-lucide="refresh-cw"></i></span><span><strong>Sincronizar agora</strong><small>Escolher melhor fonte</small></span><i data-lucide="cloud"></i></button>
                 <button class="backupActionButton" type="button" onclick="confirmarEnviarLocalNuvemConfiguracoes()"><span class="backupActionIcon"><i data-lucide="cloud-upload"></i></span><span><strong>Enviar local para nuvem</strong><small>Substitui a nuvem por este dispositivo</small></span><i data-lucide="arrow-up"></i></button>
                 <button class="backupActionButton" type="button" onclick="confirmarBaixarNuvemConfiguracoes()"><span class="backupActionIcon"><i data-lucide="cloud-download"></i></span><span><strong>Baixar dados da nuvem</strong><small>Atualiza este dispositivo</small></span><i data-lucide="arrow-down"></i></button>
+                <button class="backupActionButton" type="button" onclick="diagnosticoNuvemConfiguracoes()"><span class="backupActionIcon"><i data-lucide="bug"></i></span><span><strong>Diagnóstico da nuvem</strong><small>Testar login, workspace e permissões</small></span><i data-lucide="terminal"></i></button>
             </div>
             <input id="arquivoBackup" class="backupFileInput" type="file" accept=".json,application/json" onchange="lerArquivoBackup(this)">
         </section>
@@ -457,6 +458,17 @@ async function baixarNuvemConfiguracoes() {
     Toast.show("Baixando dados da nuvem...");
     const ok = await PrimeSync.baixarNuvemParaLocal();
     if (ok) renderConfiguracoes();
+}
+
+async function diagnosticoNuvemConfiguracoes() {
+    const sync = window.Sync || window.PrimeSync;
+    if (!sync?.diagnostico) {
+        Toast.show("Diagnóstico online indisponível.");
+        return;
+    }
+
+    Toast.show("Rodando diagnóstico da nuvem...");
+    await sync.diagnostico();
 }
 
 async function lerArquivoBackup(input) {

@@ -17,7 +17,23 @@ const PrimeSync = (() => {
         { nome: "orcamentos", tipo: "lista", obter: () => Storage.listarOrcamentos(), salvar: lista => Storage.salvarOrcamentos(lista) },
         { nome: "pagamentos", tipo: "lista", obter: () => Storage.listarPagamentos(), salvar: lista => Storage.salvarPagamentos(lista) },
         { nome: "notificacoes", tipo: "lista", obter: () => Storage.listarNotificacoes(), salvar: lista => Storage.salvarNotificacoes(lista) },
+        { nome: "gerador3d", tipo: "objeto", obter: () => Storage.carregarConfigGerador3D(), salvar: valor => Storage.salvarConfigGerador3D(valor || {}) },
         { nome: "configuracoes", tipo: "objeto", obter: () => Storage.carregarConfiguracoes(), salvar: valor => Storage.salvarConfiguracoes(valor || {}) }
+    ];
+    const COLECOES_COM_DADOS_REAIS = [
+        "produtos",
+        "clientes",
+        "pedidos",
+        "financeiro",
+        "lojas",
+        "estoques",
+        "consignados",
+        "conferencias",
+        "filamentos",
+        "empresas",
+        "orcamentos",
+        "pagamentos",
+        "notificacoes"
     ];
 
     let usuario = null;
@@ -26,6 +42,7 @@ const PrimeSync = (() => {
     let restaurando = false;
     let timer = null;
     let storageInterceptado = false;
+    let resolverEscolhaSync = null;
 
     async function prepararUsuario(user) {
         usuario = user;
@@ -130,48 +147,91 @@ const PrimeSync = (() => {
         }
     }
 
-    async function carregarFirestoreParaLocal() {
+    async function carregarFirestoreParaLocal(opcoes = {}) {
         if (!podeSincronizar()) return false;
         setStatus("Sincronizando dados...");
-        restaurando = true;
 
         try {
-            const docs = await Promise.all(COLLECTIONS.map(async colecao => {
-                const snap = await docRef(colecao.nome).get();
-                return [colecao, snap.exists ? snap.data() : null];
-            }));
+            const local = obterSnapshotLocal();
+            const remoto = await obterSnapshotRemoto();
+            const localTemDados = temDadosReais(local);
+            const remotoTemDados = temDadosReais(remoto);
 
-            const existeRemoto = docs.some(([, dados]) => dados && (Array.isArray(dados.itens) || dados.valor !== undefined));
+            if (!remotoTemDados && localTemDados) {
+                const escolha = await solicitarEscolhaSync({
+                    titulo: "Enviar dados para a nuvem?",
+                    texto: "Encontramos dados locais neste dispositivo. Deseja enviar para a nuvem?",
+                    botoes: [
+                        { acao: "cancelar", rotulo: "Cancelar", classe: "btnSecondary" },
+                        { acao: "local", rotulo: "Enviar para nuvem", classe: "btn" }
+                    ]
+                });
 
-            if (!existeRemoto) {
-                restaurando = false;
-                await sincronizarAgora();
+                if (escolha === "local") {
+                    await enviarLocalParaNuvem({ silencioso: true });
+                    Toast.show("Dados locais enviados para a nuvem!");
+                } else {
+                    setStatus("Sincronização pausada");
+                }
                 return true;
             }
 
-            docs.forEach(([colecao, dados]) => {
-                if (!dados) return;
-                if (colecao.tipo === "lista") colecao.salvar(Array.isArray(dados.itens) ? dados.itens : []);
-                if (colecao.tipo === "objeto") colecao.salvar(dados.valor || {});
-            });
+            if (remotoTemDados && !localTemDados) {
+                aplicarSnapshotRemotoNoLocal(remoto);
+                localStorage.setItem(PENDENTE_KEY, "false");
+                setStatus("Dados sincronizados");
+                if (opcoes.manual) Toast.show("Dados da nuvem baixados!");
+                return true;
+            }
 
-            localStorage.setItem(PENDENTE_KEY, "false");
-            setStatus("Dados sincronizados");
+            if (remotoTemDados && localTemDados && snapshotsPrincipaisIguais(local, remoto)) {
+                localStorage.setItem(PENDENTE_KEY, "false");
+                setStatus("Dados sincronizados");
+                return true;
+            }
+
+            if (remotoTemDados && localTemDados) {
+                const escolha = await solicitarEscolhaSync({
+                    titulo: "Escolher fonte dos dados",
+                    texto: "Existem dados neste dispositivo e na nuvem. O que deseja fazer?",
+                    botoes: [
+                        { acao: "nuvem", rotulo: "Usar dados da nuvem", classe: "btnSecondary" },
+                        { acao: "local", rotulo: "Enviar dados deste dispositivo", classe: "btn" },
+                        { acao: "mesclar", rotulo: "Mesclar dados", classe: "btnSecondary", disabled: true, dica: "Em breve" }
+                    ]
+                });
+
+                if (escolha === "nuvem") {
+                    aplicarSnapshotRemotoNoLocal(remoto);
+                    Toast.show("Dados da nuvem aplicados neste dispositivo!");
+                } else if (escolha === "local") {
+                    await enviarLocalParaNuvem({ silencioso: true });
+                    Toast.show("Dados deste dispositivo enviados para a nuvem!");
+                } else {
+                    setStatus("Sincronização pausada");
+                }
+                return true;
+            }
+
+            await enviarLocalParaNuvem({ silencioso: true });
             return true;
         } catch (erro) {
             console.error("Erro ao carregar Firestore.", erro);
             marcarPendente();
             setStatus("Modo offline");
             return false;
-        } finally {
-            restaurando = false;
         }
     }
 
     async function sincronizarAgora() {
+        return enviarLocalParaNuvem({ silencioso: true });
+    }
+
+    async function enviarLocalParaNuvem(opcoes = {}) {
         if (restaurando) return false;
         if (!podeSincronizar()) {
             marcarPendente();
+            if (!opcoes.silencioso) Toast.show("Sem conexão para sincronizar agora.");
             return false;
         }
 
@@ -194,6 +254,7 @@ const PrimeSync = (() => {
             await batch.commit();
             localStorage.setItem(PENDENTE_KEY, "false");
             setStatus("Online");
+            if (!opcoes.silencioso) Toast.show("Dados locais enviados para a nuvem!");
             return true;
         } catch (erro) {
             console.error("Erro ao sincronizar Firestore.", erro);
@@ -203,6 +264,40 @@ const PrimeSync = (() => {
         } finally {
             sincronizando = false;
         }
+    }
+
+    async function baixarNuvemParaLocal(opcoes = {}) {
+        if (!podeSincronizar()) {
+            marcarPendente();
+            Toast.show("Sem conexão para baixar dados da nuvem.");
+            return false;
+        }
+
+        try {
+            setStatus("Baixando dados da nuvem...");
+            const remoto = await obterSnapshotRemoto();
+            if (!temDadosReais(remoto)) {
+                Toast.show("Nenhum dado encontrado na nuvem.");
+                setStatus("Online");
+                return false;
+            }
+
+            aplicarSnapshotRemotoNoLocal(remoto);
+            localStorage.setItem(PENDENTE_KEY, "false");
+            setStatus("Dados sincronizados");
+            if (!opcoes.silencioso) Toast.show("Dados da nuvem baixados!");
+            return true;
+        } catch (erro) {
+            console.error("Erro ao baixar dados da nuvem.", erro);
+            marcarPendente();
+            setStatus("Pendente de sincronizaÃ§Ã£o");
+            Toast.show("Não foi possível baixar os dados da nuvem.");
+            return false;
+        }
+    }
+
+    async function sincronizarComResolucaoManual() {
+        return carregarFirestoreParaLocal({ manual: true });
     }
 
     function agendarSync() {
@@ -239,6 +334,106 @@ const PrimeSync = (() => {
                 return retorno;
             };
         });
+    }
+
+    function obterSnapshotLocal() {
+        return COLLECTIONS.reduce((dados, colecao) => {
+            dados[colecao.nome] = colecao.obter();
+            return dados;
+        }, {});
+    }
+
+    async function obterSnapshotRemoto() {
+        const docs = await Promise.all(COLLECTIONS.map(async colecao => {
+            const snap = await docRef(colecao.nome).get();
+            return [colecao, snap.exists ? snap.data() : null];
+        }));
+
+        return docs.reduce((dados, [colecao, remoto]) => {
+            if (colecao.tipo === "lista") {
+                dados[colecao.nome] = Array.isArray(remoto?.itens) ? remoto.itens : [];
+            } else {
+                dados[colecao.nome] = remoto?.valor && typeof remoto.valor === "object" && !Array.isArray(remoto.valor)
+                    ? remoto.valor
+                    : {};
+            }
+            return dados;
+        }, {});
+    }
+
+    function aplicarSnapshotRemotoNoLocal(snapshot) {
+        restaurando = true;
+        try {
+            COLLECTIONS.forEach(colecao => {
+                const valor = snapshot?.[colecao.nome];
+                if (colecao.tipo === "lista") colecao.salvar(Array.isArray(valor) ? valor : []);
+                if (colecao.tipo === "objeto") {
+                    colecao.salvar(valor && typeof valor === "object" && !Array.isArray(valor) ? valor : {});
+                }
+            });
+        } finally {
+            restaurando = false;
+        }
+    }
+
+    function temDadosReais(snapshot) {
+        return COLECOES_COM_DADOS_REAIS.some(nome => Array.isArray(snapshot?.[nome]) && snapshot[nome].length > 0);
+    }
+
+    function snapshotsPrincipaisIguais(local, remoto) {
+        return COLECOES_COM_DADOS_REAIS.every(nome => {
+            const localValor = Array.isArray(local?.[nome]) ? local[nome] : [];
+            const remotoValor = Array.isArray(remoto?.[nome]) ? remoto[nome] : [];
+            return JSON.stringify(localValor) === JSON.stringify(remotoValor);
+        });
+    }
+
+    function solicitarEscolhaSync({ titulo, texto, botoes }) {
+        if (!window.Modal) return Promise.resolve("cancelar");
+
+        return new Promise(resolve => {
+            resolverEscolhaSync = escolha => {
+                resolverEscolhaSync = null;
+                Modal.fechar();
+                resolve(escolha);
+            };
+
+            Modal.abrir(titulo, `
+                <div class="backupWarning syncChoiceWarning">
+                    <div class="backupWarningIcon"><i data-lucide="cloud"></i></div>
+                    <div>
+                        <strong>${escaparSync(texto)}</strong>
+                        <p>Nenhum dado será apagado sem sua confirmação.</p>
+                    </div>
+                </div>
+                <div class="backupModalActions syncChoiceActions">
+                    ${botoes.map(botao => `
+                        <button
+                            class="${botao.classe || "btnSecondary"}"
+                            type="button"
+                            ${botao.disabled ? "disabled" : ""}
+                            onclick="PrimeSync.responderEscolhaSync('${botao.acao}')"
+                        >
+                            ${escaparSync(botao.rotulo)}
+                            ${botao.dica ? `<small>${escaparSync(botao.dica)}</small>` : ""}
+                        </button>
+                    `).join("")}
+                </div>
+            `);
+        });
+    }
+
+    function responderEscolhaSync(escolha) {
+        resolverEscolhaSync?.(escolha);
+    }
+
+    function escaparSync(valor) {
+        return String(valor ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
     }
 
     function docRef(nome) {
@@ -279,6 +474,10 @@ const PrimeSync = (() => {
         prepararUsuario,
         carregarFirestoreParaLocal,
         sincronizarAgora,
+        sincronizarComResolucaoManual,
+        enviarLocalParaNuvem,
+        baixarNuvemParaLocal,
+        responderEscolhaSync,
         agendarSync,
         interceptarStorage,
         obterEstado

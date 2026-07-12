@@ -18,7 +18,7 @@ const MaterialListEditor = (() => {
     }
 
     function criar(padrao = {}) {
-        return normalizar({ material: "PLA", obrigatorio: true, ...padrao });
+        return normalizar({ material: "", cor: "", pesoGramas: 0, filamentoPreferencialId: "", slotAms: "", obrigatorio: true, ...padrao });
     }
 
     function escapar(valor) {
@@ -44,12 +44,12 @@ const MaterialListEditor = (() => {
         if (!container) return;
         const filamentos = typeof Storage !== "undefined" ? Storage.listarFilamentos().filter(item => item.ativo !== false) : [];
         const peso = calcularPesoTotalMateriais(estado.materiais);
-        const cores = new Set(estado.materiais.map(item => String(item.cor || "").trim().toLocaleLowerCase("pt-BR")).filter(Boolean)).size;
+        const cores = estado.materiais.filter(item => String(item.cor || "").trim()).length;
         const custo = calcularCustoMateriais(estado.materiais, filamentos);
         const pesoInformado = Number(estado.opcoes.pesoInformado) || 0;
         const divergente = pesoInformado > 0 && Math.abs(pesoInformado - peso) > 0.01;
         container.innerHTML = `<section class="materialListEditor" data-material-scope="${escapar(scope)}">
-            <div class="materialEditorHeader"><div><strong>${escapar(estado.opcoes.titulo || "Materiais e cores")}</strong><small>${escapar(estado.opcoes.descricao || "Adicione todos os filamentos usados nesta impressão.")}</small></div><button class="btnSecondary" type="button" onclick="MaterialListEditor.adicionarMaterial('${escapar(scope)}')"><i data-lucide="plus"></i> Adicionar cor/material</button></div>
+            <div class="materialEditorHeader"><div><strong>${escapar(estado.opcoes.titulo || "Materiais e cores")}</strong><small>${escapar(estado.opcoes.descricao || "Adicione todos os filamentos usados nesta impressão.")}</small></div></div>
             <div class="materialRows">${estado.materiais.length ? estado.materiais.map((item, index) => `<article class="materialRow" data-material-index="${index}">
                 <div class="materialRowNumber">${index + 1}</div>
                 <label><span>Material</span><input data-material-field="material" value="${escapar(item.material)}" placeholder="PLA"></label>
@@ -58,9 +58,10 @@ const MaterialListEditor = (() => {
                 <label class="materialFilamentField"><span>Filamento preferencial</span><select data-material-field="filamentoPreferencialId"><option value="">Sugerir depois</option>${filamentos.map(f => `<option value="${f.id}" ${String(item.filamentoPreferencialId) === String(f.id) ? "selected" : ""}>${escapar([f.material, f.cor, f.marca].filter(Boolean).join(" · "))}</option>`).join("")}</select></label>
                 <label><span>Slot AMS</span><input data-material-field="slotAms" value="${escapar(item.slotAms)}" placeholder="Opcional"></label>
                 <label class="materialRequired"><input data-material-field="obrigatorio" type="checkbox" ${item.obrigatorio ? "checked" : ""}><span>Obrigatório</span></label>
-                <button class="materialRemove" type="button" onclick="MaterialListEditor.removerMaterial('${escapar(scope)}',${index})" aria-label="Remover material"><i data-lucide="trash-2"></i></button>
+                <button class="materialRemove" type="button" onclick="MaterialListEditor.removerMaterial('${escapar(scope)}',${index})" aria-label="Remover material"><i data-lucide="trash-2"></i><span>Remover material</span></button>
             </article>`).join("") : `<div class="erpEmpty compact"><strong>Nenhum material adicionado</strong><p>Uma operação de impressão precisa de pelo menos um material.</p></div>`}</div>
-            <div class="materialSummary"><div><span>Peso total</span><strong data-material-total>${peso.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} g</strong></div><div><span>Cores</span><strong data-material-colors>${cores}</strong></div><div><span>AMS</span><strong data-material-ams>${cores > 1 ? "Compatível" : "Uma cor"}</strong></div><div><span>Custo estimado</span><strong data-material-cost>${typeof Utils !== "undefined" ? Utils.moeda(custo) : custo.toFixed(2)}</strong></div></div>
+            <button class="btnSecondary materialAddButton" type="button" onclick="MaterialListEditor.adicionarMaterial('${escapar(scope)}')"><i data-lucide="plus"></i> Adicionar cor/material</button>
+            <div class="materialSummary"><div><span>Peso total</span><strong data-material-total>${peso.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} g</strong></div><div><span>Cores</span><strong data-material-colors>${cores}</strong></div><div><span>AMS</span><strong data-material-ams>${cores > 4 ? "Multicolor avançado" : cores > 1 ? "Compatível com AMS" : "Uma cor"}</strong></div><div><span>Custo estimado</span><strong data-material-cost>${typeof Utils !== "undefined" ? Utils.moeda(custo) : custo.toFixed(2)}</strong></div></div>
             ${divergente ? `<div class="materialWarning"><i data-lucide="triangle-alert"></i><span>O peso anterior (${pesoInformado.toLocaleString("pt-BR")} g) difere da soma dos materiais (${peso.toLocaleString("pt-BR")} g). Ao salvar, a soma dos materiais será usada.</span></div>` : ""}
         </section>`;
         container.querySelectorAll("[data-material-field]").forEach(campo => {
@@ -101,6 +102,10 @@ const MaterialListEditor = (() => {
     function removerMaterial(scope, index) {
         const estado = garantirEstado(scope);
         capturar(scope);
+        if (estado.materiais.length <= 1) {
+            if (window.Toast) Toast.show("A operação de impressão precisa ter pelo menos um material.");
+            return;
+        }
         estado.materiais.splice(index, 1);
         desenhar(scope);
         notificar(scope);
@@ -114,14 +119,14 @@ const MaterialListEditor = (() => {
         const peso = calcularPesoTotalMateriais(estado.materiais);
         const total = document.querySelector(`#material-editor-${CSS.escape(scope)} [data-material-total]`);
         if (total) total.textContent = `${peso.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} g`;
-        const cores = new Set(estado.materiais.map(material => String(material.cor || "").trim().toLocaleLowerCase("pt-BR")).filter(Boolean)).size;
+        const cores = estado.materiais.filter(material => String(material.cor || "").trim()).length;
         const custo = calcularCustoMateriais(estado.materiais, typeof Storage !== "undefined" ? Storage.listarFilamentos().filter(item => item.ativo !== false) : []);
         const container = document.getElementById(`material-editor-${scope}`);
         const coresEl = container?.querySelector("[data-material-colors]");
         const amsEl = container?.querySelector("[data-material-ams]");
         const custoEl = container?.querySelector("[data-material-cost]");
         if (coresEl) coresEl.textContent = String(cores);
-        if (amsEl) amsEl.textContent = cores > 1 ? "Compatível" : "Uma cor";
+        if (amsEl) amsEl.textContent = cores > 4 ? "Multicolor avançado" : cores > 1 ? "Compatível com AMS" : "Uma cor";
         if (custoEl) custoEl.textContent = typeof Utils !== "undefined" ? Utils.moeda(custo) : custo.toFixed(2);
         notificar(scope);
     }
@@ -167,3 +172,16 @@ window.removerMaterial = (...args) => MaterialListEditor.removerMaterial(...args
 window.atualizarMaterial = (...args) => MaterialListEditor.atualizarMaterial(...args);
 window.calcularPesoTotalMateriais = (...args) => MaterialListEditor.calcularPesoTotalMateriais(...args);
 window.validarMateriais = (...args) => MaterialListEditor.validarMateriais(...args);
+window.adicionarMaterialProducao = (scope = "produto-simples") => MaterialListEditor.adicionarMaterial(scope);
+window.removerMaterialProducao = (id, scope = "produto-simples") => {
+    const lista = MaterialListEditor.obter(scope);
+    const index = lista.findIndex(item => String(item.id) === String(id));
+    if (index >= 0) MaterialListEditor.removerMaterial(scope, index);
+};
+window.atualizarMaterialProducao = (id, campo, valor, scope = "produto-simples") => {
+    const lista = MaterialListEditor.obter(scope);
+    const index = lista.findIndex(item => String(item.id) === String(id));
+    if (index >= 0) MaterialListEditor.atualizarMaterial(scope, index, campo, valor);
+};
+window.renderMateriaisProducao = (scope = "produto-simples", materiais = []) => MaterialListEditor.render(scope, materiais);
+window.calcularResumoMateriais = (scope = "produto-simples") => ({ pesoTotal: MaterialListEditor.calcularPesoTotalMateriais(scope), quantidadeCores: MaterialListEditor.obter(scope).filter(item => String(item.cor || "").trim()).length });

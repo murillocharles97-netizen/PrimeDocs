@@ -35,6 +35,7 @@ const Storage = {
         historicoProducao: "primedocs_historico_producao",
         manutencoes: "primedocs_manutencoes",
         reservasFilamento: "primedocs_reservas_filamento",
+        lotesExecucao: "primedocs_lotes_execucao",
 
     },
 
@@ -782,6 +783,34 @@ const Storage = {
         localStorage.setItem(this.KEYS.reservasFilamento, JSON.stringify(Array.isArray(lista) ? lista : []));
     },
 
+    salvarReservaFilamento(reserva) {
+        const lista = this.listarReservasFilamento();
+        const index = lista.findIndex(item => String(item.id) === String(reserva.id));
+        if (index === -1) lista.push(reserva); else lista[index] = reserva;
+        this.salvarReservasFilamento(lista);
+        return reserva;
+    },
+
+    listarLotesExecucao() {
+        return JSON.parse(localStorage.getItem(this.KEYS.lotesExecucao)) || [];
+    },
+
+    salvarLotesExecucao(lista) {
+        localStorage.setItem(this.KEYS.lotesExecucao, JSON.stringify(Array.isArray(lista) ? lista : []));
+    },
+
+    salvarLoteExecucao(lote) {
+        const lista = this.listarLotesExecucao();
+        const index = lista.findIndex(item => String(item.id) === String(lote.id));
+        if (index === -1) lista.push(lote); else lista[index] = lote;
+        this.salvarLotesExecucao(lista);
+        return lote;
+    },
+
+    buscarLoteExecucaoPorId(id) {
+        return this.listarLotesExecucao().find(item => String(item.id) === String(id));
+    },
+
     salvarFilamentos(lista) {
         localStorage.setItem(this.KEYS.filamentos, JSON.stringify(Array.isArray(lista) ? lista : []));
     },
@@ -930,6 +959,7 @@ const Storage = {
             historicoProducao: this.listarHistoricoProducao(),
             manutencoes: this.listarManutencoes(),
             reservasFilamento: this.listarReservasFilamento(),
+            lotesExecucao: this.listarLotesExecucao(),
             configuracoesCustos: this.carregarConfigCustos(),
             gerador3d: this.carregarConfigGerador3D(),
             configuracoes: {
@@ -992,7 +1022,7 @@ const Storage = {
         const empresasValidas = dados.empresas === undefined
             || Array.isArray(dados.empresas);
 
-        const novosDadosValidos = ["clientes", "pedidos", "orcamentos", "pagamentos", "financeiro", "notificacoes", "filamentos", "impressoras", "ordensProducao", "operacoesProducao", "historicoProducao", "manutencoes", "reservasFilamento"]
+        const novosDadosValidos = ["clientes", "pedidos", "orcamentos", "pagamentos", "financeiro", "notificacoes", "filamentos", "impressoras", "ordensProducao", "operacoesProducao", "historicoProducao", "manutencoes", "reservasFilamento", "lotesExecucao"]
             .every(campo => dados[campo] === undefined || Array.isArray(dados[campo]));
         const custosValidos = dados.configuracoesCustos === undefined
             || (dados.configuracoesCustos && typeof dados.configuracoesCustos === "object" && !Array.isArray(dados.configuracoesCustos));
@@ -1037,6 +1067,7 @@ const Storage = {
             historicoProducao: Array.isArray(dados?.historicoProducao) ? dados.historicoProducao : [],
             manutencoes: Array.isArray(dados?.manutencoes) ? dados.manutencoes : [],
             reservasFilamento: Array.isArray(dados?.reservasFilamento) ? dados.reservasFilamento : [],
+            lotesExecucao: Array.isArray(dados?.lotesExecucao) ? dados.lotesExecucao : [],
             configuracoesCustos: dados?.configuracoesCustos || this.carregarConfigCustos(),
             gerador3d: dados?.gerador3d || this.carregarConfigGerador3D()
         };
@@ -1068,6 +1099,7 @@ const Storage = {
         this.salvarHistoricoProducao(dadosNormalizados.historicoProducao);
         this.salvarManutencoes(dadosNormalizados.manutencoes);
         this.salvarReservasFilamento(dadosNormalizados.reservasFilamento);
+        this.salvarLotesExecucao(dadosNormalizados.lotesExecucao);
         this.salvarConfigCustos(dadosNormalizados.configuracoesCustos);
         this.salvarConfigGerador3D(dadosNormalizados.gerador3d);
         localStorage.setItem(

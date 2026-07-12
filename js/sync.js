@@ -27,6 +27,7 @@ const PrimeSync = (() => {
         { nome: "historicoProducao", tipo: "lista", obter: () => Storage.listarHistoricoProducao(), salvar: lista => Storage.salvarHistoricoProducao(lista) },
         { nome: "manutencoes", tipo: "lista", obter: () => Storage.listarManutencoes(), salvar: lista => Storage.salvarManutencoes(lista) },
         { nome: "reservasFilamento", tipo: "lista", obter: () => Storage.listarReservasFilamento(), salvar: lista => Storage.salvarReservasFilamento(lista) },
+        { nome: "lotesExecucao", tipo: "lista", obter: () => Storage.listarLotesExecucao(), salvar: lista => Storage.salvarLotesExecucao(lista) },
         { nome: "custos", tipo: "objeto", obter: () => Storage.carregarConfigCustos(), salvar: valor => Storage.salvarConfigCustos(valor || {}) },
         { nome: "gerador3d", tipo: "objeto", obter: () => Storage.carregarConfigGerador3D(), salvar: valor => Storage.salvarConfigGerador3D(valor || {}) },
         { nome: "configuracoes", tipo: "objeto", obter: () => Storage.carregarConfiguracoes(), salvar: valor => Storage.salvarConfiguracoes(valor || {}) }
@@ -51,7 +52,8 @@ const PrimeSync = (() => {
         "operacoesProducao",
         "historicoProducao",
         "manutencoes",
-        "reservasFilamento"
+        "reservasFilamento",
+        "lotesExecucao"
     ];
 
     let usuario = null;
@@ -111,6 +113,9 @@ const PrimeSync = (() => {
         salvarManutencoes: "manutencoes",
         salvarManutencao: "manutencoes",
         salvarReservasFilamento: "reservasFilamento",
+        salvarReservaFilamento: "reservasFilamento",
+        salvarLotesExecucao: "lotesExecucao",
+        salvarLoteExecucao: "lotesExecucao",
         restaurarDados: "todos",
         importarBackup: "todos"
     };

@@ -252,7 +252,7 @@ function abrirModalProduto() {
     produtoEditando = null;
     tipoProducaoEdicao = "simples";
     operacoesModeloEdicao = [];
-    materiaisSimplesEdicao = [MaterialListEditor.criar({ cor: "", pesoGramas: 0 })];
+    materiaisSimplesEdicao = [MaterialListEditor.criar()];
     Modal.abrir("Novo Produto", montarFormularioProduto());
     renderEditorReceitaProduto();
 }
@@ -335,9 +335,9 @@ function renderEditorReceitaProduto() {
 function atualizarResumoReceitaSimples(peso) {
     const el = document.getElementById("resumoReceitaSimples"); if (!el) return;
     const materiais = MaterialListEditor.obter("produto-simples");
-    const cores = new Set(materiais.map(item => String(item.cor || "").trim().toLowerCase()).filter(Boolean)).size;
+    const cores = materiais.filter(item => String(item.cor || "").trim()).length;
     const tempo = document.getElementById("tempo")?.value || "Não informado";
-    el.innerHTML = `<div><span>Peso total</span><strong>${Number(peso || 0).toLocaleString("pt-BR", {maximumFractionDigits:2})} g</strong></div><div><span>Tempo total</span><strong>${escaparProduto(tempo)}</strong></div><div><span>Quantidade de cores</span><strong>${cores}</strong></div><div><span>Multicolor</span><strong>${cores > 1 ? "Compatível com AMS" : "Uma cor"}</strong></div>`;
+    el.innerHTML = `<div><span>Tempo total da impressão</span><strong>${escaparProduto(tempo)}</strong></div><div><span>Estrutura</span><strong>1 operação · ${cores} ${cores === 1 ? "cor" : "cores"}</strong></div>`;
 }
 
 function capturarOperacoesModeloFormulario() {

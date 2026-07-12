@@ -2,6 +2,8 @@ const app = document.getElementById("content");
 
 function navegar(pagina, opcoes = {}){
 
+    if (pagina !== "producao" && typeof producaoTimer !== "undefined") clearInterval(producaoTimer);
+
     fecharDrawerPrimeDocs();
     window.__primeDocsNavigationOptions = opcoes || {};
 

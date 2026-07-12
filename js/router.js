@@ -53,6 +53,14 @@ function navegar(pagina, opcoes = {}){
             renderPedidos();
             break;
 
+        case "producao":
+            renderProducao();
+            break;
+
+        case "impressoras":
+            renderImpressoras();
+            break;
+
         case "financeiro":
             renderFinanceiro();
             break;

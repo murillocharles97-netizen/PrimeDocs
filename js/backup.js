@@ -12,7 +12,13 @@ const Backup = (() => {
         "estoques",
         "orcamentos",
         "pagamentos",
-        "notificacoes"
+        "notificacoes",
+        "impressoras",
+        "ordensProducao",
+        "operacoesProducao",
+        "historicoProducao",
+        "manutencoes",
+        "reservasFilamento"
     ];
 
     function normalizarBackup(json) {
@@ -72,6 +78,12 @@ const Backup = (() => {
             orcamentos: [],
             pagamentos: [],
             notificacoes: [],
+            impressoras: [],
+            ordensProducao: [],
+            operacoesProducao: [],
+            historicoProducao: [],
+            manutencoes: [],
+            reservasFilamento: [],
             configuracoes: {},
             configuracoesCustos: {},
             gerador3d: {}

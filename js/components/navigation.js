@@ -2,6 +2,8 @@ const DRAWER_PRIMEDOCS = [
     ["home", "layout-dashboard", "Operações"],
     ["dashboard", "chart-no-axes-combined", "Dashboard"],
     ["pedidos", "package", "Pedidos"],
+    ["producao", "factory", "Produção"],
+    ["impressoras", "printer", "Impressoras"],
     ["financeiro", "wallet-cards", "Financeiro"],
     ["consignado", "store", "Consignado"],
     ["clientes", "users", "Clientes"],

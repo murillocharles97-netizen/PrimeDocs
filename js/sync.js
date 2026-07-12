@@ -21,6 +21,12 @@ const PrimeSync = (() => {
         { nome: "orcamentos", tipo: "lista", obter: () => Storage.listarOrcamentos(), salvar: lista => Storage.salvarOrcamentos(lista) },
         { nome: "pagamentos", tipo: "lista", obter: () => Storage.listarPagamentos(), salvar: lista => Storage.salvarPagamentos(lista) },
         { nome: "notificacoes", tipo: "lista", obter: () => Storage.listarNotificacoes(), salvar: lista => Storage.salvarNotificacoes(lista) },
+        { nome: "impressoras", tipo: "lista", obter: () => Storage.listarImpressoras(), salvar: lista => Storage.salvarImpressoras(lista) },
+        { nome: "ordensProducao", tipo: "lista", obter: () => Storage.listarOrdensProducao(), salvar: lista => Storage.salvarOrdensProducao(lista) },
+        { nome: "operacoesProducao", tipo: "lista", obter: () => Storage.listarOperacoesProducao(), salvar: lista => Storage.salvarOperacoesProducao(lista) },
+        { nome: "historicoProducao", tipo: "lista", obter: () => Storage.listarHistoricoProducao(), salvar: lista => Storage.salvarHistoricoProducao(lista) },
+        { nome: "manutencoes", tipo: "lista", obter: () => Storage.listarManutencoes(), salvar: lista => Storage.salvarManutencoes(lista) },
+        { nome: "reservasFilamento", tipo: "lista", obter: () => Storage.listarReservasFilamento(), salvar: lista => Storage.salvarReservasFilamento(lista) },
         { nome: "custos", tipo: "objeto", obter: () => Storage.carregarConfigCustos(), salvar: valor => Storage.salvarConfigCustos(valor || {}) },
         { nome: "gerador3d", tipo: "objeto", obter: () => Storage.carregarConfigGerador3D(), salvar: valor => Storage.salvarConfigGerador3D(valor || {}) },
         { nome: "configuracoes", tipo: "objeto", obter: () => Storage.carregarConfiguracoes(), salvar: valor => Storage.salvarConfiguracoes(valor || {}) }
@@ -39,7 +45,13 @@ const PrimeSync = (() => {
         "empresas",
         "orcamentos",
         "pagamentos",
-        "notificacoes"
+        "notificacoes",
+        "impressoras",
+        "ordensProducao",
+        "operacoesProducao",
+        "historicoProducao",
+        "manutencoes",
+        "reservasFilamento"
     ];
 
     let usuario = null;
@@ -87,6 +99,18 @@ const PrimeSync = (() => {
         salvarConfigCustos: "custos",
         salvarConfiguracoes: "configuracoes",
         salvarConfigGerador3D: "gerador3d",
+        salvarImpressoras: "impressoras",
+        salvarImpressora: "impressoras",
+        excluirImpressora: "impressoras",
+        salvarOrdensProducao: "ordensProducao",
+        salvarOrdemProducao: "ordensProducao",
+        salvarOperacoesProducao: "operacoesProducao",
+        salvarOperacaoProducao: "operacoesProducao",
+        salvarHistoricoProducao: "historicoProducao",
+        registrarHistoricoProducao: "historicoProducao",
+        salvarManutencoes: "manutencoes",
+        salvarManutencao: "manutencoes",
+        salvarReservasFilamento: "reservasFilamento",
         restaurarDados: "todos",
         importarBackup: "todos"
     };

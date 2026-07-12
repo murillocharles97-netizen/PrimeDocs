@@ -1,6 +1,9 @@
 let produtoEditando = null;
+let tipoProducaoEdicao = "simples";
+let operacoesModeloEdicao = [];
 
 function renderProdutos() {
+    Producao.migrarDados();
     app.innerHTML = `
         <button class="back" onclick="navegar('home')">
             <i data-lucide="arrow-left"></i>
@@ -200,6 +203,7 @@ function abrirDetalhesProduto(id) {
                 <div><span>Margem</span><strong>${margem.toFixed(0)}%</strong></div>
                 <div><span>Peso</span><strong>${Number(prod.peso || 0)} g</strong></div>
                 <div><span>Tempo</span><strong>${escaparProduto(prod.tempo || "-")}</strong></div>
+                <div><span>Produção</span><strong>${prod.tipoProducao === "composta" ? `${(prod.operacoesModelo || []).length} operações` : "Simples"}</strong></div>
             </div>
             <button class="btn" type="button" onclick="Modal.fechar(); editarProduto('${prod.id}')">Editar produto</button>
         </div>
@@ -209,7 +213,10 @@ function abrirDetalhesProduto(id) {
 
 function editarProduto(id) {
     produtoEditando = Storage.buscarProdutoPorId(id);
+    tipoProducaoEdicao = produtoEditando?.tipoProducao === "composta" ? "composta" : "simples";
+    operacoesModeloEdicao = (produtoEditando?.operacoesModelo || []).map((op, index) => Producao.normalizarOperacaoModelo(op, index));
     Modal.abrir("Editar Produto", montarFormularioProduto(produtoEditando));
+    renderEditorReceitaProduto();
 }
 
 function montarFormularioProduto(prod = {}) {
@@ -221,6 +228,12 @@ function montarFormularioProduto(prod = {}) {
         ${Input.number("Peso (g)", "peso", prod.peso || "")}
         ${Input.text("Tempo", "tempo", "3h25", prod.tempo || "")}
         ${Input.text("Cor", "cor", "Branco", prod.cor || "")}
+
+        <section class="productionRecipeEditor">
+            <div class="recipeHeader"><div><span>RECEITA DE PRODUÇÃO</span><h3>Como este produto é fabricado?</h3><p>Produtos simples usam os campos de tempo, peso e cor acima.</p></div></div>
+            <label class="inputGroup"><span>Tipo de produção</span><select id="tipoProducao" onchange="alterarTipoProducaoProduto(this.value)"><option value="simples" ${tipoProducaoEdicao === "simples" ? "selected" : ""}>Simples — uma impressão</option><option value="composta" ${tipoProducaoEdicao === "composta" ? "selected" : ""}>Composta — várias operações</option></select></label>
+            <div id="editorOperacoesProduto"></div>
+        </section>
 
         <label class="favoriteToggle">
             <input id="favorito" type="checkbox" ${prod.favorito ? "checked" : ""}>
@@ -234,7 +247,67 @@ function montarFormularioProduto(prod = {}) {
 
 function abrirModalProduto() {
     produtoEditando = null;
+    tipoProducaoEdicao = "simples";
+    operacoesModeloEdicao = [];
     Modal.abrir("Novo Produto", montarFormularioProduto());
+    renderEditorReceitaProduto();
+}
+
+function alterarTipoProducaoProduto(tipo) {
+    capturarOperacoesModeloFormulario();
+    tipoProducaoEdicao = tipo === "composta" ? "composta" : "simples";
+    renderEditorReceitaProduto();
+}
+
+function novaOperacaoModeloProduto() {
+    capturarOperacoesModeloFormulario();
+    operacoesModeloEdicao.push(Producao.normalizarOperacaoModelo({ id: `modelo-${Date.now()}`, nome: `Operação ${operacoesModeloEdicao.length + 1}`, ordem: operacoesModeloEdicao.length }));
+    renderEditorReceitaProduto();
+}
+
+function duplicarOperacaoModeloProduto(index) {
+    capturarOperacoesModeloFormulario();
+    const origem = operacoesModeloEdicao[index]; if (!origem) return;
+    operacoesModeloEdicao.splice(index + 1, 0, Producao.normalizarOperacaoModelo({ ...origem, id: `modelo-${Date.now()}`, nome: `${origem.nome} (cópia)`, dependencias: [] }, index + 1));
+    renderEditorReceitaProduto();
+}
+
+function removerOperacaoModeloProduto(index) {
+    capturarOperacoesModeloFormulario();
+    const removida = operacoesModeloEdicao[index];
+    operacoesModeloEdicao.splice(index, 1);
+    operacoesModeloEdicao.forEach(op => { op.dependencias = (op.dependencias || []).filter(dep => String(dep) !== String(removida?.id)); });
+    renderEditorReceitaProduto();
+}
+
+function moverOperacaoModeloProduto(index, delta) {
+    capturarOperacoesModeloFormulario();
+    const destino = index + delta; if (destino < 0 || destino >= operacoesModeloEdicao.length) return;
+    [operacoesModeloEdicao[index], operacoesModeloEdicao[destino]] = [operacoesModeloEdicao[destino], operacoesModeloEdicao[index]];
+    renderEditorReceitaProduto();
+}
+
+function renderEditorReceitaProduto() {
+    const el = document.getElementById("editorOperacoesProduto"); if (!el) return;
+    if (tipoProducaoEdicao !== "composta") { el.innerHTML = `<div class="recipeSimpleHint"><i data-lucide="sparkles"></i><span>A operação de impressão será criada automaticamente ao iniciar a produção.</span></div>`; lucide.createIcons(); return; }
+    const impressoras = Storage.listarImpressoras().filter(i => i.ativa !== false);
+    el.innerHTML = `<div class="recipeToolbar"><strong>${operacoesModeloEdicao.length} operação(ões)</strong><button class="btnSecondary" type="button" onclick="novaOperacaoModeloProduto()"><i data-lucide="plus"></i> Adicionar operação</button></div>${operacoesModeloEdicao.length ? `<div class="recipeOperations">${operacoesModeloEdicao.map((op,index)=>`<article class="recipeOperation" data-recipe-index="${index}">
+        <header><span>${index + 1}</span><input data-field="nome" value="${escaparProduto(op.nome)}" placeholder="Nome da operação"><div><button type="button" onclick="moverOperacaoModeloProduto(${index},-1)" ${index===0?"disabled":""}><i data-lucide="arrow-up"></i></button><button type="button" onclick="moverOperacaoModeloProduto(${index},1)" ${index===operacoesModeloEdicao.length-1?"disabled":""}><i data-lucide="arrow-down"></i></button><button type="button" onclick="duplicarOperacaoModeloProduto(${index})"><i data-lucide="copy"></i></button><button type="button" class="danger" onclick="removerOperacaoModeloProduto(${index})"><i data-lucide="trash-2"></i></button></div></header>
+        <div class="erpFormGrid recipeFields"><label class="inputGroup"><span>Tipo</span><select data-field="tipo">${Object.entries(Producao.TIPOS).map(([v,l])=>`<option value="${v}" ${op.tipo===v?"selected":""}>${l}</option>`).join("")}</select></label><label class="inputGroup"><span>Qtd. por produto</span><input data-field="quantidadePorProduto" type="number" min="1" value="${op.quantidadePorProduto}"></label><label class="inputGroup"><span>Horas</span><input data-field="tempoHoras" type="number" min="0" value="${op.tempoHoras}"></label><label class="inputGroup"><span>Minutos</span><input data-field="tempoMinutos" type="number" min="0" max="59" value="${op.tempoMinutos}"></label><label class="inputGroup"><span>Peso total (g)</span><input data-field="pesoTotalGramas" type="number" min="0" step="0.1" value="${op.pesoTotalGramas}"></label><label class="inputGroup"><span>Impressora preferencial</span><select data-field="impressoraPreferencialId"><option value="">Qualquer impressora</option>${impressoras.map(i=>`<option value="${i.id}" ${String(op.impressoraPreferencialId)===String(i.id)?"selected":""}>${escaparProduto(i.nome)}</option>`).join("")}</select></label>
+        <label class="inputGroup erpFull"><span>Dependências</span><select data-field="dependencias" multiple size="${Math.min(4,Math.max(2,operacoesModeloEdicao.length-1))}">${operacoesModeloEdicao.filter((_,i)=>i!==index).map(dep=>`<option value="${dep.id}" ${(op.dependencias||[]).map(String).includes(String(dep.id))?"selected":""}>${escaparProduto(dep.nome)}</option>`).join("")}</select><small>Use Ctrl/Cmd para selecionar mais de uma.</small></label><label class="inputGroup erpFull"><span>Materiais — um por linha: material | cor | peso (g) | obrigatório</span><textarea data-field="materiais" rows="3" placeholder="PLA | Preto | 12 | sim">${(op.materiais||[]).map(m=>`${m.material} | ${m.cor} | ${m.pesoGramas} | ${m.obrigatorio!==false?"sim":"não"}`).join("\n")}</textarea></label><label class="inputGroup erpFull"><span>Observações</span><textarea data-field="observacoes" rows="2">${escaparProduto(op.observacoes)}</textarea></label></div>
+        <div class="recipeChecks"><label><input data-field="podeExecutarEmParalelo" type="checkbox" ${op.podeExecutarEmParalelo?"checked":""}> Pode executar em paralelo</label><label><input data-field="exigeMontagemAnterior" type="checkbox" ${op.exigeMontagemAnterior?"checked":""}> Exige montagem anterior</label></div>
+    </article>`).join("")}</div>` : `<div class="erpEmpty compact"><strong>Nenhuma operação configurada</strong><p>Adicione impressão, montagem, acabamento ou embalagem.</p><button class="btn" type="button" onclick="novaOperacaoModeloProduto()">Adicionar primeira operação</button></div>`}`;
+    lucide.createIcons();
+}
+
+function capturarOperacoesModeloFormulario() {
+    document.querySelectorAll("[data-recipe-index]").forEach(card => {
+        const index = Number(card.dataset.recipeIndex); const anterior = operacoesModeloEdicao[index]; if (!anterior) return;
+        const valor = campo => card.querySelector(`[data-field="${campo}"]`);
+        const materiais = String(valor("materiais")?.value || "").split("\n").map(linha => { const [material,cor,peso,obrigatorio] = linha.split("|").map(v=>v.trim()); return material ? { material, cor: cor || "", pesoGramas: Math.max(0,Number(peso)||0), obrigatorio: !["não","nao","false","0"].includes(String(obrigatorio||"sim").toLowerCase()) } : null; }).filter(Boolean);
+        operacoesModeloEdicao[index] = Producao.normalizarOperacaoModelo({ ...anterior, nome: valor("nome")?.value.trim(), tipo: valor("tipo")?.value, quantidadePorProduto: valor("quantidadePorProduto")?.value, tempoHoras: valor("tempoHoras")?.value, tempoMinutos: valor("tempoMinutos")?.value, pesoTotalGramas: valor("pesoTotalGramas")?.value, impressoraPreferencialId: valor("impressoraPreferencialId")?.value, dependencias: [...(valor("dependencias")?.selectedOptions || [])].map(op=>op.value), materiais, observacoes: valor("observacoes")?.value.trim(), podeExecutarEmParalelo: Boolean(valor("podeExecutarEmParalelo")?.checked), exigeMontagemAnterior: Boolean(valor("exigeMontagemAnterior")?.checked), ordem:index }, index);
+    });
+    return operacoesModeloEdicao;
 }
 
 function salvarProduto() {
@@ -246,6 +319,9 @@ function salvarProduto() {
     if (!nome) return Toast.show("Informe o nome do produto.");
     if (preco === "") return Toast.show("Informe o preço.");
     if (custo === "") return Toast.show("Informe o custo.");
+    capturarOperacoesModeloFormulario();
+    if (tipoProducaoEdicao === "composta" && !operacoesModeloEdicao.length) return Toast.show("Adicione pelo menos uma operação à receita composta.");
+    if (operacoesModeloEdicao.some(op => !op.nome)) return Toast.show("Informe o nome de todas as operações.");
 
     const produto = {
         ...produtoEditando,
@@ -259,6 +335,8 @@ function salvarProduto() {
         tempo: document.getElementById("tempo").value,
         cor: document.getElementById("cor").value,
         favorito: document.getElementById("favorito").checked,
+        tipoProducao: tipoProducaoEdicao,
+        operacoesModelo: tipoProducaoEdicao === "composta" ? operacoesModeloEdicao.map((op,index)=>({ ...op, ordem:index })) : [],
         ativo: true,
         criadoEm: produtoEditando?.criadoEm || Utils.hoje()
     };

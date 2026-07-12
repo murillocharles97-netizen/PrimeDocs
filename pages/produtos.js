@@ -93,7 +93,7 @@ function criarCardProduto(prod) {
             </header>
 
             <div class="productBadges">
-                ${ativo ? `<span class="productBadge success">Ativo</span>` : `<span class="productBadge muted">Inativo</span>`}
+                ${!ativo ? `<span class="productBadge muted">Inativo</span>` : ""}
                 ${semEstoque ? `<span class="productBadge danger">Sem estoque</span>` : ""}
                 ${estoqueBaixo ? `<span class="productBadge warning">Estoque baixo</span>` : ""}
             </div>
@@ -115,17 +115,23 @@ function criarCardProduto(prod) {
                         <i data-lucide="eye"></i>
                         Detalhes
                     </button>
-                    <button type="button" onclick="editarProduto('${prod.id}')">
-                        <i data-lucide="pencil"></i>
-                        Editar
-                    </button>
-                    <button type="button" class="danger" onclick="pedirExclusaoProduto('${prod.id}')">
-                        <i data-lucide="trash-2"></i>
-                    </button>
+                    <button type="button" class="btn-icon productMoreButton" onclick="abrirAcoesProduto('${prod.id}')" aria-label="Mais ações de ${escaparProduto(prod.nome || "produto")}" title="Mais ações"><i data-lucide="ellipsis"></i></button>
                 </section>
             </footer>
         </article>
     `;
+}
+
+function abrirAcoesProduto(id) {
+    const produto = Storage.buscarProdutoPorId(id);
+    if (!produto) return Toast.show("Produto não encontrado.");
+    Modal.abrir("Ações do produto", `
+        <div class="compactActionMenu">
+            <button type="button" onclick="Modal.fechar(); editarProduto('${produto.id}')"><i data-lucide="pencil"></i><span><strong>Editar produto</strong><small>Alterar informações do cadastro</small></span></button>
+            <button type="button" class="danger" onclick="Modal.fechar(); pedirExclusaoProduto('${produto.id}')"><i data-lucide="trash-2"></i><span><strong>Excluir produto</strong><small>Remover produto do catálogo</small></span></button>
+        </div>
+    `);
+    lucide.createIcons();
 }
 
 function alternarFavoritoProduto(id, botao) {

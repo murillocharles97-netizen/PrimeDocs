@@ -6,7 +6,7 @@ const Button = {
 
         <button
 
-        class="btn"
+        class="btn btn-primary"
 
         onclick="${onclick}">
 
@@ -26,7 +26,7 @@ const Button = {
 
         <button
 
-        class="btnSecondary"
+        class="btnSecondary btn-secondary"
 
         onclick="${onclick}">
 
@@ -36,6 +36,18 @@ const Button = {
 
         `;
 
+    },
+
+    ghost(texto, onclick){
+        return `<button class="btn-ghost" type="button" onclick="${onclick}">${texto}</button>`;
+    },
+
+    danger(texto, onclick){
+        return `<button class="btn-danger" type="button" onclick="${onclick}">${texto}</button>`;
+    },
+
+    icon(icone, label, onclick){
+        return `<button class="btn-icon" type="button" onclick="${onclick}" aria-label="${label}" title="${label}"><i data-lucide="${icone}"></i></button>`;
     }
 
 };

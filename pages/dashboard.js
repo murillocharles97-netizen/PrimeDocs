@@ -16,17 +16,26 @@ function renderDashboardExecutivo() {
     const rankings = calcularRankings(dados, intervalo);
     const graficos = calcularGraficos(dados, intervalo);
     const metas = carregarMetasDashboardExecutivo();
+    const agora = new Date();
+    const saudacao = agora.getHours() < 12 ? "Bom dia" : agora.getHours() < 18 ? "Boa tarde" : "Boa noite";
+    const dataExtenso = agora.toLocaleDateString("pt-BR", { weekday:"long", day:"2-digit", month:"long" });
+    const acoesPendentes = (Storage.listarNotificacoes?.() || []).filter(item => !item.visualizada).length;
 
     app.innerHTML = `
         <button class="back" onclick="navegar('home')"><i data-lucide="arrow-left"></i> Voltar</button>
         <section class="managementHero">
             <div>
                 <span>DASHBOARD EXECUTIVO</span>
-                <h2>Visão gerencial da empresa</h2>
-                <p>${formatarPeriodoDashboard(intervalo)} · Dados calculados automaticamente pelo PrimeDocs.</p>
+                <h2>${saudacao}! <span aria-hidden="true">👋</span></h2>
+                <p>${dataExtenso} · ${formatarPeriodoDashboard(intervalo)}</p>
             </div>
             <div class="managementHeroActions">
-                <button onclick="abrirFiltrosDashboardExecutivo()"><i data-lucide="sliders-horizontal"></i> Filtros e exportação</button>
+                <button class="managementFilterAction" onclick="abrirFiltrosDashboardExecutivo()"><i data-lucide="sliders-horizontal"></i> Filtros e exportação</button>
+                <aside class="managementPendingCard">
+                    <span>Ações pendentes</span>
+                    <strong>${acoesPendentes}</strong>
+                    <button type="button" onclick="navegar('home')">Ver operações</button>
+                </aside>
             </div>
         </section>
 

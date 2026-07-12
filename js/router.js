@@ -62,7 +62,9 @@ function navegar(pagina, opcoes = {}){
             break;
 
         case "relatorios":
-            renderRelatorios();
+            pagina = "dashboard";
+            renderDashboardExecutivo();
+            setTimeout(abrirFiltrosDashboardExecutivo, 0);
             break;
 
         default:

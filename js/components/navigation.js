@@ -9,7 +9,6 @@ const DRAWER_PRIMEDOCS = [
     ["filamentos", "spool", "Filamentos"],
     ["custos", "calculator", "Custos"],
     ["orcamento", "file-text", "Orçamentos"],
-    ["relatorios", "chart-no-axes-combined", "Relatórios"],
     ["configuracoes", "settings", "Configurações"]
 ];
 
@@ -65,7 +64,7 @@ function alternarDrawerPrimeDocs() {
 }
 
 function atualizarNavegacaoAtivaPrimeDocs(pagina) {
-    const paginaAtiva = pagina === "conferencia" ? "consignado" : pagina;
+    const paginaAtiva = pagina === "conferencia" ? "consignado" : pagina === "relatorios" ? "dashboard" : pagina;
     document.querySelectorAll("[data-drawer-page]").forEach(item => {
         item.classList.toggle("isActive", item.dataset.drawerPage === paginaAtiva);
     });

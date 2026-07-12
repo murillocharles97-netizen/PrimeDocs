@@ -38,7 +38,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=18">
+    <link rel="stylesheet" href="css/style.css?v=19">
 
 </head>
 
@@ -84,11 +84,12 @@
             </div>
 
             <div class="headerActions">
-                <button class="headerIconButton notificationButton" type="button" onclick="abrirCentralNotificacoes()" aria-label="Notificações" title="Notificações"><i data-lucide="bell"></i><span class="notificationDot"></span></button>
                 <button id="globalSyncStatus" class="globalSyncStatus isSyncing" type="button" onclick="abrirStatusSincronizacaoGlobal()" aria-label="Status de sincronização" title="Status de sincronização">
                     <i data-lucide="refresh-cw"></i>
                     <span>Sincronizando...</span>
                 </button>
+                <span class="headerActionsDivider" aria-hidden="true"></span>
+                <button class="headerIconButton notificationButton" type="button" onclick="abrirCentralNotificacoes()" aria-label="Notificações" title="Notificações"><i data-lucide="bell"></i><span class="notificationDot"></span></button>
                 <button
                     id="themeToggle"
                     class="themeToggle"
@@ -148,14 +149,14 @@
 <script src="js/components/modal.js?v=4"></script>
 <script src="js/components/page.js?v=4"></script>
 <script src="js/components/toast.js?v=4"></script>
-<script src="js/components/navigation.js?v=16"></script>
+<script src="js/components/navigation.js?v=17"></script>
 
 <script src="js/pdf.js?v=6"></script>
 
-<script src="js/router.js?v=16"></script>
+<script src="js/router.js?v=17"></script>
 
 <script src="pages/home.js?v=13"></script>
-<script src="pages/dashboard.js?v=1"></script>
+<script src="pages/dashboard.js?v=2"></script>
 <script src="pages/produtos.js?v=5"></script>
 <script src="pages/consignado.js?v=5"></script>
 <script src="pages/lojas.js?v=11"></script>

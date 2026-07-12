@@ -388,7 +388,7 @@ function rotuloPeriodoDashboardExecutivo() {
 function renderKpiDashboard(icone, valor, titulo, atual, anterior, invertido = false) {
     const comp = calcularComparacaoDashboard(atual, anterior);
     const positivo = invertido ? comp.percentual <= 0 : comp.percentual >= 0;
-    return `<article class="managementKpi ${positivo ? "positive" : "negative"}"><div><i data-lucide="${icone}"></i></div><strong>${escaparDashboardExecutivo(valor)}</strong><span>${escaparDashboardExecutivo(titulo)}</span><small>${comp.label}</small></article>`;
+    return `<article class="managementKpi ${positivo ? "positive" : "negative"}"><div><i data-lucide="${icone}"></i></div><strong>${escaparDashboardExecutivo(valor)}</strong><span>${escaparDashboardExecutivo(titulo)}</span><section class="managementKpiComparison"><b>${escaparDashboardExecutivo(comp.badge)}</b><small>Comparado ao período anterior</small></section></article>`;
 }
 
 function renderLineChartDashboard(titulo, subtitulo, itens, moeda = false) {
@@ -659,10 +659,10 @@ function agruparDashboard(lista, chaveFn, nomeFn, valorFn, qtdFn) {
 function calcularComparacaoDashboard(atual, anterior) {
     const a = Number(atual || 0);
     const b = Number(anterior || 0);
-    if (!b && !a) return { percentual: 0, label: "0% vs período anterior" };
-    if (!b && a) return { percentual: 100, label: "▲ +100% vs período anterior" };
+    if (!b && !a) return { percentual: 0, badge: "— 0%" };
+    if (!b && a) return { percentual: 100, badge: "▲ 100%" };
     const p = ((a - b) / Math.abs(b)) * 100;
-    return { percentual: p, label: `${p >= 0 ? "▲ +" : "▼ "}${p.toFixed(0)}% vs período anterior` };
+    return { percentual: p, badge: `${p >= 0 ? "▲ " : "▼ "}${Math.abs(p).toFixed(0)}%` };
 }
 
 function calcularTempoMedioProducaoDashboard(pedidos) {

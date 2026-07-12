@@ -42,6 +42,33 @@ const Producao = (() => {
         return Math.round((horas * 60) + minutos);
     }
 
+    function normalizarMaterial(material = {}) {
+        return {
+            id: material.id || id("mat"),
+            material: material.material || "",
+            cor: material.cor || "",
+            pesoGramas: Math.max(0, Number(material.pesoGramas ?? material.peso ?? 0) || 0),
+            filamentoPreferencialId: material.filamentoPreferencialId || material.filamentoId || "",
+            slotAms: material.slotAms ?? material.amsSlot ?? "",
+            obrigatorio: material.obrigatorio !== false
+        };
+    }
+
+    function calcularPesoMateriais(materiais = []) {
+        return (materiais || []).reduce((total, material) => total + Math.max(0, Number(material.pesoGramas) || 0), 0);
+    }
+
+    function calcularCustoMateriais(materiais = []) {
+        const filamentos = Storage.listarFilamentos().filter(item => item.ativo !== false);
+        const config = Storage.carregarConfigCustos();
+        return (materiais || []).reduce((total, material) => {
+            const preferido = filamentos.find(item => String(item.id) === String(material.filamentoPreferencialId));
+            const compativel = preferido || filamentos.find(item => (!material.material || String(item.material).toLowerCase() === String(material.material).toLowerCase()) && (!material.cor || String(item.cor).toLowerCase() === String(material.cor).toLowerCase()));
+            const precoKg = Number(compativel?.precoKg ?? config.precoKgFilamentoPadrao ?? 0) || 0;
+            return total + (Math.max(0, Number(material.pesoGramas) || 0) / 1000) * precoKg;
+        }, 0);
+    }
+
     function normalizarOperacaoModelo(operacao = {}, indice = 0) {
         return {
             id: operacao.id || id("modelo"),
@@ -52,13 +79,11 @@ const Producao = (() => {
             quantidadePorProduto: Math.max(1, Number(operacao.quantidadePorProduto) || 1),
             tempoHoras: Math.max(0, Number(operacao.tempoHoras) || 0),
             tempoMinutos: Math.max(0, Number(operacao.tempoMinutos) || 0),
-            pesoTotalGramas: Math.max(0, Number(operacao.pesoTotalGramas) || 0),
-            materiais: Array.isArray(operacao.materiais) ? operacao.materiais.map(material => ({
-                material: material.material || "PLA",
-                cor: material.cor || "",
-                pesoGramas: Math.max(0, Number(material.pesoGramas) || 0),
-                obrigatorio: material.obrigatorio !== false
-            })) : [],
+            pesoTotalGramas: Array.isArray(operacao.materiais) && operacao.materiais.length
+                ? calcularPesoMateriais(operacao.materiais)
+                : Math.max(0, Number(operacao.pesoTotalGramas) || 0),
+            pesoInformadoAnterior: Math.max(0, Number(operacao.pesoInformadoAnterior ?? operacao.pesoTotalGramas) || 0),
+            materiais: Array.isArray(operacao.materiais) ? operacao.materiais.map(normalizarMaterial) : [],
             impressoraPreferencialId: operacao.impressoraPreferencialId || "",
             podeExecutarEmParalelo: Boolean(operacao.podeExecutarEmParalelo),
             exigeMontagemAnterior: Boolean(operacao.exigeMontagemAnterior),
@@ -70,21 +95,31 @@ const Producao = (() => {
         const operacoes = Array.isArray(produto.operacoesModelo)
             ? produto.operacoesModelo.map(normalizarOperacaoModelo).sort((a, b) => a.ordem - b.ordem)
             : [];
+        const materiaisLegados = produto.tipoProducao !== "composta" && (!Array.isArray(produto.materiais) || !produto.materiais.length) && (produto.cor || Number(produto.peso) > 0)
+            ? [normalizarMaterial({ material: "", cor: produto.cor || "", pesoGramas: Number(produto.peso) || 0 })]
+            : [];
+        const materiais = Array.isArray(produto.materiais) && produto.materiais.length
+            ? produto.materiais.map(normalizarMaterial)
+            : materiaisLegados;
         return {
             ...produto,
             tipoProducao: produto.tipoProducao === "composta" ? "composta" : "simples",
+            materiais,
             operacoesModelo: operacoes
         };
     }
 
     function operacaoSimples(produto = {}) {
+        const materiais = Array.isArray(produto.materiais) && produto.materiais.length
+            ? produto.materiais.map(normalizarMaterial)
+            : [normalizarMaterial({ material: "", cor: produto.cor || "", pesoGramas: Number(produto.peso) || 0 })];
         return normalizarOperacaoModelo({
             nome: `Imprimir ${produto.nome || "produto"}`,
             tipo: "impressao",
             tempoHoras: Math.floor(minutosDoTempo(produto.tempo) / 60),
             tempoMinutos: minutosDoTempo(produto.tempo) % 60,
-            pesoTotalGramas: Number(produto.peso) || 0,
-            materiais: [{ material: "PLA", cor: produto.cor || "", pesoGramas: Number(produto.peso) || 0, obrigatorio: true }]
+            pesoTotalGramas: calcularPesoMateriais(materiais),
+            materiais
         });
     }
 
@@ -148,7 +183,8 @@ const Producao = (() => {
                     impressoraId: null,
                     impressoraNome: "",
                     impressoraPreferencialId: op.impressoraPreferencialId || "",
-                    filamentosSelecionados: (op.materiais || []).map(material => ({ filamentoId: null, material: material.material, cor: material.cor, pesoPrevistoGramas: Number(material.pesoGramas || 0) * Math.max(1, Number(grupo.item.quantidade) || 1), pesoRealGramas: 0, obrigatorio: material.obrigatorio !== false })),
+                    filamentosSelecionados: (op.materiais || []).map(material => ({ materialReceitaId: material.id, filamentoId: null, filamentoPreferencialId: material.filamentoPreferencialId || "", material: material.material, cor: material.cor, slotAms: material.slotAms ?? "", pesoPrevistoGramas: Number(material.pesoGramas || 0) * Math.max(1, Number(grupo.item.quantidade) || 1), pesoRealGramas: 0, obrigatorio: material.obrigatorio !== false })),
+                    custoFilamentoPrevisto: calcularCustoMateriais(op.materiais || []) * Math.max(1, Number(grupo.item.quantidade) || 1),
                     tempoPrevistoMinutos: op.tempoPrevistoMinutos,
                     tempoRealMinutos: 0,
                     pesoPrevistoGramas: op.pesoPrevistoGramas,
@@ -200,9 +236,9 @@ const Producao = (() => {
     function migrarDados() {
         let mudouProdutos = false;
         const produtos = Storage.listarProdutos().map(produto => {
-            if (produto.tipoProducao && Array.isArray(produto.operacoesModelo)) return produto;
-            mudouProdutos = true;
-            return normalizarProduto(produto);
+            const normalizado = normalizarProduto(produto);
+            if (JSON.stringify(normalizado) !== JSON.stringify(produto)) mudouProdutos = true;
+            return normalizado;
         });
         if (mudouProdutos) Storage.salvarProdutos(produtos);
 
@@ -219,7 +255,7 @@ const Producao = (() => {
         return { produtos: mudouProdutos, pedidos: mudouPedidos };
     }
 
-    return { TIPOS, STATUS: STATUS_ORDEM, STATUS_ORDEM, STATUS_OPERACAO, normalizarOperacaoModelo, normalizarProduto, obterReceita, gerarPreviaPedido, criarOrdensDoPedido, migrarDados };
+    return { TIPOS, STATUS: STATUS_ORDEM, STATUS_ORDEM, STATUS_OPERACAO, normalizarMaterial, calcularPesoMateriais, calcularCustoMateriais, normalizarOperacaoModelo, normalizarProduto, obterReceita, gerarPreviaPedido, criarOrdensDoPedido, migrarDados };
 })();
 
 window.Producao = Producao;

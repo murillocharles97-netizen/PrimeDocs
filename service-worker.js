@@ -1,4 +1,4 @@
-const CACHE_VERSION = "primedocs-v32";
+const CACHE_VERSION = "primedocs-v33";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -30,6 +30,7 @@ const APP_SHELL = [
     "./js/components/button.js",
     "./js/components/card.js",
     "./js/components/input.js",
+    "./js/components/material-list-editor.js",
     "./js/components/modal.js",
     "./js/components/page.js",
     "./js/components/toast.js",

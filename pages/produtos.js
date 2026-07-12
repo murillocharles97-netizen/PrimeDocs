@@ -1,6 +1,7 @@
 let produtoEditando = null;
 let tipoProducaoEdicao = "simples";
 let operacoesModeloEdicao = [];
+let materiaisSimplesEdicao = [];
 
 function renderProdutos() {
     Producao.migrarDados();
@@ -213,8 +214,10 @@ function abrirDetalhesProduto(id) {
 
 function editarProduto(id) {
     produtoEditando = Storage.buscarProdutoPorId(id);
+    produtoEditando = Producao.normalizarProduto(produtoEditando);
     tipoProducaoEdicao = produtoEditando?.tipoProducao === "composta" ? "composta" : "simples";
     operacoesModeloEdicao = (produtoEditando?.operacoesModelo || []).map((op, index) => Producao.normalizarOperacaoModelo(op, index));
+    materiaisSimplesEdicao = (produtoEditando?.materiais || []).map(MaterialListEditor.normalizar);
     Modal.abrir("Editar Produto", montarFormularioProduto(produtoEditando));
     renderEditorReceitaProduto();
 }
@@ -225,12 +228,12 @@ function montarFormularioProduto(prod = {}) {
         ${Input.select("Categoria", "categoria", CATEGORIAS, prod.categoria || "")}
         ${Input.number("Preço", "preco", prod.preco || "")}
         ${Input.number("Custo", "custo", prod.custo || "")}
-        ${Input.number("Peso (g)", "peso", prod.peso || "")}
+        ${Input.number("Peso resumido (g)", "peso", prod.peso || "")}
         ${Input.text("Tempo", "tempo", "3h25", prod.tempo || "")}
-        ${Input.text("Cor", "cor", "Branco", prod.cor || "")}
+        ${Input.text("Cor predominante", "cor", "Branco", prod.cor || "")}
 
         <section class="productionRecipeEditor">
-            <div class="recipeHeader"><div><span>RECEITA DE PRODUÇÃO</span><h3>Como este produto é fabricado?</h3><p>Produtos simples usam os campos de tempo, peso e cor acima.</p></div></div>
+            <div class="recipeHeader"><div><span>RECEITA DE PRODUÇÃO</span><h3>Como este produto é fabricado?</h3><p>Simples significa uma única operação; ela pode usar quantas cores e materiais forem necessários.</p></div></div>
             <label class="inputGroup"><span>Tipo de produção</span><select id="tipoProducao" onchange="alterarTipoProducaoProduto(this.value)"><option value="simples" ${tipoProducaoEdicao === "simples" ? "selected" : ""}>Simples — uma impressão</option><option value="composta" ${tipoProducaoEdicao === "composta" ? "selected" : ""}>Composta — várias operações</option></select></label>
             <div id="editorOperacoesProduto"></div>
         </section>
@@ -249,13 +252,22 @@ function abrirModalProduto() {
     produtoEditando = null;
     tipoProducaoEdicao = "simples";
     operacoesModeloEdicao = [];
+    materiaisSimplesEdicao = [MaterialListEditor.criar({ cor: "", pesoGramas: 0 })];
     Modal.abrir("Novo Produto", montarFormularioProduto());
     renderEditorReceitaProduto();
 }
 
 function alterarTipoProducaoProduto(tipo) {
     capturarOperacoesModeloFormulario();
+    if (tipoProducaoEdicao === "simples") materiaisSimplesEdicao = MaterialListEditor.obter("produto-simples");
     tipoProducaoEdicao = tipo === "composta" ? "composta" : "simples";
+    renderEditorReceitaProduto();
+}
+
+function alternarTipoOperacaoModeloProduto(index, tipo) {
+    capturarOperacoesModeloFormulario();
+    if (!operacoesModeloEdicao[index]) return;
+    operacoesModeloEdicao[index].tipo = tipo;
     renderEditorReceitaProduto();
 }
 
@@ -289,23 +301,53 @@ function moverOperacaoModeloProduto(index, delta) {
 
 function renderEditorReceitaProduto() {
     const el = document.getElementById("editorOperacoesProduto"); if (!el) return;
-    if (tipoProducaoEdicao !== "composta") { el.innerHTML = `<div class="recipeSimpleHint"><i data-lucide="sparkles"></i><span>A operação de impressão será criada automaticamente ao iniciar a produção.</span></div>`; lucide.createIcons(); return; }
+    if (tipoProducaoEdicao !== "composta") {
+        el.innerHTML = `<div id="material-editor-produto-simples"></div><div id="resumoReceitaSimples" class="simpleRecipeSummary"></div>`;
+        MaterialListEditor.render("produto-simples", materiaisSimplesEdicao, {
+            titulo: "Materiais e cores da impressão",
+            descricao: "Uma única impressão pode combinar uma ou várias cores, com ou sem AMS.",
+            pesoInformado: Number(document.getElementById("peso")?.value) || 0,
+            onChange: (materiais, peso) => { materiaisSimplesEdicao = materiais; atualizarResumoReceitaSimples(peso); }
+        });
+        document.getElementById("tempo")?.addEventListener("input", () => atualizarResumoReceitaSimples(MaterialListEditor.calcularPesoTotalMateriais("produto-simples")));
+        atualizarResumoReceitaSimples(MaterialListEditor.calcularPesoTotalMateriais(materiaisSimplesEdicao));
+        lucide.createIcons(); return;
+    }
     const impressoras = Storage.listarImpressoras().filter(i => i.ativa !== false);
     el.innerHTML = `<div class="recipeToolbar"><strong>${operacoesModeloEdicao.length} operação(ões)</strong><button class="btnSecondary" type="button" onclick="novaOperacaoModeloProduto()"><i data-lucide="plus"></i> Adicionar operação</button></div>${operacoesModeloEdicao.length ? `<div class="recipeOperations">${operacoesModeloEdicao.map((op,index)=>`<article class="recipeOperation" data-recipe-index="${index}">
         <header><span>${index + 1}</span><input data-field="nome" value="${escaparProduto(op.nome)}" placeholder="Nome da operação"><div><button type="button" onclick="moverOperacaoModeloProduto(${index},-1)" ${index===0?"disabled":""}><i data-lucide="arrow-up"></i></button><button type="button" onclick="moverOperacaoModeloProduto(${index},1)" ${index===operacoesModeloEdicao.length-1?"disabled":""}><i data-lucide="arrow-down"></i></button><button type="button" onclick="duplicarOperacaoModeloProduto(${index})"><i data-lucide="copy"></i></button><button type="button" class="danger" onclick="removerOperacaoModeloProduto(${index})"><i data-lucide="trash-2"></i></button></div></header>
-        <div class="erpFormGrid recipeFields"><label class="inputGroup"><span>Tipo</span><select data-field="tipo">${Object.entries(Producao.TIPOS).map(([v,l])=>`<option value="${v}" ${op.tipo===v?"selected":""}>${l}</option>`).join("")}</select></label><label class="inputGroup"><span>Qtd. por produto</span><input data-field="quantidadePorProduto" type="number" min="1" value="${op.quantidadePorProduto}"></label><label class="inputGroup"><span>Horas</span><input data-field="tempoHoras" type="number" min="0" value="${op.tempoHoras}"></label><label class="inputGroup"><span>Minutos</span><input data-field="tempoMinutos" type="number" min="0" max="59" value="${op.tempoMinutos}"></label><label class="inputGroup"><span>Peso total (g)</span><input data-field="pesoTotalGramas" type="number" min="0" step="0.1" value="${op.pesoTotalGramas}"></label><label class="inputGroup"><span>Impressora preferencial</span><select data-field="impressoraPreferencialId"><option value="">Qualquer impressora</option>${impressoras.map(i=>`<option value="${i.id}" ${String(op.impressoraPreferencialId)===String(i.id)?"selected":""}>${escaparProduto(i.nome)}</option>`).join("")}</select></label>
-        <label class="inputGroup erpFull"><span>Dependências</span><select data-field="dependencias" multiple size="${Math.min(4,Math.max(2,operacoesModeloEdicao.length-1))}">${operacoesModeloEdicao.filter((_,i)=>i!==index).map(dep=>`<option value="${dep.id}" ${(op.dependencias||[]).map(String).includes(String(dep.id))?"selected":""}>${escaparProduto(dep.nome)}</option>`).join("")}</select><small>Use Ctrl/Cmd para selecionar mais de uma.</small></label><label class="inputGroup erpFull"><span>Materiais — um por linha: material | cor | peso (g) | obrigatório</span><textarea data-field="materiais" rows="3" placeholder="PLA | Preto | 12 | sim">${(op.materiais||[]).map(m=>`${m.material} | ${m.cor} | ${m.pesoGramas} | ${m.obrigatorio!==false?"sim":"não"}`).join("\n")}</textarea></label><label class="inputGroup erpFull"><span>Observações</span><textarea data-field="observacoes" rows="2">${escaparProduto(op.observacoes)}</textarea></label></div>
+        <div class="erpFormGrid recipeFields"><label class="inputGroup"><span>Tipo</span><select data-field="tipo" onchange="alternarTipoOperacaoModeloProduto(${index},this.value)">${Object.entries(Producao.TIPOS).map(([v,l])=>`<option value="${v}" ${op.tipo===v?"selected":""}>${l}</option>`).join("")}</select></label><label class="inputGroup"><span>Qtd. por produto</span><input data-field="quantidadePorProduto" type="number" min="1" value="${op.quantidadePorProduto}"></label><label class="inputGroup"><span>Horas</span><input data-field="tempoHoras" type="number" min="0" value="${op.tempoHoras}"></label><label class="inputGroup"><span>Minutos</span><input data-field="tempoMinutos" type="number" min="0" max="59" value="${op.tempoMinutos}"></label><label class="inputGroup"><span>Peso calculado (g)</span><input data-field="pesoTotalGramas" type="number" readonly value="${op.pesoTotalGramas}"></label><label class="inputGroup"><span>Impressora preferencial</span><select data-field="impressoraPreferencialId"><option value="">Qualquer impressora</option>${impressoras.map(i=>`<option value="${i.id}" ${String(op.impressoraPreferencialId)===String(i.id)?"selected":""}>${escaparProduto(i.nome)}</option>`).join("")}</select></label>
+        <label class="inputGroup erpFull"><span>Dependências</span><select data-field="dependencias" multiple size="${Math.min(4,Math.max(2,operacoesModeloEdicao.length-1))}">${operacoesModeloEdicao.filter((_,i)=>i!==index).map(dep=>`<option value="${dep.id}" ${(op.dependencias||[]).map(String).includes(String(dep.id))?"selected":""}>${escaparProduto(dep.nome)}</option>`).join("")}</select><small>Use Ctrl/Cmd para selecionar mais de uma.</small></label><div class="erpFull">${op.tipo === "impressao" ? `<div id="material-editor-operacao-${index}"></div>` : `<div class="recipeSimpleHint"><i data-lucide="package-open"></i><span>Operações de ${escaparProduto(Producao.TIPOS[op.tipo] || op.tipo)} não exigem filamento.</span></div>`}</div><label class="inputGroup erpFull"><span>Observações</span><textarea data-field="observacoes" rows="2">${escaparProduto(op.observacoes)}</textarea></label></div>
         <div class="recipeChecks"><label><input data-field="podeExecutarEmParalelo" type="checkbox" ${op.podeExecutarEmParalelo?"checked":""}> Pode executar em paralelo</label><label><input data-field="exigeMontagemAnterior" type="checkbox" ${op.exigeMontagemAnterior?"checked":""}> Exige montagem anterior</label></div>
     </article>`).join("")}</div>` : `<div class="erpEmpty compact"><strong>Nenhuma operação configurada</strong><p>Adicione impressão, montagem, acabamento ou embalagem.</p><button class="btn" type="button" onclick="novaOperacaoModeloProduto()">Adicionar primeira operação</button></div>`}`;
+    operacoesModeloEdicao.forEach((op,index) => {
+        if (op.tipo !== "impressao") return;
+        MaterialListEditor.render(`operacao-${index}`, op.materiais || [], {
+            titulo: `Materiais — ${op.nome}`,
+            descricao: "Cada operação de impressão possui sua própria combinação de filamentos.",
+            pesoInformado: Number(op.pesoInformadoAnterior ?? op.pesoTotalGramas) || 0,
+            onChange: (materiais, peso) => { if (operacoesModeloEdicao[index]) { operacoesModeloEdicao[index].materiais = materiais; operacoesModeloEdicao[index].pesoTotalGramas = peso; const campo = document.querySelector(`[data-recipe-index="${index}"] [data-field="pesoTotalGramas"]`); if (campo) campo.value = peso; } }
+        });
+    });
     lucide.createIcons();
+}
+
+function atualizarResumoReceitaSimples(peso) {
+    const el = document.getElementById("resumoReceitaSimples"); if (!el) return;
+    const materiais = MaterialListEditor.obter("produto-simples");
+    const cores = new Set(materiais.map(item => String(item.cor || "").trim().toLowerCase()).filter(Boolean)).size;
+    const tempo = document.getElementById("tempo")?.value || "Não informado";
+    el.innerHTML = `<div><span>Peso total</span><strong>${Number(peso || 0).toLocaleString("pt-BR", {maximumFractionDigits:2})} g</strong></div><div><span>Tempo total</span><strong>${escaparProduto(tempo)}</strong></div><div><span>Quantidade de cores</span><strong>${cores}</strong></div><div><span>Multicolor</span><strong>${cores > 1 ? "Compatível com AMS" : "Uma cor"}</strong></div>`;
 }
 
 function capturarOperacoesModeloFormulario() {
     document.querySelectorAll("[data-recipe-index]").forEach(card => {
         const index = Number(card.dataset.recipeIndex); const anterior = operacoesModeloEdicao[index]; if (!anterior) return;
         const valor = campo => card.querySelector(`[data-field="${campo}"]`);
-        const materiais = String(valor("materiais")?.value || "").split("\n").map(linha => { const [material,cor,peso,obrigatorio] = linha.split("|").map(v=>v.trim()); return material ? { material, cor: cor || "", pesoGramas: Math.max(0,Number(peso)||0), obrigatorio: !["não","nao","false","0"].includes(String(obrigatorio||"sim").toLowerCase()) } : null; }).filter(Boolean);
-        operacoesModeloEdicao[index] = Producao.normalizarOperacaoModelo({ ...anterior, nome: valor("nome")?.value.trim(), tipo: valor("tipo")?.value, quantidadePorProduto: valor("quantidadePorProduto")?.value, tempoHoras: valor("tempoHoras")?.value, tempoMinutos: valor("tempoMinutos")?.value, pesoTotalGramas: valor("pesoTotalGramas")?.value, impressoraPreferencialId: valor("impressoraPreferencialId")?.value, dependencias: [...(valor("dependencias")?.selectedOptions || [])].map(op=>op.value), materiais, observacoes: valor("observacoes")?.value.trim(), podeExecutarEmParalelo: Boolean(valor("podeExecutarEmParalelo")?.checked), exigeMontagemAnterior: Boolean(valor("exigeMontagemAnterior")?.checked), ordem:index }, index);
+        const tipo = valor("tipo")?.value || anterior.tipo;
+        const materiais = tipo === "impressao" ? MaterialListEditor.obter(`operacao-${index}`) : [];
+        const pesoTotal = tipo === "impressao" ? MaterialListEditor.calcularPesoTotalMateriais(materiais) : Math.max(0, Number(valor("pesoTotalGramas")?.value) || 0);
+        operacoesModeloEdicao[index] = Producao.normalizarOperacaoModelo({ ...anterior, nome: valor("nome")?.value.trim(), tipo, quantidadePorProduto: valor("quantidadePorProduto")?.value, tempoHoras: valor("tempoHoras")?.value, tempoMinutos: valor("tempoMinutos")?.value, pesoTotalGramas: pesoTotal, impressoraPreferencialId: valor("impressoraPreferencialId")?.value, dependencias: [...(valor("dependencias")?.selectedOptions || [])].map(op=>op.value), materiais, observacoes: valor("observacoes")?.value.trim(), podeExecutarEmParalelo: Boolean(valor("podeExecutarEmParalelo")?.checked), exigeMontagemAnterior: Boolean(valor("exigeMontagemAnterior")?.checked), ordem:index }, index);
     });
     return operacoesModeloEdicao;
 }
@@ -320,8 +362,19 @@ function salvarProduto() {
     if (preco === "") return Toast.show("Informe o preço.");
     if (custo === "") return Toast.show("Informe o custo.");
     capturarOperacoesModeloFormulario();
+    if (tipoProducaoEdicao === "simples") materiaisSimplesEdicao = MaterialListEditor.obter("produto-simples");
     if (tipoProducaoEdicao === "composta" && !operacoesModeloEdicao.length) return Toast.show("Adicione pelo menos uma operação à receita composta.");
     if (operacoesModeloEdicao.some(op => !op.nome)) return Toast.show("Informe o nome de todas as operações.");
+    const operacoesImpressao = tipoProducaoEdicao === "simples" ? [{ materiais: materiaisSimplesEdicao }] : operacoesModeloEdicao.filter(op => op.tipo === "impressao");
+    for (const operacao of operacoesImpressao) {
+        const validacao = MaterialListEditor.validarMateriais(operacao.materiais);
+        if (!validacao.valido) return Toast.show(validacao.mensagem);
+        operacao.materiais = validacao.materiais;
+        operacao.pesoTotalGramas = validacao.pesoTotal;
+    }
+    const pesoMateriais = tipoProducaoEdicao === "simples"
+        ? MaterialListEditor.calcularPesoTotalMateriais(materiaisSimplesEdicao)
+        : operacoesModeloEdicao.reduce((total, op) => total + (op.tipo === "impressao" ? MaterialListEditor.calcularPesoTotalMateriais(op.materiais) * Math.max(1, Number(op.quantidadePorProduto) || 1) : 0), 0);
 
     const produto = {
         ...produtoEditando,
@@ -331,12 +384,13 @@ function salvarProduto() {
         categoria,
         preco: Number(preco),
         custo: Number(custo),
-        peso: Number(document.getElementById("peso").value) || 0,
+        peso: pesoMateriais || Number(document.getElementById("peso").value) || 0,
         tempo: document.getElementById("tempo").value,
         cor: document.getElementById("cor").value,
         favorito: document.getElementById("favorito").checked,
         tipoProducao: tipoProducaoEdicao,
-        operacoesModelo: tipoProducaoEdicao === "composta" ? operacoesModeloEdicao.map((op,index)=>({ ...op, ordem:index })) : [],
+        materiais: tipoProducaoEdicao === "simples" ? materiaisSimplesEdicao.map(MaterialListEditor.normalizar) : [],
+        operacoesModelo: tipoProducaoEdicao === "composta" ? operacoesModeloEdicao.map((op,index)=>({ ...op, ordem:index, pesoInformadoAnterior: op.pesoTotalGramas })) : [],
         ativo: true,
         criadoEm: produtoEditando?.criadoEm || Utils.hoje()
     };

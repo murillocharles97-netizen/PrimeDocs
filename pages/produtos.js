@@ -84,9 +84,7 @@ function criarCardProduto(prod) {
     return `
         <article class="productCard ${!ativo ? "isInactive" : ""}">
             <header class="productCardHeader">
-                <div class="productIcon">
-                    <i data-lucide="${prod.favorito ? "star" : "package"}"></i>
-                </div>
+                <button class="productFavoriteButton ${prod.favorito ? "isFavorite" : ""}" type="button" aria-pressed="${Boolean(prod.favorito)}" aria-label="${prod.favorito ? "Remover dos favoritos" : "Adicionar aos favoritos"}" title="${prod.favorito ? "Remover dos favoritos" : "Adicionar aos favoritos"}" onclick="alternarFavoritoProduto('${prod.id}', this)"><i data-lucide="star"></i></button>
                 <div>
                     <span>${escaparProduto(prod.categoria || "Sem categoria")}</span>
                     <h3>${escaparProduto(prod.nome || "Produto sem nome")}</h3>
@@ -98,7 +96,6 @@ function criarCardProduto(prod) {
                 ${ativo ? `<span class="productBadge success">Ativo</span>` : `<span class="productBadge muted">Inativo</span>`}
                 ${semEstoque ? `<span class="productBadge danger">Sem estoque</span>` : ""}
                 ${estoqueBaixo ? `<span class="productBadge warning">Estoque baixo</span>` : ""}
-                ${prod.favorito ? `<span class="productBadge primary">Favorito</span>` : ""}
             </div>
 
             <section class="productMetrics">
@@ -129,6 +126,18 @@ function criarCardProduto(prod) {
             </footer>
         </article>
     `;
+}
+
+function alternarFavoritoProduto(id, botao) {
+    const produto = Storage.buscarProdutoPorId(id);
+    if (!produto) return Toast.show("Produto não encontrado.");
+    produto.favorito = !Boolean(produto.favorito);
+    Storage.salvarProduto(produto);
+    botao?.classList.toggle("isFavorite", produto.favorito);
+    botao?.classList.add("favoritePulse");
+    botao?.setAttribute("aria-pressed", String(produto.favorito));
+    botao?.setAttribute("aria-label", produto.favorito ? "Remover dos favoritos" : "Adicionar aos favoritos");
+    setTimeout(() => listarProdutos(), 180);
 }
 
 function obterEstoqueProduto(prod) {

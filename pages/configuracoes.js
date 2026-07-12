@@ -534,7 +534,7 @@ function confirmarImportacaoBackup() {
 }
 
 function renderCardBackupConfiguracoes() {
-    const status = window.PrimeSync?.getSyncStatus?.() || {};
+    const status = window.PrimeSync?.getStatus?.() || window.PrimeSync?.getSyncStatus?.() || {};
     const ultimaSync = status.ultimaSincronizacao ? formatarDataHoraBackup(status.ultimaSincronizacao) : "Ainda não sincronizado";
     const pendencias = Number(status.pendencias || 0);
 
@@ -629,6 +629,16 @@ function abrirPreviaMigracaoInicial(dados) {
         </div>
     `);
     lucide.createIcons();
+
+    if (window.destacarSyncConfiguracoes) {
+        window.destacarSyncConfiguracoes = false;
+        setTimeout(() => {
+            const card = document.querySelector(".settingsBackupCard");
+            card?.classList.add("syncFocus");
+            card?.scrollIntoView({ behavior: "smooth", block: "start" });
+            setTimeout(() => card?.classList.remove("syncFocus"), 1600);
+        }, 80);
+    }
 }
 
 function cancelarMigracaoInicial() {

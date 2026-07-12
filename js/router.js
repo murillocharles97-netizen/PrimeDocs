@@ -1,8 +1,9 @@
 const app = document.getElementById("content");
 
-function navegar(pagina){
+function navegar(pagina, opcoes = {}){
 
     fecharDrawerPrimeDocs();
+    window.__primeDocsNavigationOptions = opcoes || {};
 
     switch(pagina){
 
@@ -15,7 +16,8 @@ function navegar(pagina){
             break;
 
         case "consignado":
-            renderConsignado();
+            renderConsignado(opcoes?.modo || window.modoConsignadoInicial || "hub");
+            window.modoConsignadoInicial = "";
             break;
 
         case "produtos":
@@ -27,7 +29,8 @@ function navegar(pagina){
             break;
 
         case "conferencia":
-            renderConferencia();
+            renderConsignado("conferencia");
+            pagina = "consignado";
             break;
 
         case "configuracoes":

@@ -3,6 +3,7 @@ const PrimeSync = (() => {
     const PENDING_QUEUE_KEY = "primedocs_sync_queue";
     const LAST_SYNC_KEY = "primedocs_ultima_sincronizacao";
     const STATUS_KEY = "primedocs_sync_status";
+    const ERROR_KEY = "primedocs_sync_erro";
     const WORKSPACE_KEY = "primedocs_workspace_atual";
     const USER_KEY = "primedocs_usuario_atual";
 
@@ -250,6 +251,7 @@ const PrimeSync = (() => {
             return true;
         } catch (erro) {
             console.error("[PrimeDocs Sync] Erro ao carregar Firestore.", erro);
+            registrarErroSync(erro);
             marcarPendente();
             setStatus("Modo offline");
             Toast.show(erro?.message || "Erro ao sincronizar com a nuvem.");
@@ -306,12 +308,14 @@ const PrimeSync = (() => {
             return true;
         } catch (erro) {
             console.error("[PrimeDocs Sync] Erro ao enviar dados locais para nuvem.", erro);
+            registrarErroSync(erro);
             marcarPendente();
             setStatus("Erro na sincronização");
             Toast.show(erro?.message || "Não foi possível enviar os dados para a nuvem.");
             return false;
         } finally {
             sincronizando = false;
+            emitirStatusSync();
         }
     }
 
@@ -346,6 +350,7 @@ const PrimeSync = (() => {
             return true;
         } catch (erro) {
             console.error("[PrimeDocs Sync] Erro ao baixar dados da nuvem.", erro);
+            registrarErroSync(erro);
             marcarPendente();
             setStatus("Erro na sincronização");
             Toast.show(erro?.message || "Não foi possível baixar os dados da nuvem.");
@@ -379,8 +384,9 @@ const PrimeSync = (() => {
                 if (!opcoes.silencioso) Toast.show("Dados baixados da nuvem com sucesso.");
                 return true;
             } catch (erro) {
-                console.error("[PrimeDocs Sync] Pull silencioso falhou.", erro);
-                marcarPendente();
+            console.error("[PrimeDocs Sync] Pull silencioso falhou.", erro);
+            registrarErroSync(erro);
+            marcarPendente();
                 return false;
             }
         }
@@ -448,12 +454,14 @@ const PrimeSync = (() => {
             return true;
         } catch (erro) {
             console.error("[PrimeDocs Sync] Erro ao processar fila pendente.", erro);
+            registrarErroSync(erro);
             marcarPendente();
             setStatus("Pendências");
             Toast.show(erro?.message || "Não foi possível sincronizar pendências.");
             return false;
         } finally {
             sincronizando = false;
+            emitirStatusSync();
         }
     }
 
@@ -718,6 +726,8 @@ const PrimeSync = (() => {
     function registrarSyncConcluido() {
         localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
         localStorage.setItem(STATUS_KEY, "Sincronizado");
+        localStorage.removeItem(ERROR_KEY);
+        emitirStatusSync();
     }
 
     function getSyncStatus() {
@@ -811,16 +821,47 @@ const PrimeSync = (() => {
 
     function marcarPendente() {
         localStorage.setItem(PENDENTE_KEY, "true");
+        emitirStatusSync();
     }
 
     function setStatus(texto) {
         localStorage.setItem(STATUS_KEY, texto);
         const el = document.getElementById("syncStatusLabel");
         if (el) el.textContent = texto;
+        emitirStatusSync();
     }
 
     function obterEstado() {
         return getSyncStatus();
+    }
+
+    function getStatus() {
+        const base = getSyncStatus();
+        const mensagemErro = localStorage.getItem(ERROR_KEY) || "";
+        const estado = !base.online
+            ? "offline"
+            : mensagemErro
+                ? "erro"
+                : base.sincronizando
+                    ? "sincronizando"
+                    : base.pendencias > 0
+                        ? "pendente"
+                        : "sincronizado";
+
+        return {
+            ...base,
+            estado,
+            mensagemErro
+        };
+    }
+
+    function registrarErroSync(erro) {
+        localStorage.setItem(ERROR_KEY, erro?.message || "Erro de sincronização.");
+        emitirStatusSync();
+    }
+
+    function emitirStatusSync() {
+        window.dispatchEvent(new CustomEvent("primedocs:sync-status", { detail: getStatus() }));
     }
 
     function escaparSync(valor) {
@@ -849,6 +890,7 @@ const PrimeSync = (() => {
         syncCollection,
         markPendingSync,
         processPendingQueue,
+        getStatus,
         getSyncStatus,
         enviarLocalParaNuvem,
         baixarNuvemParaLocal,

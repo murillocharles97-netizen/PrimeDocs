@@ -3199,6 +3199,160 @@ body.dark-mode .dashboardAlertItem{
     grid-template-columns:repeat(2,minmax(0,1fr));
 }
 
+.globalSyncStatus{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    min-width:38px;
+    height:38px;
+    padding:0 11px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    background:var(--card-secondary);
+    color:var(--primary);
+    font-size:12px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.globalSyncStatus svg{
+    width:16px;
+    height:16px;
+}
+
+.globalSyncStatus.isSynced{color:#16a34a;background:rgba(34,197,94,.10)}
+.globalSyncStatus.isSyncing{color:var(--primary);background:rgba(109,93,253,.10)}
+.globalSyncStatus.isSyncing svg{animation:spinSync 1s linear infinite}
+.globalSyncStatus.isOffline{color:#64748b;background:rgba(100,116,139,.10)}
+.globalSyncStatus.isPending{color:#d97706;background:rgba(245,158,11,.14)}
+.globalSyncStatus.isError{color:#dc2626;background:rgba(239,68,68,.12)}
+
+@keyframes spinSync{to{transform:rotate(360deg)}}
+
+.moduleActionGrid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:14px;
+    margin:18px 0;
+}
+
+.moduleActionCard{
+    position:relative;
+    display:grid;
+    grid-template-columns:58px minmax(0,1fr) 22px;
+    gap:14px;
+    align-items:center;
+    width:100%;
+    padding:18px;
+    border:1px solid var(--border);
+    border-radius:24px;
+    text-align:left;
+    color:var(--text);
+    background:linear-gradient(135deg,var(--card),var(--card-secondary));
+    box-shadow:var(--shadow);
+    cursor:pointer;
+}
+
+.moduleActionCard > span{
+    display:grid;
+    place-items:center;
+    width:56px;
+    height:56px;
+    border-radius:18px;
+    color:#fff;
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    box-shadow:0 16px 30px rgba(109,93,253,.25);
+}
+
+.moduleActionCard strong{
+    display:block;
+    margin-bottom:4px;
+    font-size:17px;
+}
+
+.moduleActionCard small{
+    display:block;
+    color:var(--muted);
+    line-height:1.35;
+}
+
+.moduleActionCard:hover{
+    transform:translateY(-2px);
+    border-color:rgba(109,93,253,.42);
+}
+
+.consignmentSummaryGrid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    margin-top:16px;
+}
+
+.consignmentSummaryGrid article{
+    padding:14px;
+    border:1px solid var(--border);
+    border-radius:18px;
+    background:var(--card);
+}
+
+.consignmentSummaryGrid small{
+    display:block;
+    color:var(--muted);
+}
+
+.consignmentSummaryGrid strong{
+    display:block;
+    margin-top:5px;
+}
+
+.reportPageHeader{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+}
+
+.reportFilterButton{
+    flex:none;
+    margin-top:8px;
+}
+
+.reportActiveFilters{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:8px;
+    margin:8px 0 14px;
+}
+
+.reportActiveFilters span,
+.reportActiveFilters button{
+    padding:8px 10px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    background:var(--card);
+    color:var(--muted);
+    font-size:12px;
+}
+
+.reportActiveFilters button{
+    color:var(--primary);
+    cursor:pointer;
+}
+
+.reportFilterSheet .reportSelectFilters label{
+    display:grid;
+    gap:5px;
+    color:var(--muted);
+    font-size:12px;
+}
+
+body .reportFilterCard{
+    position:static!important;
+    top:auto!important;
+}
+
 .backupActionIcon{
     display:flex!important;
     align-items:center;
@@ -3391,3 +3545,9 @@ body.dark-mode .dashboardAlertItem{
 
 .primecadVectorPanel{margin-top:14px}.primecadVectorHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.primecadVectorHeader span{display:block;color:var(--primary);font-size:9px;font-weight:850;letter-spacing:.14em}.primecadVectorHeader strong{display:block;margin-top:3px}.primecadVectorActions{display:flex;gap:7px;flex-wrap:wrap}.primecadVectorActions button{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:12px;padding:10px 12px;background:rgba(109,93,253,.1);color:var(--primary);font-weight:850;cursor:pointer}.primecadVectorActions svg{width:15px}.primecadVectorGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.primecadVectorGrid article{min-height:150px;padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--surface-secondary,var(--card-secondary));display:grid;gap:8px;align-content:start}.primecadVectorGrid article>span{color:var(--text-secondary,var(--muted));font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.1em}.primecadVectorGrid img{width:100%;max-height:190px;object-fit:contain;border-radius:12px;background:#fff}.primecadDebugBox{display:grid;place-items:center;text-align:center;gap:7px;min-height:120px;color:var(--text-secondary,var(--muted))}.primecadDebugBox svg{width:28px;color:var(--primary)}.primecadDebugBox strong{color:var(--text)}.primecadDebugBox p{margin:0;font-size:12px;line-height:1.4}.primecadDebugBox img{max-height:115px}
 @media(max-width:800px){.primecadVectorGrid{grid-template-columns:1fr}.primecadVectorHeader{align-items:flex-start;flex-direction:column}.primecadVectorActions button{flex:1}}
+
+/* Navegação, sincronização e relatórios compactos */
+@media(min-width:700px){.moduleActionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.consignmentSummaryGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:520px){.globalSyncStatus{width:38px;padding:0}.globalSyncStatus span{display:none}.reportPageHeader{align-items:center}.reportFilterButton span{display:none}.reportFilterSheet{max-height:70vh;overflow:auto}.moduleActionCard{padding:16px}.consignmentSummaryGrid{grid-template-columns:1fr 1fr}}
+.settingsBackupCard.syncFocus{animation:syncFocusPulse 1.45s ease;border-color:rgba(109,93,253,.55);box-shadow:0 0 0 4px rgba(109,93,253,.1),0 18px 45px rgba(109,93,253,.16)}
+@keyframes syncFocusPulse{0%{transform:translateY(0)}35%{transform:translateY(-3px)}100%{transform:translateY(0)}}

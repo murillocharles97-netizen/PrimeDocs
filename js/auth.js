@@ -34,11 +34,9 @@ const PrimeAuth = (() => {
             mostrarCarregandoAuth("Carregando seus dados...");
 
             try {
-                const workspaceId = await PrimeSync.prepararUsuario(user);
+                const estadoSync = await PrimeSync.init(user);
                 console.log("[PrimeDocs] Perfil carregado");
-                console.log("[PrimeDocs] Workspace carregado", workspaceId);
-
-                await PrimeSync.carregarFirestoreParaLocal();
+                console.log("[PrimeDocs] Workspace carregado", estadoSync.workspaceId);
                 console.log("[PrimeDocs] Dados sincronizados");
 
                 esconderLoginPrimeDocs();

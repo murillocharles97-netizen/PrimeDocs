@@ -1,10 +1,11 @@
 let periodoDashboardExecutivo = localStorage.getItem("primedocs_dashboard_periodo") || "mes";
 let dashboardInicioPersonalizado = localStorage.getItem("primedocs_dashboard_inicio") || "";
 let dashboardFimPersonalizado = localStorage.getItem("primedocs_dashboard_fim") || "";
+let filtrosDashboardExecutivo = carregarFiltrosDashboardExecutivo();
 
 function renderDashboardExecutivo() {
     const intervalo = obterIntervaloDashboardExecutivo();
-    const dados = carregarDadosDashboardExecutivo();
+    const dados = aplicarFiltrosDadosDashboard(carregarDadosDashboardExecutivo());
     const anterior = obterIntervaloAnteriorDashboard(intervalo);
     const atual = calcularIndicadores(dados, intervalo);
     const previo = calcularIndicadores(dados, anterior);
@@ -25,27 +26,11 @@ function renderDashboardExecutivo() {
                 <p>${formatarPeriodoDashboard(intervalo)} · Dados calculados automaticamente pelo PrimeDocs.</p>
             </div>
             <div class="managementHeroActions">
-                <button onclick="exportarDashboardPDF()"><i data-lucide="file-down"></i> PDF</button>
-                <button onclick="exportarDashboardCSV()"><i data-lucide="sheet"></i> CSV</button>
-                <button onclick="imprimirDashboardExecutivo()"><i data-lucide="printer"></i> Imprimir</button>
+                <button onclick="abrirFiltrosDashboardExecutivo()"><i data-lucide="sliders-horizontal"></i> Filtros e exportação</button>
             </div>
         </section>
 
-        <section class="managementPeriodCard">
-            <div class="managementPeriodTabs">
-                ${[
-                    ["hoje", "Hoje"],
-                    ["semana", "Semana"],
-                    ["mes", "Mês"],
-                    ["ano", "Ano"],
-                    ["personalizado", "Período"]
-                ].map(([valor, label]) => `<button class="${periodoDashboardExecutivo === valor ? "active" : ""}" onclick="selecionarPeriodoDashboardExecutivo('${valor}')">${label}</button>`).join("")}
-            </div>
-            <div class="managementCustomPeriod" ${periodoDashboardExecutivo === "personalizado" ? "" : "hidden"}>
-                <label>De<input id="dashboardDataInicio" type="date" value="${escaparDashboardExecutivo(dashboardInicioPersonalizado)}" onchange="atualizarPeriodoPersonalizadoDashboard()"></label>
-                <label>Até<input id="dashboardDataFim" type="date" value="${escaparDashboardExecutivo(dashboardFimPersonalizado)}" onchange="atualizarPeriodoPersonalizadoDashboard()"></label>
-            </div>
-        </section>
+        ${renderFiltrosAtivosDashboard()}
 
         <section class="managementKpiGrid">
             ${renderKpiDashboard("circle-dollar-sign", Utils.moeda(atual.faturamento), "Faturamento", atual.faturamento, previo.faturamento)}
@@ -97,11 +82,17 @@ function renderDashboardExecutivo() {
             ${renderResumoPedidosDashboard(pedidos)}
             ${renderResumoFilamentosDashboard(filamentos)}
             ${renderResumoFinanceiroDashboard(financeiro)}
+            ${renderResumoComercialDashboard(atual)}
         </section>
     `;
 
-    window.__dashboardExecutivoAtual = { atual, financeiro, pedidos, consignado, filamentos, rankings, graficos, intervalo };
+    window.__dashboardExecutivoAtual = { atual, financeiro, pedidos, consignado, filamentos, rankings, graficos, intervalo, dados };
     lucide.createIcons();
+
+    if (window.__primeDocsNavigationOptions?.abrirFiltros) {
+        window.__primeDocsNavigationOptions.abrirFiltros = false;
+        setTimeout(abrirFiltrosDashboardExecutivo, 0);
+    }
 }
 
 function carregarDadosDashboardExecutivo() {
@@ -112,6 +103,7 @@ function carregarDadosDashboardExecutivo() {
         produtos: Storage.listarProdutos().filter(p => p.ativo !== false),
         clientes: Storage.listarClientes ? Storage.listarClientes().filter(c => c.ativo !== false) : [],
         pedidos: Storage.listarPedidos().filter(p => p.ativo !== false),
+        orcamentos: Storage.listarOrcamentos ? Storage.listarOrcamentos().filter(o => o.ativo !== false) : [],
         lojas: lojasAtivas,
         estoques,
         consignados: Storage.listarConsignados().filter(c => lojasMap.has(String(c.lojaId)) || lojasAtivas.some(l => normalizarTextoDashboard(l.nome) === normalizarTextoDashboard(c.lojaNome))),
@@ -122,10 +114,53 @@ function carregarDadosDashboardExecutivo() {
     };
 }
 
+function carregarFiltrosDashboardExecutivo() {
+    try {
+        return { clienteId: "", lojaId: "", produtoId: "", categoria: "", ...(JSON.parse(localStorage.getItem("primedocs_dashboard_filtros")) || {}) };
+    } catch (erro) {
+        return { clienteId: "", lojaId: "", produtoId: "", categoria: "" };
+    }
+}
+
+function aplicarFiltrosDadosDashboard(dados) {
+    const { clienteId, lojaId, produtoId, categoria } = filtrosDashboardExecutivo;
+    const produtosMap = new Map(dados.produtos.map(p => [String(p.id), p]));
+    const lojaSelecionada = dados.lojas.find(l => String(l.id) === String(lojaId));
+    const correspondeLoja = registro => !lojaId || String(registro.lojaId) === String(lojaId) || (lojaSelecionada && normalizarTextoDashboard(registro.lojaNome) === normalizarTextoDashboard(lojaSelecionada.nome));
+    const filtrarItens = itens => (itens || []).map(item => {
+        const produto = produtosMap.get(String(item.produtoId));
+        return { ...item, categoria: item.categoria || produto?.categoria || "Sem categoria" };
+    }).filter(item => (!produtoId || String(item.produtoId) === String(produtoId)) && (!categoria || item.categoria === categoria));
+    const filtraItens = Boolean(produtoId || categoria);
+    const mapearComItens = (lista, tipo) => lista.map(registro => {
+        const itens = filtrarItens(registro.itens);
+        if (!filtraItens) return registro;
+        if (tipo === "conferencia") return { ...registro, itens, valorTotalVendido: itens.reduce((t, i) => t + Number(i.valorVendido || Number(i.quantidadeVendida || 0) * Number(i.preco || 0)), 0), totalPecasVendidas: itens.reduce((t, i) => t + Number(i.quantidadeVendida || 0), 0) };
+        if (tipo === "pedido" || tipo === "orcamento") return { ...registro, itens, valorTotal: itens.reduce((t, i) => t + Number(i.valorTotal || Number(i.quantidade || 0) * Number(i.valorUnitario || i.preco || 0)), 0), valorFinal: itens.reduce((t, i) => t + Number(i.valorTotal || Number(i.quantidade || 0) * Number(i.valorUnitario || i.preco || 0)), 0) };
+        return { ...registro, itens };
+    }).filter(registro => !filtraItens || registro.itens.length);
+
+    return {
+        ...dados,
+        produtos: dados.produtos.filter(p => (!produtoId || String(p.id) === String(produtoId)) && (!categoria || p.categoria === categoria)),
+        clientes: dados.clientes.filter(c => !clienteId || String(c.id) === String(clienteId)),
+        lojas: dados.lojas.filter(l => !lojaId || String(l.id) === String(lojaId)),
+        pedidos: mapearComItens(dados.pedidos.filter(p => !clienteId || String(p.clienteId) === String(clienteId)), "pedido"),
+        orcamentos: mapearComItens(dados.orcamentos.filter(o => !clienteId || String(o.clienteId) === String(clienteId)), "orcamento"),
+        estoques: mapearComItens(dados.estoques.filter(correspondeLoja), "estoque"),
+        consignados: mapearComItens(dados.consignados.filter(correspondeLoja), "consignado"),
+        conferencias: mapearComItens(dados.conferencias.filter(correspondeLoja), "conferencia"),
+        pagamentos: dados.pagamentos.filter(p => (!clienteId || String(p.clienteId) === String(clienteId)) && correspondeLoja(p) && !filtraItens),
+        financeiro: dados.financeiro.filter(f => (!clienteId || String(f.clienteId) === String(clienteId)) && correspondeLoja(f) && !filtraItens)
+    };
+}
+
 function calcularIndicadores(dados, intervalo) {
     const pedidosPeriodo = dados.pedidos.filter(p => noPeriodoDashboard(p.criadoEm || p.dataPedido, intervalo));
     const pedidosEntregues = pedidosPeriodo.filter(p => p.statusPedido === "entregue");
     const conferenciasPeriodo = dados.conferencias.filter(c => noPeriodoDashboard(c.criadoEm || c.data, intervalo));
+    const consignadosPeriodo = dados.consignados.filter(c => noPeriodoDashboard(c.criadoEm || c.data, intervalo));
+    const orcamentosPeriodo = dados.orcamentos.filter(o => noPeriodoDashboard(o.criadoEm || o.data, intervalo));
     const itensVendidos = obterItensVendidosDashboard(dados, intervalo);
     const faturamentoPedidos = pedidosEntregues.reduce((t, p) => t + Number(p.valorTotal || 0), 0);
     const faturamentoConsignado = conferenciasPeriodo.reduce((t, c) => t + Number(c.valorTotalVendido || 0), 0);
@@ -143,11 +178,19 @@ function calcularIndicadores(dados, intervalo) {
         pedidosEntregues: pedidosEntregues.length,
         pedidosProducao: pedidosPeriodo.filter(p => p.statusPedido === "em_producao").length,
         pedidosPendentes: pedidosPeriodo.filter(p => !["entregue", "cancelado"].includes(p.statusPedido)).length,
+        pedidosCancelados: pedidosPeriodo.filter(p => p.statusPedido === "cancelado").length,
         contasReceber,
         contasRecebidas,
         valorConsignado,
         estoqueConsignado,
         clientesAtivos: dados.clientes.length,
+        quantidadeVendida: itensVendidos.reduce((t, i) => t + Number(i.quantidade || 0), 0),
+        produtosVendidos: new Set(itensVendidos.map(i => String(i.produtoId || i.nome))).size,
+        orcamentos: orcamentosPeriodo.length,
+        orcamentosAprovados: orcamentosPeriodo.filter(o => o.status === "aprovado").length,
+        consignados: consignadosPeriodo.length,
+        conferencias: conferenciasPeriodo.length,
+        pagamentosPendentes: pedidosPeriodo.reduce((t, p) => t + Number(p.valorPendente || 0), 0),
         ticketMedio: pedidosEntregues.length ? faturamentoPedidos / pedidosEntregues.length : 0,
         lucroMedio: itensVendidos.length ? (faturamentoPedidos + faturamentoConsignado - custo) / Math.max(1, pedidosEntregues.length + conferenciasPeriodo.length) : 0,
         pedidosPorCliente: clientesCompraram.size ? pedidosPeriodo.length / clientesCompraram.size : 0,
@@ -247,7 +290,9 @@ function calcularGraficos(dados, intervalo) {
 function selecionarPeriodoDashboardExecutivo(periodo) {
     periodoDashboardExecutivo = periodo;
     localStorage.setItem("primedocs_dashboard_periodo", periodo);
-    renderDashboardExecutivo();
+    document.querySelectorAll("[data-dashboard-period]").forEach(botao => botao.classList.toggle("active", botao.dataset.dashboardPeriod === periodo));
+    const personalizado = document.getElementById("dashboardPeriodoPersonalizado");
+    if (personalizado) personalizado.hidden = periodo !== "personalizado";
 }
 
 function atualizarPeriodoPersonalizadoDashboard() {
@@ -256,6 +301,88 @@ function atualizarPeriodoPersonalizadoDashboard() {
     localStorage.setItem("primedocs_dashboard_inicio", dashboardInicioPersonalizado);
     localStorage.setItem("primedocs_dashboard_fim", dashboardFimPersonalizado);
     renderDashboardExecutivo();
+}
+
+function abrirFiltrosDashboardExecutivo() {
+    const clientes = Storage.listarClientes().filter(c => c.ativo !== false).sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR"));
+    const lojas = Storage.listarLojas().filter(l => l.ativo !== false).sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR"));
+    const produtos = Storage.listarProdutos().filter(p => p.ativo !== false).sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR"));
+    const categorias = [...new Set(produtos.map(p => p.categoria).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+    Modal.abrir("Filtros e exportação", `
+        <div class="dashboardFilterSheet">
+            <div class="managementPeriodTabs">
+                ${[["hoje", "Hoje"], ["semana", "Semana"], ["mes", "Mês"], ["ano", "Ano"], ["personalizado", "Personalizado"]].map(([valor, label]) => `<button data-dashboard-period="${valor}" class="${periodoDashboardExecutivo === valor ? "active" : ""}" type="button" onclick="selecionarPeriodoDashboardExecutivo('${valor}')">${label}</button>`).join("")}
+            </div>
+            <div id="dashboardPeriodoPersonalizado" class="managementCustomPeriod" ${periodoDashboardExecutivo === "personalizado" ? "" : "hidden"}>
+                <label>De<input id="dashboardDataInicio" type="date" value="${escaparDashboardExecutivo(dashboardInicioPersonalizado)}"></label>
+                <label>Até<input id="dashboardDataFim" type="date" value="${escaparDashboardExecutivo(dashboardFimPersonalizado)}"></label>
+            </div>
+            <div class="dashboardSelectFilters">
+                ${selectFiltroDashboard("Cliente", "dashboardFiltroCliente", filtrosDashboardExecutivo.clienteId, clientes, "Todos os clientes")}
+                ${selectFiltroDashboard("Loja", "dashboardFiltroLoja", filtrosDashboardExecutivo.lojaId, lojas, "Todas as lojas")}
+                ${selectFiltroDashboard("Produto", "dashboardFiltroProduto", filtrosDashboardExecutivo.produtoId, produtos, "Todos os produtos")}
+                <label>Categoria<select id="dashboardFiltroCategoria"><option value="">Todas as categorias</option>${categorias.map(c => `<option value="${escaparDashboardExecutivo(c)}" ${String(filtrosDashboardExecutivo.categoria) === String(c) ? "selected" : ""}>${escaparDashboardExecutivo(c)}</option>`).join("")}</select></label>
+            </div>
+            <div class="dashboardExportActions">
+                <button class="btnSecondary" type="button" onclick="aplicarFiltrosDashboardExecutivo('pdf')"><i data-lucide="file-down"></i> Exportar PDF</button>
+                <button class="btnSecondary" type="button" onclick="aplicarFiltrosDashboardExecutivo('csv')"><i data-lucide="sheet"></i> Exportar CSV</button>
+                <button class="btnSecondary" type="button" onclick="aplicarFiltrosDashboardExecutivo('imprimir')"><i data-lucide="printer"></i> Imprimir</button>
+            </div>
+            <div class="backupModalActions">
+                <button class="backupCancelButton" type="button" onclick="Modal.fechar()">Cancelar</button>
+                <button class="btn" type="button" onclick="aplicarFiltrosDashboardExecutivo()">Aplicar filtros</button>
+            </div>
+        </div>
+    `);
+    lucide.createIcons();
+}
+
+function selectFiltroDashboard(label, id, valor, itens, vazio) {
+    return `<label>${label}<select id="${id}"><option value="">${vazio}</option>${itens.map(item => `<option value="${escaparDashboardExecutivo(item.id)}" ${String(valor) === String(item.id) ? "selected" : ""}>${escaparDashboardExecutivo(item.nome)}</option>`).join("")}</select></label>`;
+}
+
+function aplicarFiltrosDashboardExecutivo(acao = "") {
+    dashboardInicioPersonalizado = document.getElementById("dashboardDataInicio")?.value || "";
+    dashboardFimPersonalizado = document.getElementById("dashboardDataFim")?.value || "";
+    filtrosDashboardExecutivo = {
+        clienteId: document.getElementById("dashboardFiltroCliente")?.value || "",
+        lojaId: document.getElementById("dashboardFiltroLoja")?.value || "",
+        produtoId: document.getElementById("dashboardFiltroProduto")?.value || "",
+        categoria: document.getElementById("dashboardFiltroCategoria")?.value || ""
+    };
+    localStorage.setItem("primedocs_dashboard_periodo", periodoDashboardExecutivo);
+    localStorage.setItem("primedocs_dashboard_inicio", dashboardInicioPersonalizado);
+    localStorage.setItem("primedocs_dashboard_fim", dashboardFimPersonalizado);
+    localStorage.setItem("primedocs_dashboard_filtros", JSON.stringify(filtrosDashboardExecutivo));
+    Modal.fechar();
+    renderDashboardExecutivo();
+    if (acao === "pdf") setTimeout(exportarDashboardPDF, 0);
+    if (acao === "csv") setTimeout(exportarDashboardCSV, 0);
+    if (acao === "imprimir") setTimeout(imprimirDashboardExecutivo, 0);
+}
+
+function limparFiltrosDashboardExecutivo() {
+    periodoDashboardExecutivo = "mes";
+    dashboardInicioPersonalizado = "";
+    dashboardFimPersonalizado = "";
+    filtrosDashboardExecutivo = { clienteId: "", lojaId: "", produtoId: "", categoria: "" };
+    localStorage.setItem("primedocs_dashboard_periodo", periodoDashboardExecutivo);
+    localStorage.setItem("primedocs_dashboard_filtros", JSON.stringify(filtrosDashboardExecutivo));
+    renderDashboardExecutivo();
+}
+
+function renderFiltrosAtivosDashboard() {
+    const cliente = Storage.buscarClientePorId?.(filtrosDashboardExecutivo.clienteId)?.nome;
+    const loja = Storage.buscarLojaPorId?.(filtrosDashboardExecutivo.lojaId)?.nome;
+    const produto = Storage.buscarProdutoPorId?.(filtrosDashboardExecutivo.produtoId)?.nome;
+    const chips = [rotuloPeriodoDashboardExecutivo(), cliente, loja, produto, filtrosDashboardExecutivo.categoria ? `Categoria: ${filtrosDashboardExecutivo.categoria}` : ""].filter(Boolean);
+    const possuiFiltroExtra = Boolean(filtrosDashboardExecutivo.clienteId || filtrosDashboardExecutivo.lojaId || filtrosDashboardExecutivo.produtoId || filtrosDashboardExecutivo.categoria || periodoDashboardExecutivo !== "mes");
+    return `<section class="dashboardActiveFilters" aria-label="Filtros ativos">${chips.map(chip => `<span>${escaparDashboardExecutivo(chip)}</span>`).join("")}${possuiFiltroExtra ? `<button type="button" onclick="limparFiltrosDashboardExecutivo()">Limpar filtros</button>` : ""}</section>`;
+}
+
+function rotuloPeriodoDashboardExecutivo() {
+    return ({ hoje: "Hoje", semana: "Semana atual", mes: "Mês atual", ano: "Ano atual", personalizado: "Período personalizado" })[periodoDashboardExecutivo] || "Mês atual";
 }
 
 function renderKpiDashboard(icone, valor, titulo, atual, anterior, invertido = false) {
@@ -357,6 +484,19 @@ function renderResumoFinanceiroDashboard(f) {
     ]);
 }
 
+function renderResumoComercialDashboard(i) {
+    return renderInfoCardDashboard("Análise comercial", "chart-no-axes-combined", [
+        ["Quantidade vendida", i.quantidadeVendida],
+        ["Produtos vendidos", i.produtosVendidos],
+        ["Orçamentos enviados", i.orcamentos],
+        ["Orçamentos aprovados", i.orcamentosAprovados],
+        ["Consignados", i.consignados],
+        ["Conferências", i.conferencias],
+        ["Pedidos cancelados", i.pedidosCancelados],
+        ["Pagamentos pendentes", Utils.moeda(i.pagamentosPendentes)]
+    ]);
+}
+
 function renderInfoCardDashboard(titulo, icone, linhas) {
     return `<article class="managementInfoCard"><h3><i data-lucide="${icone}"></i>${escaparDashboardExecutivo(titulo)}</h3>${linhas.map(([l, v]) => `<p><span>${escaparDashboardExecutivo(l)}</span><strong>${escaparDashboardExecutivo(v)}</strong></p>`).join("")}</article>`;
 }
@@ -417,6 +557,10 @@ function exportarDashboardPDF() {
         ["Faturamento", Utils.moeda(dados.atual.faturamento)],
         ["Lucro estimado", Utils.moeda(dados.atual.lucroEstimado)],
         ["Pedidos", dados.atual.pedidos],
+        ["Orçamentos", dados.atual.orcamentos],
+        ["Consignados", dados.atual.consignados],
+        ["Conferências", dados.atual.conferencias],
+        ["Quantidade vendida", dados.atual.quantidadeVendida],
         ["Contas a receber", Utils.moeda(dados.atual.contasReceber)],
         ["Valor em consignado", Utils.moeda(dados.atual.valorConsignado)]
     ].forEach(([l, v]) => {
@@ -440,6 +584,11 @@ function exportarDashboardCSV() {
     }).forEach(([k, v]) => linhas.push(["KPIs", k, v]));
     dados.rankings.clientes.forEach(i => linhas.push(["Top Clientes", i.nome, i.valor]));
     dados.rankings.produtos.forEach(i => linhas.push(["Top Produtos", i.nome, i.quantidade]));
+    linhas.push([]);
+    linhas.push(["Movimentações", "Data", "Cliente/Loja", "Descrição", "Valor"]);
+    dados.dados.pedidos.filter(p => noPeriodoDashboard(p.criadoEm || p.dataPedido, dados.intervalo)).forEach(p => linhas.push(["Pedido", p.dataPedido || p.criadoEm, p.clienteNome || "", STATUS_PEDIDOS[p.statusPedido] || p.statusPedido || "", p.valorTotal || 0]));
+    dados.dados.conferencias.filter(c => noPeriodoDashboard(c.criadoEm || c.data, dados.intervalo)).forEach(c => linhas.push(["Conferência", c.data || c.criadoEm, c.lojaNome || "", `${c.totalPecasVendidas || 0} peças`, c.valorTotalVendido || 0]));
+    dados.dados.orcamentos.filter(o => noPeriodoDashboard(o.criadoEm || o.data, dados.intervalo)).forEach(o => linhas.push(["Orçamento", o.data || o.criadoEm, o.clienteNome || o.cliente || "", o.status || "enviado", o.valorFinal || o.valorTotal || 0]));
     baixarArquivoDashboard("\uFEFF" + linhas.map(l => l.map(v => `"${String(v ?? "").replaceAll('"', '""')}"`).join(";")).join("\n"), `dashboard_executivo_${Utils.hoje()}.csv`, "text/csv;charset=utf-8");
     Toast.show("Dashboard CSV exportado!");
 }

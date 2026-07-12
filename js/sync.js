@@ -1,5 +1,9 @@
 const PrimeSync = (() => {
     const PENDENTE_KEY = "primedocs_sync_pendente";
+    const PENDING_QUEUE_KEY = "primedocs_sync_queue";
+    const LAST_SYNC_KEY = "primedocs_ultima_sincronizacao";
+    const STATUS_KEY = "primedocs_sync_status";
+    const ERROR_KEY = "primedocs_sync_erro";
     const WORKSPACE_KEY = "primedocs_workspace_atual";
     const USER_KEY = "primedocs_usuario_atual";
 
@@ -45,6 +49,59 @@ const PrimeSync = (() => {
     let timer = null;
     let storageInterceptado = false;
     let resolverEscolhaSync = null;
+    let inicializado = false;
+
+    const STORAGE_TO_COLLECTION = {
+        salvarProdutos: "produtos",
+        adicionarProduto: "produtos",
+        atualizarProduto: "produtos",
+        excluirProduto: "produtos",
+        salvarProduto: "produtos",
+        salvarLojas: "lojas",
+        salvarLoja: "lojas",
+        excluirLoja: "lojas",
+        salvarEstoquesLojas: "estoques",
+        salvarEstoqueLoja: "estoques",
+        salvarConsignado: "consignados",
+        salvarConferencia: "conferencias",
+        salvarEmpresas: "empresas",
+        salvarEmpresa: "empresas",
+        definirEmpresaPadrao: "empresas",
+        excluirEmpresa: "empresas",
+        salvarClientes: "clientes",
+        salvarCliente: "clientes",
+        excluirCliente: "clientes",
+        salvarPedidos: "pedidos",
+        salvarPedido: "pedidos",
+        excluirPedido: "pedidos",
+        salvarOrcamentos: "orcamentos",
+        salvarOrcamento: "orcamentos",
+        salvarPagamentos: "pagamentos",
+        salvarPagamento: "pagamentos",
+        salvarLancamentosFinanceiros: "financeiro",
+        salvarLancamentoFinanceiro: "financeiro",
+        salvarFilamentos: "filamentos",
+        salvarFilamento: "filamentos",
+        excluirFilamento: "filamentos",
+        baixarFilamento: "filamentos",
+        salvarConfigCustos: "custos",
+        salvarConfiguracoes: "configuracoes",
+        salvarConfigGerador3D: "gerador3d",
+        restaurarDados: "todos",
+        importarBackup: "todos"
+    };
+
+    async function init(user) {
+        if (user) usuario = user;
+        inicializado = true;
+        await prepararUsuario(usuario || PrimeFirebase.auth?.currentUser);
+        if (lerFilaPendente().length || localStorage.getItem(PENDENTE_KEY) === "true") {
+            await processPendingQueue();
+        }
+        await pullCloudToLocal({ silencioso: true, ignorarVazio: true });
+        setStatus("Sincronizado");
+        return getSyncStatus();
+    }
 
     async function prepararUsuario(user) {
         usuario = user;
@@ -194,6 +251,7 @@ const PrimeSync = (() => {
             return true;
         } catch (erro) {
             console.error("[PrimeDocs Sync] Erro ao carregar Firestore.", erro);
+            registrarErroSync(erro);
             marcarPendente();
             setStatus("Modo offline");
             Toast.show(erro?.message || "Erro ao sincronizar com a nuvem.");
@@ -241,6 +299,8 @@ const PrimeSync = (() => {
             }, { merge: true });
 
             localStorage.setItem(PENDENTE_KEY, "false");
+            salvarFilaPendente([]);
+            registrarSyncConcluido();
             setStatus("Online");
 
             console.log("[PrimeDocs Sync] Upload concluído", resumo);
@@ -248,12 +308,14 @@ const PrimeSync = (() => {
             return true;
         } catch (erro) {
             console.error("[PrimeDocs Sync] Erro ao enviar dados locais para nuvem.", erro);
+            registrarErroSync(erro);
             marcarPendente();
             setStatus("Erro na sincronização");
             Toast.show(erro?.message || "Não foi possível enviar os dados para a nuvem.");
             return false;
         } finally {
             sincronizando = false;
+            emitirStatusSync();
         }
     }
 
@@ -280,12 +342,15 @@ const PrimeSync = (() => {
 
             aplicarSnapshotRemotoNoLocal(remoto);
             localStorage.setItem(PENDENTE_KEY, "false");
+            salvarFilaPendente([]);
+            registrarSyncConcluido();
             setStatus("Dados sincronizados");
 
             if (!opcoes.silencioso) Toast.show("Dados baixados da nuvem com sucesso.");
             return true;
         } catch (erro) {
             console.error("[PrimeDocs Sync] Erro ao baixar dados da nuvem.", erro);
+            registrarErroSync(erro);
             marcarPendente();
             setStatus("Erro na sincronização");
             Toast.show(erro?.message || "Não foi possível baixar os dados da nuvem.");
@@ -297,6 +362,109 @@ const PrimeSync = (() => {
         return carregarFirestoreParaLocal({ manual: true });
     }
 
+    async function syncAll() {
+        return processPendingQueue({ forcarTudo: true });
+    }
+
+    async function pushLocalToCloud(opcoes = {}) {
+        return enviarLocalParaNuvem(opcoes);
+    }
+
+    async function pullCloudToLocal(opcoes = {}) {
+        if (opcoes.ignorarVazio) {
+            try {
+                await garantirContextoSync();
+                const remoto = await obterSnapshotRemoto();
+                if (!temDadosReais(remoto)) {
+                    setStatus("Sincronizado");
+                    return true;
+                }
+                aplicarSnapshotRemotoNoLocal(remoto);
+                registrarSyncConcluido();
+                if (!opcoes.silencioso) Toast.show("Dados baixados da nuvem com sucesso.");
+                return true;
+            } catch (erro) {
+            console.error("[PrimeDocs Sync] Pull silencioso falhou.", erro);
+            registrarErroSync(erro);
+            marcarPendente();
+                return false;
+            }
+        }
+
+        return baixarNuvemParaLocal(opcoes);
+    }
+
+    async function syncCollection(nomeColecao) {
+        const colecao = COLLECTIONS.find(item => item.nome === nomeColecao);
+        if (!colecao) throw new Error(`Coleção desconhecida: ${nomeColecao}`);
+
+        await garantirContextoSync();
+        await substituirColecaoNaNuvem(colecao, colecao.obter());
+        removerPendencia(nomeColecao);
+        registrarSyncConcluido();
+        return true;
+    }
+
+    function markPendingSync(tipo = "todos", id = "") {
+        const fila = lerFilaPendente();
+        fila.push({
+            tipo,
+            id: id ? String(id) : "",
+            criadoEm: new Date().toISOString()
+        });
+        salvarFilaPendente(compactarFila(fila));
+        marcarPendente();
+
+        if (navigator.onLine && (usuario || PrimeFirebase.auth?.currentUser) && inicializado) {
+            agendarSync();
+        }
+    }
+
+    async function processPendingQueue(opcoes = {}) {
+        if (restaurando || sincronizando) return false;
+        if (!navigator.onLine || !(usuario || PrimeFirebase.auth?.currentUser)) {
+            marcarPendente();
+            setStatus("Offline");
+            return false;
+        }
+
+        const fila = lerFilaPendente();
+        const tipos = opcoes.forcarTudo || fila.some(item => item.tipo === "todos")
+            ? COLLECTIONS.map(item => item.nome)
+            : [...new Set(fila.map(item => item.tipo).filter(Boolean))];
+
+        if (!tipos.length && !opcoes.forcarTudo) {
+            setStatus("Sincronizado");
+            return true;
+        }
+
+        try {
+            sincronizando = true;
+            setStatus("Sincronizando...");
+            await garantirContextoSync();
+
+            for (const tipo of tipos) {
+                await syncCollection(tipo);
+            }
+
+            salvarFilaPendente([]);
+            localStorage.setItem(PENDENTE_KEY, "false");
+            registrarSyncConcluido();
+            setStatus("Sincronizado");
+            return true;
+        } catch (erro) {
+            console.error("[PrimeDocs Sync] Erro ao processar fila pendente.", erro);
+            registrarErroSync(erro);
+            marcarPendente();
+            setStatus("Pendências");
+            Toast.show(erro?.message || "Não foi possível sincronizar pendências.");
+            return false;
+        } finally {
+            sincronizando = false;
+            emitirStatusSync();
+        }
+    }
+
     async function diagnostico() {
         const resultado = {
             firebaseAppOk: false,
@@ -306,6 +474,11 @@ const PrimeSync = (() => {
             email: "",
             workspaceAtual: "",
             dadosLocais: {},
+            dadosNuvem: {},
+            workspaceExiste: false,
+            membroExiste: false,
+            ultimaSincronizacao: localStorage.getItem(LAST_SYNC_KEY) || "",
+            pendencias: lerFilaPendente().length,
             leituraOk: false,
             escritaOk: false,
             caminhoTeste: ""
@@ -334,6 +507,19 @@ const PrimeSync = (() => {
             resultado.workspaceAtual = workspaceId;
             resultado.caminhoTeste = `workspaces/${workspaceId}/_debug/teste`;
             console.log("Workspace atual:", workspaceId);
+
+            const workspaceSnap = await workspaceRef().get();
+            const membroSnap = await workspaceRef().collection("membros").doc(user.uid).get();
+            resultado.workspaceExiste = workspaceSnap.exists;
+            resultado.membroExiste = membroSnap.exists;
+
+            const remoto = await obterSnapshotRemoto();
+            resultado.dadosNuvem = resumoSnapshot(remoto);
+            console.log("Workspace existe:", resultado.workspaceExiste);
+            console.log("Membro existe:", resultado.membroExiste);
+            console.log("Dados na nuvem:", resultado.dadosNuvem);
+            console.log("Última sincronização:", resultado.ultimaSincronizacao || "-");
+            console.log("Pendências:", resultado.pendencias);
 
             const testeRef = workspaceRef().collection("_debug").doc("teste");
             await testeRef.set({
@@ -369,30 +555,20 @@ const PrimeSync = (() => {
             return;
         }
         clearTimeout(timer);
-        timer = setTimeout(() => sincronizarAgora(), 900);
+        timer = setTimeout(() => processPendingQueue(), 900);
     }
 
     function interceptarStorage() {
         if (storageInterceptado || !window.Storage) return;
         storageInterceptado = true;
-        [
-            "salvarProdutos", "adicionarProduto", "atualizarProduto", "excluirProduto", "salvarProduto",
-            "salvarLojas", "salvarLoja", "excluirLoja", "salvarEstoquesLojas", "salvarEstoqueLoja",
-            "salvarConsignado", "salvarConferencia",
-            "salvarEmpresas", "salvarEmpresa", "definirEmpresaPadrao", "excluirEmpresa",
-            "salvarClientes", "salvarCliente", "excluirCliente",
-            "salvarPedidos", "salvarPedido", "excluirPedido",
-            "salvarOrcamentos", "salvarOrcamento",
-            "salvarPagamentos", "salvarPagamento",
-            "salvarLancamentosFinanceiros", "salvarLancamentoFinanceiro",
-            "salvarFilamentos", "salvarFilamento", "excluirFilamento", "baixarFilamento",
-            "salvarConfigCustos", "salvarConfiguracoes", "salvarConfigGerador3D", "restaurarDados", "importarBackup"
-        ].forEach(nome => {
+        Object.keys(STORAGE_TO_COLLECTION).forEach(nome => {
             if (typeof Storage[nome] !== "function") return;
             const original = Storage[nome].bind(Storage);
             Storage[nome] = function(...args) {
                 const retorno = original(...args);
-                agendarSync();
+                const tipo = STORAGE_TO_COLLECTION[nome] || "todos";
+                const id = args?.[0]?.id || args?.[0] || "";
+                markPendingSync(tipo, id);
                 return retorno;
             };
         });
@@ -521,6 +697,56 @@ const PrimeSync = (() => {
         return `${prefixo}: ${resumo.produtos || 0} produtos, ${resumo.clientes || 0} clientes, ${resumo.pedidos || 0} pedidos, ${resumo.lojas || 0} lojas.`;
     }
 
+    function lerFilaPendente() {
+        try {
+            const fila = JSON.parse(localStorage.getItem(PENDING_QUEUE_KEY) || "[]");
+            return Array.isArray(fila) ? fila : [];
+        } catch (erro) {
+            return [];
+        }
+    }
+
+    function salvarFilaPendente(fila) {
+        localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(Array.isArray(fila) ? fila : []));
+    }
+
+    function compactarFila(fila) {
+        const mapa = new Map();
+        fila.forEach(item => {
+            const chave = `${item.tipo || "todos"}:${item.id || ""}`;
+            mapa.set(chave, item);
+        });
+        return [...mapa.values()];
+    }
+
+    function removerPendencia(tipo) {
+        salvarFilaPendente(lerFilaPendente().filter(item => item.tipo !== tipo && item.tipo !== "todos"));
+    }
+
+    function registrarSyncConcluido() {
+        localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+        localStorage.setItem(STATUS_KEY, "Sincronizado");
+        localStorage.removeItem(ERROR_KEY);
+        emitirStatusSync();
+    }
+
+    function getSyncStatus() {
+        const fila = lerFilaPendente();
+        return {
+            online: navigator.onLine,
+            inicializado,
+            sincronizando,
+            usuario: PrimeFirebase.auth?.currentUser?.email || usuario?.email || "",
+            uid: PrimeFirebase.auth?.currentUser?.uid || usuario?.uid || "",
+            workspaceId,
+            ultimaSincronizacao: localStorage.getItem(LAST_SYNC_KEY) || "",
+            pendencias: fila.length,
+            status: navigator.onLine
+                ? (sincronizando ? "Sincronizando..." : (fila.length ? "Pendências" : "Sincronizado"))
+                : "Offline"
+        };
+    }
+
     function temDadosReais(snapshot) {
         return COLECOES_COM_DADOS_REAIS.some(nome => Array.isArray(snapshot?.[nome]) && snapshot[nome].length > 0);
     }
@@ -595,19 +821,47 @@ const PrimeSync = (() => {
 
     function marcarPendente() {
         localStorage.setItem(PENDENTE_KEY, "true");
+        emitirStatusSync();
     }
 
     function setStatus(texto) {
+        localStorage.setItem(STATUS_KEY, texto);
         const el = document.getElementById("syncStatusLabel");
         if (el) el.textContent = texto;
+        emitirStatusSync();
     }
 
     function obterEstado() {
+        return getSyncStatus();
+    }
+
+    function getStatus() {
+        const base = getSyncStatus();
+        const mensagemErro = localStorage.getItem(ERROR_KEY) || "";
+        const estado = !base.online
+            ? "offline"
+            : mensagemErro
+                ? "erro"
+                : base.sincronizando
+                    ? "sincronizando"
+                    : base.pendencias > 0
+                        ? "pendente"
+                        : "sincronizado";
+
         return {
-            usuario: PrimeFirebase.auth?.currentUser || usuario,
-            workspaceId,
-            pendente: localStorage.getItem(PENDENTE_KEY) === "true"
+            ...base,
+            estado,
+            mensagemErro
         };
+    }
+
+    function registrarErroSync(erro) {
+        localStorage.setItem(ERROR_KEY, erro?.message || "Erro de sincronização.");
+        emitirStatusSync();
+    }
+
+    function emitirStatusSync() {
+        window.dispatchEvent(new CustomEvent("primedocs:sync-status", { detail: getStatus() }));
     }
 
     function escaparSync(valor) {
@@ -620,15 +874,24 @@ const PrimeSync = (() => {
     }
 
     window.addEventListener("online", () => {
-        if (localStorage.getItem(PENDENTE_KEY) === "true") sincronizarAgora();
+        if (localStorage.getItem(PENDENTE_KEY) === "true" || lerFilaPendente().length) processPendingQueue();
     });
     window.addEventListener("offline", () => setStatus("Offline"));
 
     return {
+        init,
         prepararUsuario,
         carregarFirestoreParaLocal,
         sincronizarAgora,
         sincronizarComResolucaoManual,
+        syncAll,
+        pushLocalToCloud,
+        pullCloudToLocal,
+        syncCollection,
+        markPendingSync,
+        processPendingQueue,
+        getStatus,
+        getSyncStatus,
         enviarLocalParaNuvem,
         baixarNuvemParaLocal,
         responderEscolhaSync,

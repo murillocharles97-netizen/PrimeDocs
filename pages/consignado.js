@@ -1,7 +1,75 @@
 let itensConsignado = [];
 let consignadoRegistradoNestaTela = false;
 
-function renderConsignado() {
+function renderConsignado(modo = "hub") {
+    if (modo === "novo" || modo === "nova" || modo === "consignacao") {
+        renderNovoConsignado();
+        return;
+    }
+
+    if (modo === "conferencia") {
+        renderConferencia(true);
+        return;
+    }
+
+    renderHubConsignado();
+}
+
+function abrirConsignado(modo) {
+    renderConsignado(modo);
+    atualizarNavegacaoAtivaPrimeDocs?.("consignado");
+    atualizarCabecalhoPrimeDocs?.();
+}
+
+function formatarDataConsignadoHub(valor) {
+    if (!valor) return "Nenhuma";
+    if (typeof formatarDataBR === "function") return formatarDataBR(valor);
+    const data = new Date(valor);
+    return Number.isNaN(data.getTime()) ? String(valor).slice(0, 10) : data.toLocaleDateString("pt-BR");
+}
+
+function renderHubConsignado() {
+    const estoques = Storage.listarEstoquesLojas().filter(e => (e.itens || []).some(i => Number(i.quantidade || 0) > 0));
+    const valorConsignado = estoques.reduce((total, estoque) => total + (estoque.itens || []).reduce((soma, item) => soma + Number(item.quantidade || 0) * Number(item.preco || 0), 0), 0);
+    const conferencias = Storage.listarConferencias().slice().sort((a, b) => new Date(b.criadoEm || b.data || 0) - new Date(a.criadoEm || a.data || 0));
+    const lojasAguardando = typeof calcularLojasParaVisitar === "function" ? calcularLojasParaVisitar().length : 0;
+
+    app.innerHTML = `
+        <button class="back" onclick="navegar('home')">
+            <i data-lucide="arrow-left"></i>
+            Voltar
+        </button>
+
+        ${Page.titulo("📦 Consignado", "Controle de produtos em lojas parceiras.")}
+
+        <section class="moduleActionGrid consignmentHub">
+            <button class="moduleActionCard" type="button" onclick="abrirConsignado('novo')">
+                <span><i data-lucide="package-plus"></i></span>
+                <strong>Nova consignação</strong>
+                <small>Deixar produtos em uma loja e gerar o documento do estoque enviado.</small>
+                <i data-lucide="arrow-right"></i>
+            </button>
+
+            <button class="moduleActionCard" type="button" onclick="abrirConsignado('conferencia')">
+                <span><i data-lucide="clipboard-check"></i></span>
+                <strong>Fazer conferência</strong>
+                <small>Carregar o estoque atual, registrar vendas e atualizar o que permaneceu.</small>
+                <i data-lucide="arrow-right"></i>
+            </button>
+        </section>
+
+        <section class="consignmentSummaryGrid">
+            <article><small>Lojas com estoque</small><strong>${estoques.length}</strong></article>
+            <article><small>Valor em consignado</small><strong>${Utils.moeda(valorConsignado)}</strong></article>
+            <article><small>Aguardando conferência</small><strong>${lojasAguardando}</strong></article>
+            <article><small>Última conferência</small><strong>${conferencias[0] ? formatarDataConsignadoHub(conferencias[0].data || conferencias[0].criadoEm) : "Nenhuma"}</strong></article>
+        </section>
+    `;
+
+    lucide.createIcons();
+}
+
+function renderNovoConsignado() {
     itensConsignado = [];
     consignadoRegistradoNestaTela = false;
     const lojas = Storage.listarLojas()
@@ -19,9 +87,9 @@ function renderConsignado() {
     `).join("");
 
     app.innerHTML = `
-        <button class="back" onclick="navegar('home')">
+        <button class="back" onclick="abrirConsignado('hub')">
             <i data-lucide="arrow-left"></i>
-            Voltar
+            Voltar para Consignado
         </button>
 
         ${Page.titulo(

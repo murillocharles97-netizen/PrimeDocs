@@ -2,7 +2,7 @@ let conferenciaAtual = null;
 let itensConferencia = [];
 let conferenciaPersistida = false;
 
-function renderConferencia() {
+function renderConferencia(integradaConsignado = false) {
     conferenciaAtual = null;
     itensConferencia = [];
     conferenciaPersistida = false;
@@ -16,9 +16,9 @@ function renderConferencia() {
         ));
 
     app.innerHTML = `
-        <button class="back" onclick="navegar('home')">
+        <button class="back" onclick="${integradaConsignado ? "abrirConsignado('hub')" : "navegar('home')"}">
             <i data-lucide="arrow-left"></i>
-            Voltar
+            ${integradaConsignado ? "Voltar para Consignado" : "Voltar"}
         </button>
 
         ${Page.titulo(

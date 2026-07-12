@@ -3157,6 +3157,302 @@ body.dark-mode .dashboardAlertItem{
     color:var(--muted);
 }
 
+.syncStatusGrid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+    margin:16px 0 20px;
+}
+
+.syncStatusGrid > div{
+    padding:12px;
+    border:1px solid var(--border);
+    border-radius:16px;
+    background:var(--surface-2);
+}
+
+.syncStatusGrid small,
+.settingsSubsection > p{
+    display:block;
+    color:var(--muted);
+    font-size:12px;
+}
+
+.syncStatusGrid strong{
+    display:block;
+    margin-top:4px;
+    word-break:break-word;
+}
+
+.settingsSubsection{
+    margin-top:22px;
+    padding-top:18px;
+    border-top:1px solid var(--border);
+}
+
+.settingsSubsection h4{
+    margin:0 0 6px;
+    font-size:16px;
+}
+
+.migrationPreviewGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+.globalSyncStatus{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    min-width:38px;
+    height:38px;
+    padding:0 11px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    background:var(--card-secondary);
+    color:var(--primary);
+    font-size:12px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.globalSyncStatus svg{
+    width:16px;
+    height:16px;
+}
+
+.globalSyncStatus.isSynced{color:#16a34a;background:rgba(34,197,94,.10)}
+.globalSyncStatus.isSyncing{color:var(--primary);background:rgba(109,93,253,.10)}
+.globalSyncStatus.isSyncing svg{animation:spinSync 1s linear infinite}
+.globalSyncStatus.isOffline{color:#64748b;background:rgba(100,116,139,.10)}
+.globalSyncStatus.isPending{color:#d97706;background:rgba(245,158,11,.14)}
+.globalSyncStatus.isError{color:#dc2626;background:rgba(239,68,68,.12)}
+
+@keyframes spinSync{to{transform:rotate(360deg)}}
+
+.moduleActionGrid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:14px;
+    margin:18px 0;
+}
+
+.moduleActionCard{
+    position:relative;
+    display:grid;
+    grid-template-columns:58px minmax(0,1fr) 22px;
+    grid-template-areas:
+        "icon title arrow"
+        "icon description arrow";
+    gap:14px;
+    align-items:center;
+    width:100%;
+    padding:18px;
+    border:1px solid var(--border);
+    border-radius:24px;
+    text-align:left;
+    color:var(--text);
+    background:linear-gradient(135deg,var(--card),var(--card-secondary));
+    box-shadow:var(--shadow);
+    cursor:pointer;
+    height:auto;
+    overflow:hidden;
+}
+
+.moduleActionCard > span{
+    grid-area:icon;
+    display:grid;
+    place-items:center;
+    width:56px;
+    height:56px;
+    border-radius:18px;
+    color:#fff;
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    box-shadow:0 16px 30px rgba(109,93,253,.25);
+}
+
+.moduleActionCard strong{
+    grid-area:title;
+    display:block;
+    min-width:0;
+    margin:0;
+    font-size:17px;
+    line-height:1.25;
+    overflow-wrap:break-word;
+    word-break:normal;
+}
+
+.moduleActionCard small{
+    grid-area:description;
+    display:block;
+    min-width:0;
+    color:var(--muted);
+    line-height:1.35;
+    overflow-wrap:break-word;
+    word-break:normal;
+}
+
+.moduleActionCard > i:last-child{
+    grid-area:arrow;
+    align-self:center;
+    width:20px;
+    color:var(--primary);
+}
+
+.moduleActionCard:hover{
+    transform:translateY(-2px);
+    border-color:rgba(109,93,253,.42);
+}
+
+.consignmentSummaryGrid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    margin-top:16px;
+}
+
+.consignmentSummaryGrid article{
+    min-width:0;
+    padding:14px;
+    border:1px solid var(--border);
+    border-radius:18px;
+    background:var(--card);
+}
+
+.consignmentSummaryGrid small{
+    display:block;
+    color:var(--muted);
+    overflow-wrap:break-word;
+    word-break:normal;
+}
+
+.consignmentSummaryGrid strong{
+    display:block;
+    margin-top:5px;
+    overflow-wrap:break-word;
+    word-break:normal;
+}
+
+.headerActionsDivider{
+    display:block!important;
+    flex:none;
+    width:1px;
+    height:24px;
+    margin:0 3px;
+    background:var(--border);
+}
+
+.dashboardActiveFilters{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:7px;
+    margin:-2px 0 14px;
+}
+
+.dashboardActiveFilters span,
+.dashboardActiveFilters button{
+    min-width:0;
+    padding:7px 10px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    color:var(--muted);
+    background:var(--card);
+    font-size:11px;
+    overflow-wrap:break-word;
+    word-break:normal;
+}
+
+.dashboardActiveFilters button{
+    color:var(--primary);
+    cursor:pointer;
+}
+
+.dashboardFilterSheet{
+    display:grid;
+    gap:14px;
+    max-height:min(74vh,680px);
+    overflow:auto;
+}
+
+.dashboardSelectFilters{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+}
+
+.dashboardSelectFilters label{
+    display:grid;
+    min-width:0;
+    gap:5px;
+    color:var(--muted);
+    font-size:12px;
+}
+
+.dashboardSelectFilters select{
+    width:100%;
+    min-width:0;
+    min-height:44px;
+    padding:0 10px;
+    border:1px solid var(--border);
+    border-radius:11px;
+    color:var(--text);
+    background:var(--card-secondary);
+}
+
+.dashboardExportActions{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:8px;
+}
+
+.reportPageHeader{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+}
+
+.reportFilterButton{
+    flex:none;
+    margin-top:8px;
+}
+
+.reportActiveFilters{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:8px;
+    margin:8px 0 14px;
+}
+
+.reportActiveFilters span,
+.reportActiveFilters button{
+    padding:8px 10px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    background:var(--card);
+    color:var(--muted);
+    font-size:12px;
+}
+
+.reportActiveFilters button{
+    color:var(--primary);
+    cursor:pointer;
+}
+
+.reportFilterSheet .reportSelectFilters label{
+    display:grid;
+    gap:5px;
+    color:var(--muted);
+    font-size:12px;
+}
+
+body .reportFilterCard{
+    position:static!important;
+    top:auto!important;
+}
+
 .backupActionIcon{
     display:flex!important;
     align-items:center;
@@ -3275,6 +3571,10 @@ body.dark-mode .dashboardAlertItem{
         grid-template-columns:1fr 1fr;
     }
 
+    .syncStatusGrid{
+        grid-template-columns:repeat(3,minmax(0,1fr));
+    }
+
     .backupMetadata{
         grid-template-columns:repeat(3,minmax(0,1fr));
     }
@@ -3345,3 +3645,74 @@ body.dark-mode .dashboardAlertItem{
 
 .primecadVectorPanel{margin-top:14px}.primecadVectorHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.primecadVectorHeader span{display:block;color:var(--primary);font-size:9px;font-weight:850;letter-spacing:.14em}.primecadVectorHeader strong{display:block;margin-top:3px}.primecadVectorActions{display:flex;gap:7px;flex-wrap:wrap}.primecadVectorActions button{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:12px;padding:10px 12px;background:rgba(109,93,253,.1);color:var(--primary);font-weight:850;cursor:pointer}.primecadVectorActions svg{width:15px}.primecadVectorGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.primecadVectorGrid article{min-height:150px;padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--surface-secondary,var(--card-secondary));display:grid;gap:8px;align-content:start}.primecadVectorGrid article>span{color:var(--text-secondary,var(--muted));font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.1em}.primecadVectorGrid img{width:100%;max-height:190px;object-fit:contain;border-radius:12px;background:#fff}.primecadDebugBox{display:grid;place-items:center;text-align:center;gap:7px;min-height:120px;color:var(--text-secondary,var(--muted))}.primecadDebugBox svg{width:28px;color:var(--primary)}.primecadDebugBox strong{color:var(--text)}.primecadDebugBox p{margin:0;font-size:12px;line-height:1.4}.primecadDebugBox img{max-height:115px}
 @media(max-width:800px){.primecadVectorGrid{grid-template-columns:1fr}.primecadVectorHeader{align-items:flex-start;flex-direction:column}.primecadVectorActions button{flex:1}}
+
+/* Navegação, sincronização e relatórios compactos */
+@media(min-width:700px){.moduleActionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.consignmentSummaryGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:520px){.globalSyncStatus{width:38px;padding:0}.globalSyncStatus span{display:none}.reportPageHeader{align-items:center}.reportFilterButton span{display:none}.reportFilterSheet{max-height:70vh;overflow:auto}.moduleActionCard{padding:16px}.consignmentSummaryGrid{grid-template-columns:1fr 1fr}}
+
+/* UX responsiva: navegação, Consignado e Dashboard Executivo */
+.appHeader > *,
+.headerActions > *,
+.headerBrand > *,
+#content > *,
+.drawerMenu,
+.drawerMenu button > *,
+.managementHero > *,
+.managementInfoGrid > *,
+.managementChartsGrid > *,
+.managementRankingsGrid > *{
+    min-width:0;
+}
+
+.drawerMenu{min-height:0;overscroll-behavior:contain}
+.drawerCompany{flex:none}
+
+@media(max-width:520px){
+    .appHeader{gap:7px!important}
+    .headerBrand{gap:7px}
+    .headerBrand .brandMark{width:34px;height:34px;border-radius:11px}
+    .appHeader h1,.appHeader #headerGreeting{max-width:92px}
+    .moduleActionGrid{gap:11px}
+    .moduleActionCard{
+        grid-template-columns:48px minmax(0,1fr);
+        grid-template-areas:
+            "icon title"
+            "description description"
+            "arrow arrow";
+        gap:10px 12px;
+        min-height:0;
+        padding:15px;
+        border-radius:19px;
+    }
+    .moduleActionCard > span{width:48px;height:48px;border-radius:15px}
+    .moduleActionCard strong{font-size:16px}
+    .moduleActionCard small{font-size:12px;line-height:1.5}
+    .moduleActionCard > i:last-child{justify-self:end;align-self:end}
+    .consignmentSummaryGrid{gap:8px}
+    .consignmentSummaryGrid article{padding:12px;border-radius:15px}
+    .consignmentSummaryGrid small{font-size:10px;line-height:1.35}
+    .consignmentSummaryGrid strong{font-size:clamp(14px,4.2vw,18px)}
+    .dashboardSelectFilters,.dashboardExportActions{grid-template-columns:1fr}
+    .dashboardExportActions button{width:100%;min-height:44px}
+    .managementHeroActions button{width:100%;justify-content:center}
+    .managementKpiGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .managementKpi{min-height:118px}
+}
+
+@media(max-width:360px){
+    .appHeader{grid-template-columns:34px minmax(0,1fr) auto!important;gap:5px!important;padding:7px!important}
+    .headerBrand{gap:6px}
+    .headerBrand .brandMark{width:32px;height:32px;border-radius:10px}
+    .headerBrand .brandMark svg{width:18px;height:18px}
+    .appHeader h1{max-width:76px;font-size:12px!important}
+    .appHeader #headerGreeting{max-width:76px}
+    .headerActions{gap:3px!important}
+    .headerIconButton,.themeToggle,.globalSyncStatus{width:34px!important;height:34px!important;border-radius:10px!important}
+    .headerActionsDivider{display:none!important}
+    .consignmentSummaryGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .managementHero{padding:17px;border-radius:20px}
+    .managementHero h2{font-size:24px}
+    .managementKpiGrid{grid-template-columns:1fr}
+}
+.settingsBackupCard.syncFocus{animation:syncFocusPulse 1.45s ease;border-color:rgba(109,93,253,.55);box-shadow:0 0 0 4px rgba(109,93,253,.1),0 18px 45px rgba(109,93,253,.16)}
+@keyframes syncFocusPulse{0%{transform:translateY(0)}35%{transform:translateY(-3px)}100%{transform:translateY(0)}}

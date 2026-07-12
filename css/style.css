@@ -3848,3 +3848,278 @@ body .reportFilterCard{
     .productFavoriteButton{width:42px;height:42px}
     .financeActions button{flex:1 1 100%}
 }
+
+/* PrimeDocs Design System oficial */
+:root{
+    --color-primary:#6D4AFF;
+    --color-primary-hover:#5B3DE8;
+    --color-secondary:#218CFF;
+    --color-success:#18A875;
+    --color-success-strong:#087A55;
+    --color-warning:#F59E0B;
+    --color-warning-strong:#925300;
+    --color-danger:#E5484D;
+    --color-danger-strong:#C9363C;
+    --color-bg:#F7F8FC;
+    --color-surface:#FFFFFF;
+    --color-surface-soft:#F3F1FF;
+    --color-text:#171A2B;
+    --color-text-secondary:#667085;
+    --color-text-muted:#98A2B3;
+    --color-border:#E5E7F0;
+    --radius-sm:8px;
+    --radius-md:12px;
+    --radius-lg:16px;
+    --radius-xl:20px;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.04);
+    --shadow-md:0 4px 12px rgba(0,0,0,.08);
+    --shadow-lg:0 8px 24px rgba(0,0,0,.10);
+    --space-1:4px;
+    --space-2:8px;
+    --space-3:12px;
+    --space-4:16px;
+    --space-5:24px;
+    --space-6:32px;
+    --space-7:48px;
+    --space-8:64px;
+    --control-height:44px;
+    --transition-fast:150ms ease;
+    --transition-normal:220ms ease;
+    --primary:var(--color-primary);
+    --primary-dark:var(--color-primary-hover);
+    --accent:#8B5CF6;
+    --cyan:var(--color-secondary);
+    --success:var(--color-success);
+    --warning:var(--color-warning);
+    --danger:var(--color-danger);
+    --bg:var(--color-bg);
+    --card:var(--color-surface);
+    --card-secondary:var(--color-surface-soft);
+    --surface-secondary:var(--color-surface-soft);
+    --surface-2:var(--color-surface-soft);
+    --text:var(--color-text);
+    --text-secondary:var(--color-text-secondary);
+    --muted:var(--color-text-secondary);
+    --border:var(--color-border);
+    --input-bg:var(--color-surface);
+    --hover:var(--color-surface-soft);
+    --glass:rgba(255,255,255,.92);
+    --radius:var(--radius-lg);
+    --radius-card:var(--radius-lg);
+    --radius-control:var(--radius-md);
+    --shadow:var(--shadow-md);
+    --shadow-card:var(--shadow-sm);
+}
+
+html[data-theme="dark"],body.dark-mode{
+    --color-primary:#8B5CF6;
+    --color-primary-hover:#9B72FF;
+    --color-secondary:#38BDF8;
+    --color-success:#34D399;
+    --color-success-strong:#34D399;
+    --color-warning:#FBBF24;
+    --color-warning-strong:#FBBF24;
+    --color-danger:#FB7185;
+    --color-danger-strong:#FB7185;
+    --color-bg:#090B18;
+    --color-surface:#121629;
+    --color-surface-soft:#181D35;
+    --color-text:#F8FAFC;
+    --color-text-secondary:#AAB2C8;
+    --color-text-muted:#727B96;
+    --color-border:#262C46;
+    --primary:var(--color-primary);
+    --primary-dark:var(--color-primary-hover);
+    --cyan:var(--color-secondary);
+    --success:var(--color-success);
+    --warning:var(--color-warning);
+    --danger:var(--color-danger);
+    --bg:var(--color-bg);
+    --card:var(--color-surface);
+    --card-secondary:var(--color-surface-soft);
+    --surface-secondary:var(--color-surface-soft);
+    --surface-2:var(--color-surface-soft);
+    --text:var(--color-text);
+    --text-secondary:var(--color-text-secondary);
+    --muted:var(--color-text-secondary);
+    --border:var(--color-border);
+    --input-bg:var(--color-surface-soft);
+    --hover:rgba(139,92,246,.12);
+    --glass:rgba(18,22,41,.94);
+    --shadow-sm:0 1px 2px rgba(0,0,0,.18);
+    --shadow-md:0 4px 12px rgba(0,0,0,.26);
+    --shadow-lg:0 8px 24px rgba(0,0,0,.34);
+}
+
+*,*::before,*::after{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{font-size:14px;line-height:1.45;background:var(--color-bg);background-image:none;color:var(--color-text)}
+#content{max-width:1240px;padding-bottom:var(--space-7)}
+
+.btn,.btn-primary,.btnSecondary,.btn-secondary,.btnGhost,.btn-ghost,.btn-danger,.btn-icon{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:var(--space-2);
+    min-height:var(--control-height);
+    border-radius:var(--radius-md)!important;
+    font-size:14px;
+    font-weight:600;
+    line-height:1;
+    cursor:pointer;
+    transition:transform var(--transition-fast),background-color var(--transition-fast),border-color var(--transition-fast),box-shadow var(--transition-fast),color var(--transition-fast);
+}
+.btn,.btn-primary{border:1px solid var(--color-primary);background:var(--color-primary);color:#fff}
+.btn:hover,.btn-primary:hover{border-color:var(--color-primary-hover);background:var(--color-primary-hover);box-shadow:0 4px 12px rgba(109,74,255,.2)}
+.btnSecondary,.btn-secondary{border:1px solid color-mix(in srgb,var(--color-primary) 38%,var(--color-border));background:transparent;color:var(--color-primary)}
+.btnSecondary:hover,.btn-secondary:hover{border-color:var(--color-primary);background:color-mix(in srgb,var(--color-primary) 8%,transparent)}
+.btnGhost,.btn-ghost{border:0;background:transparent;color:var(--color-text-secondary)}
+.btnGhost:hover,.btn-ghost:hover{background:var(--color-surface-soft);color:var(--color-text)}
+.btn-danger,.dangerButton{border:1px solid color-mix(in srgb,var(--color-danger) 28%,transparent);background:color-mix(in srgb,var(--color-danger) 10%,transparent);color:var(--color-danger)}
+.btn-icon{flex:0 0 var(--control-height);width:var(--control-height);padding:0;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text-secondary)}
+.btn-icon:hover{border-color:color-mix(in srgb,var(--color-primary) 35%,var(--color-border));color:var(--color-primary);background:var(--color-surface-soft)}
+.btn-icon svg,.btn svg,.btnSecondary svg{width:17px;height:17px}
+button:disabled{cursor:not-allowed;opacity:.5;transform:none!important;box-shadow:none!important}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid color-mix(in srgb,var(--color-primary) 28%,transparent);outline-offset:2px}
+
+.badge,.erpBadge,.productBadge,.financeStatus,.syncStatusLabel{
+    display:inline-flex;
+    align-items:center;
+    width:max-content;
+    min-height:24px;
+    padding:4px 8px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:0;
+}
+.badge-neutral{color:var(--color-text-secondary);background:var(--color-surface-soft)}
+.badge-success,.erpBadge.success,.financeStatus.pago,.productBadge.success{color:var(--color-success-strong);background:color-mix(in srgb,var(--color-success) 11%,transparent)}
+.badge-warning,.financeStatus.parcial,.productBadge.warning{color:var(--color-warning-strong);background:color-mix(in srgb,var(--color-warning) 12%,transparent)}
+.badge-danger,.erpBadge.danger,.financeStatus.atrasado,.productBadge.danger{color:var(--color-danger-strong);background:color-mix(in srgb,var(--color-danger) 11%,transparent)}
+.badge-primary{color:var(--color-primary);background:color-mix(in srgb,var(--color-primary) 10%,transparent)}
+
+.appHeader{min-height:64px;border-color:var(--color-border);border-radius:var(--radius-lg)!important;background:var(--glass);box-shadow:var(--shadow-sm)}
+.headerBrand .brandMark{box-shadow:0 4px 12px rgba(109,74,255,.2)}
+.headerActions{gap:var(--space-2)!important}
+.headerIconButton,.themeToggle,.globalSyncStatus{border-color:var(--color-border);background:var(--color-surface);box-shadow:none}
+.globalSyncStatus{margin-right:var(--space-1)}
+.globalSyncStatus.isSynced{color:var(--color-success-strong);background:color-mix(in srgb,var(--color-success) 10%,transparent)}
+.globalSyncStatus.isPending{color:var(--color-warning-strong);background:color-mix(in srgb,var(--color-warning) 11%,transparent)}
+.globalSyncStatus.isError{color:var(--color-danger-strong);background:color-mix(in srgb,var(--color-danger) 10%,transparent)}
+.drawerOverlay{background:rgba(9,11,24,.52)}
+.appDrawer>div{border-color:var(--color-border);background:var(--color-surface);box-shadow:var(--shadow-lg)}
+.drawerMenu{gap:var(--space-1)}
+.drawerMenu button{min-height:42px;border-radius:var(--radius-md);font-size:14px}
+.drawerMenu button:hover{transform:none;background:var(--color-surface-soft)}
+.drawerMenu button.isActive{color:var(--color-primary);background:color-mix(in srgb,var(--color-primary) 10%,var(--color-surface))}
+.drawerMenu button.isActive::before{width:3px;height:22px;background:var(--color-primary)}
+.drawerCompany{border-color:var(--color-border);background:var(--color-surface-soft)}
+.drawerLogoutButton{min-height:40px;background:transparent;color:var(--color-danger)}
+.drawerLogoutButton:hover{background:color-mix(in srgb,var(--color-danger) 9%,transparent)}
+.menuCard{width:100%;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text);text-align:left;box-shadow:var(--shadow-sm)}
+.menuCard:hover{border-color:color-mix(in srgb,var(--color-primary) 28%,var(--color-border));box-shadow:var(--shadow-md)}
+.erpToolbar,.productToolbar{margin-bottom:var(--space-4)}
+.erpToolbar{padding:var(--space-3);border-color:var(--color-border);border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-sm)}
+.erpToolbar select,.erpSearch,.productSearch input{min-height:var(--control-height);border-color:var(--color-border);border-radius:var(--radius-md);background:var(--color-surface-soft);box-shadow:none}
+
+.welcome{margin-bottom:var(--space-5)}
+.welcome h2{font-size:clamp(24px,4vw,28px);font-weight:700;line-height:1.2}
+.welcome p{font-size:14px;font-weight:400;color:var(--color-text-secondary)}
+.sectionTitle,.operationsSectionTitle h2{font-size:18px;font-weight:700}
+
+.managementHero,.operationsHero{border-radius:var(--radius-xl);background:linear-gradient(135deg,var(--color-primary),var(--color-secondary));box-shadow:0 8px 24px rgba(75,65,190,.18)}
+.managementHero h2 span{font-size:inherit;letter-spacing:normal;color:inherit}
+.managementHero p,.operationsHero p{color:rgba(255,255,255,.82)}
+.managementHeroActions{align-items:stretch}
+.managementFilterAction{align-self:flex-start}
+.managementPendingCard{display:grid;grid-template-columns:1fr auto;gap:2px var(--space-4);min-width:170px;padding:var(--space-3);border:1px solid rgba(255,255,255,.2);border-radius:var(--radius-lg);background:rgba(15,23,42,.18);backdrop-filter:blur(10px)}
+.managementPendingCard span{font-size:11px;letter-spacing:0;text-transform:none;color:rgba(255,255,255,.78)}
+.managementPendingCard strong{grid-column:2;grid-row:1/3;align-self:center;font-size:28px;line-height:1}
+.managementPendingCard button{grid-column:1/-1;justify-self:start;min-height:30px;padding:6px 9px;border:0;border-radius:var(--radius-sm);background:rgba(255,255,255,.14);color:#fff;font-size:11px;font-weight:600}
+.managementKpi,.operationsSummaryCard,.financeSummaryCard{min-height:118px;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
+.managementKpiComparison b{color:var(--color-success-strong);background:color-mix(in srgb,var(--color-success) 10%,transparent)}
+.managementKpi.negative .managementKpiComparison b{color:var(--color-danger-strong);background:color-mix(in srgb,var(--color-danger) 10%,transparent)}
+.managementChart,.managementRanking,.managementGoalsPanel,.managementInfoCard,.operationsActionSection,.operationsModule{border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
+.operationsSummaryCard.danger svg,.operationsSummaryCard.danger strong{color:var(--color-danger)}
+.operationsSummaryCard.warning svg{color:var(--color-warning)}
+.operationsAction{border:0;background:var(--color-surface-soft)}
+.operationsAction>b{color:color-mix(in srgb,var(--color-warning) 78%,#7c2d12);background:color-mix(in srgb,var(--color-warning) 12%,transparent)}
+.operationsAction.priority-alta>b{color:var(--color-danger);background:color-mix(in srgb,var(--color-danger) 10%,transparent)}
+
+.productCard,.financeCard,.clientCard,.erpEntityCard,.cardForm,.settingsCard,.budgetCard{border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
+.productBadges:empty{display:none}
+.productMetrics>div,.financeValues div,.clientCardMetrics div{border:0;border-radius:var(--radius-md);background:var(--color-surface-soft)}
+.productDetailsHero,.receiveHero,.clientDetailHero,.generatorUploadCard,.primecadInfoBox{background:var(--color-surface-soft);border-color:var(--color-border)}
+.clientAvatar{background:var(--color-primary);box-shadow:none}
+.financeCard:before{width:3px}
+.financeActions{justify-content:flex-end}
+.financeActions .btn{width:auto;min-width:110px}
+.productCardFooter section{align-items:center}
+.productCardFooter .productMoreButton{min-width:var(--control-height);padding:0}
+.compactActionMenu{display:grid;gap:var(--space-2)}
+.compactActionMenu>button{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:var(--space-3);width:100%;min-height:62px;padding:var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);text-align:left;cursor:pointer}
+.compactActionMenu>button:hover{border-color:color-mix(in srgb,var(--color-primary) 35%,var(--color-border));background:var(--color-surface-soft)}
+.compactActionMenu>button>svg{width:19px;color:var(--color-primary)}
+.compactActionMenu>button span{display:grid;gap:2px}
+.compactActionMenu>button small{color:var(--color-text-secondary)}
+.compactActionMenu>button.danger>svg,.compactActionMenu>button.danger strong{color:var(--color-danger)}
+
+.modalOverlay{padding:var(--space-5);background:rgba(9,11,24,.58);animation:fade var(--transition-fast)}
+.modalContainer{width:min(100%,560px);border:1px solid var(--color-border);border-radius:var(--radius-xl);background:var(--color-surface);box-shadow:var(--shadow-lg);animation:modalOpen var(--transition-normal)}
+.modalHeader{min-height:68px;padding:var(--space-4) var(--space-5);border-color:var(--color-border);background:var(--color-surface)}
+.modalHeader h2{font-size:18px;font-weight:700}
+.modalBody{padding:var(--space-5);background:var(--color-surface)}
+.modalClose{width:40px;height:40px;border:1px solid var(--color-border);background:var(--color-surface-soft);color:var(--color-text-secondary)}
+.modalClose:hover{background:var(--color-surface-soft);color:var(--color-primary)}
+.modalActions,.financeFilterActions,.backupModalActions{position:sticky;bottom:calc(var(--space-5) * -1);z-index:2;padding-top:var(--space-3);padding-bottom:2px;background:var(--color-surface)}
+
+.uiState,.erpEmpty{display:grid;place-items:center;align-content:center;gap:var(--space-2);min-height:160px;padding:var(--space-5);border:1px dashed var(--color-border);border-radius:var(--radius-lg);background:var(--color-surface);color:var(--color-text-secondary);text-align:center}
+.uiState>svg,.erpEmpty>svg{width:28px;color:var(--color-primary)}
+.uiState strong,.erpEmpty strong{color:var(--color-text)}
+.uiState p,.erpEmpty p{margin:0;color:var(--color-text-secondary)}
+.uiState-error>svg,.uiState-error strong{color:var(--color-danger)}
+
+.generatorHero{background:var(--color-primary);box-shadow:var(--shadow-md)}
+.generatorPanel,.generatorPreviewCard{border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
+
+@media(max-width:700px){
+    #app{padding:var(--space-3)}
+    #content{padding-bottom:var(--space-7)}
+    .appHeader{top:var(--space-2);margin-bottom:var(--space-4)}
+    .managementHero,.operationsHero{padding:var(--space-4)}
+    .managementHeroActions{display:grid;grid-template-columns:1fr}
+    .managementPendingCard{width:100%;min-width:0}
+    .managementFilterAction{width:100%}
+    .modalOverlay{align-items:flex-end;padding:0}
+    .modalContainer{max-height:92dvh;border-radius:var(--radius-xl) var(--radius-xl) 0 0}
+    .modalContainer::before{display:block;width:42px;height:4px;margin:var(--space-2) auto 0;border-radius:999px;background:var(--color-border);content:""}
+    .modalHeader{padding:var(--space-3) var(--space-4)}
+    .modalBody{padding:var(--space-4);max-height:calc(92dvh - 76px)}
+    .modalActions,.financeFilterActions,.backupModalActions{bottom:calc(var(--space-4) * -1)}
+    .productMetrics>div:nth-child(n+3){display:none}
+    .productCardFooter{grid-template-columns:auto minmax(0,1fr)}
+    .productCardFooter section{justify-content:flex-end}
+    .financeCardTop{grid-template-columns:auto minmax(0,1fr) auto}
+    .financeStatus{grid-column:auto}
+}
+
+@media(max-width:430px){
+    .welcome{margin-bottom:var(--space-4)}
+    .welcome h2{font-size:24px}
+    .managementKpiGrid,.operationsSummaryGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .managementKpi,.operationsSummaryCard,.financeSummaryCard{min-height:106px}
+    .managementKpiComparison{display:grid;gap:var(--space-1)}
+    .operationsAction{grid-template-columns:auto minmax(0,1fr)}
+    .operationsActionButtons{grid-column:2}
+    .financeMeta{display:grid;gap:var(--space-2)}
+}
+
+@media(max-width:360px){
+    .headerBrand .brandMark{display:flex;width:28px;height:28px;border-radius:9px}
+    .headerBrand .brandMark svg{width:16px;height:16px}
+    .appHeader h1,.appHeader #headerGreeting{max-width:76px}
+    .managementKpiGrid,.operationsSummaryGrid{grid-template-columns:1fr 1fr}
+    .managementKpi,.operationsSummaryCard{padding:var(--space-3)}
+    .financeCardTop{grid-template-columns:auto minmax(0,1fr)}
+    .financeStatus{grid-column:2}
+}

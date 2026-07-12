@@ -23,13 +23,13 @@ const Modal = {
 
         <div class="modalOverlay" onclick="Modal.fechar(event)">
 
-            <div class="modalContainer" onclick="event.stopPropagation()">
+            <div class="modalContainer" role="dialog" aria-modal="true" aria-labelledby="primeDocsModalTitle" onclick="event.stopPropagation()">
 
                 <div class="modalHeader">
 
-                    <h2>${titulo}</h2>
+                    <h2 id="primeDocsModalTitle">${titulo}</h2>
 
-                    <button class="modalClose" onclick="Modal.fechar()">
+                    <button class="modalClose" type="button" onclick="Modal.fechar()" aria-label="Fechar janela">
 
                         <i data-lucide="x"></i>
 
@@ -50,6 +50,7 @@ const Modal = {
         `;
 
         lucide.createIcons();
+        root.querySelector(".modalClose")?.focus();
 
     },
 
@@ -74,3 +75,7 @@ const Modal = {
     }
 
 };
+
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && document.getElementById("modalRoot")?.innerHTML) Modal.fechar();
+});

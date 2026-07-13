@@ -1,4 +1,4 @@
-const CACHE_VERSION = "primedocs-v37";
+const CACHE_VERSION = "primedocs-v38";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -16,6 +16,7 @@ const APP_SHELL = [
     "./js/router.js",
     "./js/storage.js",
     "./js/utils.js",
+    "./js/global-search.js",
     "./js/financeiro.js",
     "./js/calculadoraCustos.js",
     "./js/filamentos-integracao.js",

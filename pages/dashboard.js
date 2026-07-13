@@ -267,11 +267,16 @@ function calcularConsignado(dados, intervalo) {
 function calcularFilamentos(dados) {
     const pesoTotal = dados.filamentos.reduce((t, f) => t + Number(f.pesoAtualKg || 0), 0);
     const valorEstoque = dados.filamentos.reduce((t, f) => t + Number(f.pesoAtualKg || 0) * Number(f.precoKg || 0), 0);
+    const grupos = window.FilamentIntegration?.agruparRolos
+        ? FilamentIntegration.agruparRolos(dados.filamentos.filter(f => f.ativo !== false))
+        : dados.filamentos.filter(f => f.ativo !== false).map(f => ({
+            baixoEstoque: Number(f.pesoAtualKg || 0) <= Number(f.alertaMinimoKg || 0)
+        }));
     return {
         pesoTotal,
         valorEstoque,
         materiais: new Set(dados.filamentos.map(f => f.material).filter(Boolean)).size,
-        criticos: dados.filamentos.filter(f => Number(f.pesoAtualKg || 0) <= Number(f.alertaMinimoKg || 0)).length,
+        criticos: grupos.filter(grupo => grupo.baixoEstoque).length,
         consumoEstimado: "Em preparação"
     };
 }

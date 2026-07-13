@@ -1,6 +1,7 @@
 const Backup = (() => {
     const LISTAS = [
         "produtos",
+        "colecoesProdutos",
         "clientes",
         "lojas",
         "pedidos",
@@ -68,6 +69,7 @@ const Backup = (() => {
     function criarBaseNormalizada() {
         return {
             produtos: [],
+            colecoesProdutos: [],
             clientes: [],
             lojas: [],
             pedidos: [],

@@ -137,7 +137,7 @@ function calcularResumoDashboard() {
     const pedidosProntos = pedidos.filter(p => p.statusPedido === "pronto").length;
     const pedidosPendentes = pedidos.filter(p => !["entregue", "cancelado"].includes(p.statusPedido)).length;
     const valorPedidosPendente = pedidos.reduce((total, p) => total + Number(p.valorPendente || 0), 0);
-    const filamentosBaixos = filamentos.filter(f => Number(f.pesoAtualKg || 0) <= Number(f.alertaMinimoKg || 0)).length;
+    const filamentosBaixos = agruparFilamentosDashboard(filamentos).filter(grupo => grupo.baixoEstoque).length;
     const estoqueFilamentoKg = filamentos.reduce((total, f) => total + Number(f.pesoAtualKg || 0), 0);
 
     return {
@@ -304,8 +304,8 @@ function carregarAlertas(dados) {
     });
     const pagamentosPendentes = dados.pedidos.filter(p => Number(p.valorPendente || 0) > 0 && p.statusPedido !== "cancelado").length;
     if (pagamentosPendentes) alertas.push({ icone: "wallet-cards", texto: `${pagamentosPendentes} pedido(s) aguardando pagamento.` });
-    dados.filamentos.filter(f => Number(f.pesoAtualKg || 0) <= Number(f.alertaMinimoKg || 0)).forEach(f => {
-        alertas.push({ icone: "spool", texto: `${f.material} ${f.cor} está abaixo do estoque mínimo.` });
+    agruparFilamentosDashboard(dados.filamentos).filter(grupo => grupo.baixoEstoque).forEach(grupo => {
+        alertas.push({ icone: "spool", texto: `${grupo.material} ${grupo.cor} está abaixo do estoque mínimo.` });
     });
     const lotesProducao = Storage.listarLotesExecucao?.() || [];
     const operacoesProducao = Storage.listarOperacoesProducao?.() || [];
@@ -608,6 +608,31 @@ function escaparHtmlDashboard(valor) {
         .replaceAll("'", "&#039;");
 }
 
+function agruparFilamentosDashboard(filamentos = []) {
+    if (window.FilamentIntegration?.agruparRolos) {
+        return FilamentIntegration.agruparRolos(filamentos.filter(item => item.ativo !== false));
+    }
+    return filamentos.filter(item => item.ativo !== false).map(item => ({
+        chave: String(item.id),
+        material: item.material || "Filamento",
+        cor: item.cor || "Sem cor",
+        pesoDisponivelTotal: Number(item.pesoAtualKg || 0) * 1000,
+        baixoEstoque: Number(item.pesoAtualKg || 0) <= Number(item.alertaMinimoKg || 0)
+    }));
+}
+
+function filamentosAgrupadosParaAcoes(filamentos = Storage.listarFilamentos()) {
+    return agruparFilamentosDashboard(filamentos)
+        .filter(grupo => grupo.baixoEstoque)
+        .map(grupo => ({
+            id: grupo.chave,
+            material: grupo.material,
+            cor: grupo.cor,
+            pesoAtualKg: Number(grupo.pesoDisponivelTotal || 0) / 1000,
+            alertaMinimoKg: Number(grupo.pesoDisponivelTotal || 0) / 1000
+        }));
+}
+
 /* Dashboard executivo - camada de apresentação */
 function renderDashboard() {
     Storage.limparDadosOrfaosLojas();
@@ -618,7 +643,7 @@ function renderDashboard() {
     const prontos=dados.pedidos.filter(p=>p.statusPedido==="pronto").length;
     const atrasados=dados.pedidos.filter(p=>p.dataEntregaPrevista&&p.dataEntregaPrevista<Utils.hoje()&&!["entregue","cancelado"].includes(p.statusPedido)).length;
     const lojasAguardando=dados.estoques.filter(e=>(e.itens||[]).some(i=>Number(i.quantidade||0)>0)).length;
-    const filamentosCriticos=dados.filamentos.filter(f=>Number(f.pesoAtualKg||0)<=Number(f.alertaMinimoKg||0)).length;
+    const filamentosCriticos=agruparFilamentosDashboard(dados.filamentos).filter(grupo=>grupo.baixoEstoque).length;
     const estoqueFilamento=dados.filamentos.reduce((t,f)=>t+Number(f.pesoAtualKg||0),0);
     const pedidosPorStatus=Object.entries(STATUS_PEDIDOS).map(([status,nome])=>({nome,quantidade:dados.pedidos.filter(p=>p.statusPedido===status).length})).filter(i=>i.quantidade);
     const recebimentos=[{nome:"Clientes",valor:receberClientes},{nome:"Consignado",valor:receberConsignado}].filter(i=>i.valor);
@@ -649,9 +674,9 @@ function renderDashboard(){
     const financeiro=Financeiro.sincronizar(),resumo=Financeiro.calcularResumo(financeiro),notificacoes=gerarNotificacoesOperacionais(),hoje=Utils.hoje();
     const pedidos=Storage.listarPedidos().filter(p=>p.ativo!==false),filamentos=Storage.listarFilamentos().filter(f=>f.ativo!==false),lojasVisitar=calcularLojasParaVisitar();
     const producao=pedidos.filter(p=>p.statusPedido==='em_producao'),prontos=pedidos.filter(p=>p.statusPedido==='pronto'),atrasados=pedidos.filter(p=>p.dataEntregaPrevista&&p.dataEntregaPrevista<hoje&&!['entregue','cancelado'].includes(p.statusPedido));
-    const criticos=filamentos.filter(f=>Number(f.pesoAtualKg||0)<=Number(f.alertaMinimoKg||0));
+    const criticos=agruparFilamentosDashboard(filamentos).filter(grupo=>grupo.baixoEstoque);
     const pendentes=financeiro.filter(i=>!['pago','cancelado'].includes(i.status)),maior=pendentes.sort((a,b)=>b.valorRestante-a.valorRestante)[0];
-    const acoes=[...montarAcoesOperacionais({financeiro,pedidos,filamentos,lojasVisitar}),...montarAcoesCRM(),...montarAcoesProducaoAtual()];
+    const acoes=[...montarAcoesOperacionais({financeiro,pedidos,filamentos:filamentosAgrupadosParaAcoes(filamentos),lojasVisitar}),...montarAcoesCRM(),...montarAcoesProducaoAtual()];
     const gruposAcoes=agruparAcoesOperacionais(acoes);
     const agora=new Date(),saudacao=agora.getHours()<12?'Bom dia':agora.getHours()<18?'Boa tarde':'Boa noite';
     app.innerHTML=`<div class="operationsDashboard">
@@ -662,7 +687,7 @@ function renderDashboard(){
             ${moduloOperacao('wallet-cards','Financeiro','Recebimentos',[['Receber hoje',Utils.moeda(resumo.hoje)],['Em atraso',Utils.moeda(resumo.atraso)],['Maior recebimento',maior?`${maior.clienteNome} · ${Utils.moeda(maior.valorRestante)}`:'Nenhum']], 'financeiro')}
             ${moduloOperacao('factory','Produção','Pedidos',[['Em produção',producao.length],['Prontos',prontos.length],['Atrasados',atrasados.length]],'pedidos')}
             ${moduloOperacao('store','Consignado','Próximas visitas',lojasVisitar.length?lojasVisitar.slice(0,3).map(i=>[i.loja.nome,`${i.dias} dias`]):[['Situação','Nenhuma visita sugerida']],'conferencia')}
-            ${moduloOperacao('spool','Filamentos','Alertas de estoque',criticos.length?criticos.slice(0,3).map(f=>[`${f.material} ${f.cor}`,`${(Number(f.pesoAtualKg||0)*1000).toFixed(0)} g`]):[['Situação','Estoque saudável']],'filamentos')}
+            ${moduloOperacao('spool','Filamentos','Alertas de estoque',criticos.length?criticos.slice(0,3).map(grupo=>[`${grupo.material} ${grupo.cor}`,`${Number(grupo.pesoDisponivelTotal||0).toFixed(0)} g disponíveis`]):[['Situação','Estoque saudável']],'filamentos')}
         </section>
     </div>`;lucide.createIcons();
 }
@@ -675,7 +700,7 @@ function renderGrupoAcoesOperacionais(grupo){const expandido=acoesOperacionaisEx
 function alternarGrupoAcoesOperacionais(id){acoesOperacionaisExpandidas.has(id)?acoesOperacionaisExpandidas.delete(id):acoesOperacionaisExpandidas.add(id);renderDashboard();}
 function renderAcaoOperacional(a){return `<article class="operationsAction priority-${a.prioridade}" data-action-id="${escaparHtmlDashboard(a.id)}" role="button" tabindex="0" onclick="executarDestinoAcaoOperacional('${a.modulo}','${escaparHtmlDashboard(a.registroId||'')}')" onkeydown="if(event.key==='Enter')executarDestinoAcaoOperacional('${a.modulo}','${escaparHtmlDashboard(a.registroId||'')}')"><span><i data-lucide="${a.icone}"></i></span><div><strong>${escaparHtmlDashboard(a.titulo)}</strong><small>${escaparHtmlDashboard(a.descricao)}</small></div><section class="operationsActionButtons"><button onclick="event.stopPropagation();executarDestinoAcaoOperacional('${a.modulo}','${escaparHtmlDashboard(a.registroId||'')}')">${a.acao||'Abrir'} <i data-lucide="arrow-up-right"></i></button><button class="actionMoreButton" aria-label="Mais ações" onclick="event.stopPropagation();abrirMenuAcaoOperacional('${escaparHtmlDashboard(a.id)}')"><i data-lucide="ellipsis"></i></button></section></article>`;}
 function executarDestinoAcaoOperacional(modulo,registroId=''){navegar(modulo);if(modulo==='clientes'&&registroId)setTimeout(()=>abrirDetalhesCliente(registroId),0);}
-function abrirMenuAcaoOperacional(id){const acoes=[...montarAcoesOperacionais({financeiro:Financeiro.sincronizar(),pedidos:Storage.listarPedidos().filter(p=>p.ativo!==false),filamentos:Storage.listarFilamentos().filter(f=>f.ativo!==false),lojasVisitar:calcularLojasParaVisitar()}),...montarAcoesCRM(),...montarAcoesProducaoAtual()];const acao=acoes.find(a=>String(a.id)===String(id));if(!acao)return;Modal.abrir("Ação sugerida",`<div class="compactActionMenu"><button onclick="Modal.fechar();navegar('${acao.modulo}')"><i data-lucide="arrow-up-right"></i><span><strong>${acao.acao||'Abrir'}</strong><small>${escaparHtmlDashboard(acao.titulo)}</small></span></button><button onclick="Modal.fechar();concluirAcaoOperacional('${escaparHtmlDashboard(acao.id)}')"><i data-lucide="check"></i><span><strong>Marcar como concluída</strong><small>Ocultar esta sugestão</small></span></button></div>`);lucide.createIcons();}
+function abrirMenuAcaoOperacional(id){const acoes=[...montarAcoesOperacionais({financeiro:Financeiro.sincronizar(),pedidos:Storage.listarPedidos().filter(p=>p.ativo!==false),filamentos:filamentosAgrupadosParaAcoes(),lojasVisitar:calcularLojasParaVisitar()}),...montarAcoesCRM(),...montarAcoesProducaoAtual()];const acao=acoes.find(a=>String(a.id)===String(id));if(!acao)return;Modal.abrir("Ação sugerida",`<div class="compactActionMenu"><button onclick="Modal.fechar();navegar('${acao.modulo}')"><i data-lucide="arrow-up-right"></i><span><strong>${acao.acao||'Abrir'}</strong><small>${escaparHtmlDashboard(acao.titulo)}</small></span></button><button onclick="Modal.fechar();concluirAcaoOperacional('${escaparHtmlDashboard(acao.id)}')"><i data-lucide="check"></i><span><strong>Marcar como concluída</strong><small>Ocultar esta sugestão</small></span></button></div>`);lucide.createIcons();}
 function gerarIdAcaoOperacional(a){return String(`${a.modulo||"acao"}-${a.titulo||""}-${a.descricao||""}`).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");}
 function obterAcoesOperacionaisConcluidas(){try{return JSON.parse(localStorage.getItem("primedocs_acoes_concluidas"))||[];}catch(e){return [];}}
 function salvarAcoesOperacionaisConcluidas(lista){localStorage.setItem("primedocs_acoes_concluidas",JSON.stringify([...new Set(lista.map(String))]));}

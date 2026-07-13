@@ -55,6 +55,7 @@ function renderizarERPPrimeDocs() {
     document.getElementById("authScreen")?.remove();
     document.getElementById("app").style.display = "block";
 
+    Storage.migrarColecoesProdutos?.();
     renderNavegacaoPrimeDocs();
     Financeiro.sincronizar();
     gerarNotificacoesOperacionais();

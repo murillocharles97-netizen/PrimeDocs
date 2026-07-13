@@ -234,6 +234,52 @@ const Producao = (() => {
         return novasOrdens;
     }
 
+    function criarOrdemParaEstoque(produtoId, quantidade = 1) {
+        const produto = Storage.buscarProdutoPorId(produtoId);
+        if (!produto || produto.ativo === false) throw new Error("Selecione um produto ativo para produzir.");
+        const quantidadeProdutos = Math.max(1, Math.floor(Number(quantidade) || 0));
+        const receita = obterReceita(produto);
+        if (!receita.length) throw new Error("Este produto ainda não possui uma receita de produção.");
+        const agora = new Date().toISOString();
+        const ordemId = id("ord-estoque");
+        const mapaIds = new Map(receita.map(op => [String(op.id), id("oper-prod")]));
+        receita.forEach(op => mapaIds.set(String(op.nome).toLocaleLowerCase("pt-BR"), mapaIds.get(String(op.id))));
+        const operacoes = receita.map((op, indice) => {
+            const dependencias = (op.dependencias || []).map(dep => mapaIds.get(String(dep)) || mapaIds.get(String(dep).toLocaleLowerCase("pt-BR"))).filter(Boolean);
+            const multiplicador = quantidadeProdutos;
+            return {
+                id: mapaIds.get(String(op.id)), ordemProducaoId: ordemId, pedidoId: null, itemPedidoId: null,
+                produtoId: produto.id, produtoNome: produto.nome, nome: op.nome, tipo: op.tipo, ordem: indice,
+                quantidade: multiplicador * Math.max(1, Number(op.quantidadePorProduto) || 1),
+                status: dependencias.length ? "aguardando_dependencia" : "aguardando",
+                impressoraId: null, impressoraNome: "", impressoraPreferencialId: op.impressoraPreferencialId || "",
+                filamentosSelecionados: (op.materiais || []).map(material => ({
+                    materialReceitaId: material.id, filamentoId: null, filamentoPreferencialId: material.filamentoPreferencialId || "",
+                    material: material.material, cor: material.cor, slotAms: material.slotAms ?? "",
+                    pesoPrevistoGramas: Number(material.pesoGramas || 0) * multiplicador, pesoRealGramas: 0,
+                    obrigatorio: material.obrigatorio !== false
+                })),
+                custoFilamentoPrevisto: calcularCustoMateriais(op.materiais || []) * multiplicador,
+                tempoPrevistoMinutos: ((Number(op.tempoHoras) || 0) * 60 + (Number(op.tempoMinutos) || 0)) * multiplicador,
+                tempoRealMinutos: 0, pesoPrevistoGramas: (Number(op.pesoTotalGramas) || 0) * multiplicador,
+                inicio: null, fim: null, dependencias, podeExecutarEmParalelo: Boolean(op.podeExecutarEmParalelo),
+                exigeMontagemAnterior: Boolean(op.exigeMontagemAnterior), observacoes: op.observacoes || "",
+                criadoEm: agora, atualizadoEm: agora
+            };
+        });
+        operacoes.forEach(Storage.salvarOperacaoProducao.bind(Storage));
+        const ordem = {
+            id: ordemId, origem: "estoque", pedidoId: null, itemPedidoId: null, clienteId: null,
+            clienteNome: "Estoque interno", produtoId: produto.id, produtoNome: produto.nome,
+            quantidade: quantidadeProdutos, status: "aguardando", progresso: 0, prioridade: "normal", prazo: "",
+            operacoes, estoqueAtualizadoEm: null, ativo: true, criadoEm: agora, atualizadoEm: agora,
+            iniciadoEm: null, concluidoEm: null
+        };
+        Storage.salvarOrdemProducao(ordem);
+        registrar("ordem_estoque_criada", { ordem }, `${quantidadeProdutos} unidade(s) de ${produto.nome} enviadas para produção de estoque.`);
+        return ordem;
+    }
+
     function contextoOperacao(operacaoId) {
         const operacao = Storage.buscarOperacaoProducaoPorId(operacaoId);
         if (!operacao) throw new Error("Operação não encontrada.");
@@ -290,7 +336,10 @@ const Producao = (() => {
     function liberarReservasLote(loteId, status = "liberada") {
         const filamentos = new Set();
         Storage.listarReservasFilamento().filter(reserva => String(reserva.loteExecucaoId) === String(loteId) && reserva.status === "ativa").forEach(reserva => { filamentos.add(reserva.filamentoId); Storage.salvarReservaFilamento({ ...reserva, status, atualizadoEm: new Date().toISOString() }); });
-        if (window.FilamentIntegration) filamentos.forEach(filamentoId => FilamentIntegration.atualizarStatusRolo(filamentoId));
+        if (window.FilamentIntegration) filamentos.forEach(filamentoId => {
+            FilamentIntegration.atualizarStatusRolo(filamentoId);
+            FilamentIntegration.registrar("reserva_liberada", filamentoId, null, status === "cancelada" ? "Reserva cancelada com o lote." : "Reserva liberada para nova alocação.", { loteId, status });
+        });
     }
 
     function removerLoteDaFila(lote) {
@@ -490,7 +539,22 @@ const Producao = (() => {
         const concluidas = operacoes.filter(item => item.status === "concluida").length;
         ordem.progresso = operacoes.length ? Math.round(concluidas / operacoes.length * 100) : 0;
         if (operacoes.length && concluidas === operacoes.length) { ordem.status = "concluida"; ordem.concluidoEm = new Date().toISOString(); } else if (operacoes.some(item => item.status === "em_execucao")) ordem.status = "em_producao"; else if (operacoes.some(item => item.status === "aguardando_dependencia")) ordem.status = "aguardando_montagem";
-        ordem.operacoes = operacoes; ordem.atualizadoEm = new Date().toISOString(); Storage.salvarOrdemProducao(ordem);
+        ordem.operacoes = operacoes;
+        ordem.atualizadoEm = new Date().toISOString();
+        if (ordem.status === "concluida" && ordem.origem === "estoque" && !ordem.estoqueAtualizadoEm) {
+            const produto = Storage.buscarProdutoPorId(ordem.produtoId);
+            if (!produto) throw new Error("O produto desta produção para estoque não foi encontrado.");
+            const estoqueAtual = Math.max(0, Number(produto.estoque ?? produto.estoqueAtual ?? produto.quantidadeEstoque ?? 0) || 0);
+            const quantidadeProduzida = Math.max(0, Number(ordem.quantidade) || 0);
+            produto.estoque = estoqueAtual + quantidadeProduzida;
+            produto.estoqueAtual = produto.estoque;
+            produto.atualizadoEm = ordem.atualizadoEm;
+            Storage.salvarProduto(produto);
+            ordem.estoqueAtualizadoEm = ordem.atualizadoEm;
+            ordem.quantidadeAdicionadaEstoque = quantidadeProduzida;
+            registrar("estoque_produto_atualizado", { ordem }, `${quantidadeProduzida} unidade(s) de ${produto.nome} adicionadas ao estoque.`);
+        }
+        Storage.salvarOrdemProducao(ordem);
         if (pedido) {
             const ordensPedido = Storage.listarOrdensProducao().filter(item => String(item.pedidoId) === String(pedido.id) && item.ativo !== false);
             if (ordensPedido.length && ordensPedido.every(item => item.status === "concluida")) { pedido.statusPedido = "pronto"; registrar("pedido_pronto", { pedido }, `Pedido #${String(pedido.id).slice(-5)} pronto.`); }
@@ -505,7 +569,7 @@ const Producao = (() => {
         const lote = Storage.buscarLoteExecucaoPorId(loteId); if (!lote || !["em_execucao", "pausada"].includes(lote.status)) throw new Error("Lote não está em execução ou pausado.");
         const { operacao, ordem, pedido } = contextoOperacao(lote.operacaoId); const impressora = Storage.buscarImpressoraPorId(lote.impressoraId); const agora = new Date().toISOString();
         if (lote.status === "pausada" && lote.pausadoEm) lote.tempoPausadoAcumulado = Number(lote.tempoPausadoAcumulado || 0) + Math.max(0, Date.now() - new Date(lote.pausadoEm).getTime());
-        lote.concluidoEm = agora; lote.status = falha ? "falhou" : "concluido"; lote.resultado = falha ? "falha" : (dados.resultado || "sucesso"); lote.quantidadeConcluida = Math.max(0, Number(dados.quantidadeConcluida ?? lote.quantidade) || 0); lote.pecasDefeito = Math.max(0, Number(dados.pecasDefeito) || 0); lote.motivoFalha = dados.motivoFalha || ""; lote.observacoesResultado = dados.observacoes || "";
+        lote.concluidoEm = agora; lote.status = falha ? "falhou" : "concluido"; lote.resultado = falha ? "falha" : (dados.resultado || "sucesso"); lote.quantidadeConcluida = Math.max(0, Number(dados.quantidadeConcluida ?? lote.quantidade) || 0); lote.pecasDefeito = Math.max(0, Number(dados.pecasDefeito) || 0); lote.motivoFalha = dados.motivoFalha || ""; lote.estrategiaConsumoFalha = falha ? (dados.estrategiaConsumo || "previsto") : null; lote.observacoesResultado = dados.observacoes || "";
         lote.filamentosSelecionados = (lote.filamentosSelecionados || []).map(material => ({ ...material, pesoRealGramas: Math.max(0, Number(dados.consumos?.find(item => String(item.materialReceitaId) === String(material.materialReceitaId))?.pesoRealGramas ?? material.pesoPrevistoGramas) || 0) }));
         lote.custosReais = calcularCustoRealLote(lote, lote.filamentosSelecionados); lote.custoReal = lote.custosReais.total; lote.tempoRealMinutos = calcularTempoDecorrido(lote); lote.atualizadoEm = agora; Storage.salvarLoteExecucao(lote);
         lote.filamentosSelecionados.forEach(material => { if (material.filamentoId && material.pesoRealGramas > 0) { Storage.baixarFilamento(material.filamentoId, material.pesoRealGramas / 1000); if (window.FilamentIntegration) FilamentIntegration.tratarRoloAposConsumo(material.filamentoId); } });
@@ -601,7 +665,7 @@ const Producao = (() => {
         return { produtos: mudouProdutos, pedidos: mudouPedidos, impressoras: mudouImpressoras };
     }
 
-    return { TIPOS, STATUS: STATUS_ORDEM, STATUS_ORDEM, STATUS_OPERACAO, normalizarMaterial, calcularPesoMateriais, calcularCustoMateriais, normalizarOperacaoModelo, normalizarProduto, obterReceita, gerarPreviaPedido, criarOrdensDoPedido, contextoOperacao, pesoReservadoFilamento, pesoDisponivelFilamento, impressoraCompativel, criarAlocacao, calcularTempoDecorrido, calcularProgressoLote, iniciarLoteExecucao, pausarLoteExecucao, retomarLoteExecucao, concluirLoteExecucao, registrarFalhaLote, criarNovaTentativa, moverLoteFila, confirmarPreparacaoLote, prepararRealocacaoLote, removerLoteFilaExecucao, iniciarOperacaoManual, concluirOperacaoManual, atualizarHierarquia, migrarDados };
+    return { TIPOS, STATUS: STATUS_ORDEM, STATUS_ORDEM, STATUS_OPERACAO, normalizarMaterial, calcularPesoMateriais, calcularCustoMateriais, normalizarOperacaoModelo, normalizarProduto, obterReceita, gerarPreviaPedido, criarOrdensDoPedido, criarOrdemParaEstoque, contextoOperacao, pesoReservadoFilamento, pesoDisponivelFilamento, impressoraCompativel, criarAlocacao, calcularTempoDecorrido, calcularProgressoLote, iniciarLoteExecucao, pausarLoteExecucao, retomarLoteExecucao, concluirLoteExecucao, registrarFalhaLote, criarNovaTentativa, moverLoteFila, confirmarPreparacaoLote, prepararRealocacaoLote, removerLoteFilaExecucao, iniciarOperacaoManual, concluirOperacaoManual, atualizarHierarquia, migrarDados };
 })();
 
 window.Producao = Producao;

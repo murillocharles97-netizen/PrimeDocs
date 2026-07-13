@@ -29,6 +29,14 @@ const Storage = {
         filamentos: "primedocs_filamentos",
         configCustos: "primedocs_config_custos",
         gerador3d: "primedocs_gerador_3d",
+        impressoras: "primedocs_impressoras",
+        ordensProducao: "primedocs_ordens_producao",
+        operacoesProducao: "primedocs_operacoes_producao",
+        historicoProducao: "primedocs_historico_producao",
+        manutencoes: "primedocs_manutencoes",
+        reservasFilamento: "primedocs_reservas_filamento",
+        lotesExecucao: "primedocs_lotes_execucao",
+        historicoFilamentos: "primedocs_historico_filamentos",
 
     },
 
@@ -668,6 +676,158 @@ const Storage = {
         return JSON.parse(localStorage.getItem(this.KEYS.filamentos)) || [];
     },
 
+    listarImpressoras() {
+        return JSON.parse(localStorage.getItem(this.KEYS.impressoras)) || [];
+    },
+
+    salvarImpressoras(lista) {
+        localStorage.setItem(this.KEYS.impressoras, JSON.stringify(Array.isArray(lista) ? lista : []));
+    },
+
+    salvarImpressora(impressora) {
+        const lista = this.listarImpressoras();
+        const index = lista.findIndex(item => String(item.id) === String(impressora.id));
+        if (index === -1) lista.push(impressora); else lista[index] = impressora;
+        this.salvarImpressoras(lista);
+        return impressora;
+    },
+
+    buscarImpressoraPorId(id) {
+        return this.listarImpressoras().find(item => String(item.id) === String(id));
+    },
+
+    excluirImpressora(id) {
+        const item = this.buscarImpressoraPorId(id);
+        if (!item) return false;
+        item.ativa = false;
+        item.status = "offline";
+        item.atualizadoEm = new Date().toISOString();
+        return this.salvarImpressora(item);
+    },
+
+    listarOrdensProducao() {
+        return JSON.parse(localStorage.getItem(this.KEYS.ordensProducao)) || [];
+    },
+
+    salvarOrdensProducao(lista) {
+        localStorage.setItem(this.KEYS.ordensProducao, JSON.stringify(Array.isArray(lista) ? lista : []));
+    },
+
+    salvarOrdemProducao(ordem) {
+        const lista = this.listarOrdensProducao();
+        const index = lista.findIndex(item => String(item.id) === String(ordem.id));
+        if (index === -1) lista.push(ordem); else lista[index] = ordem;
+        this.salvarOrdensProducao(lista);
+        return ordem;
+    },
+
+    buscarOrdemProducaoPorId(id) {
+        return this.listarOrdensProducao().find(item => String(item.id) === String(id));
+    },
+
+    listarOperacoesProducao() {
+        return JSON.parse(localStorage.getItem(this.KEYS.operacoesProducao)) || [];
+    },
+
+    salvarOperacoesProducao(lista) {
+        localStorage.setItem(this.KEYS.operacoesProducao, JSON.stringify(Array.isArray(lista) ? lista : []));
+    },
+
+    salvarOperacaoProducao(operacao) {
+        const lista = this.listarOperacoesProducao();
+        const index = lista.findIndex(item => String(item.id) === String(operacao.id));
+        if (index === -1) lista.push(operacao); else lista[index] = operacao;
+        this.salvarOperacoesProducao(lista);
+        return operacao;
+    },
+
+    buscarOperacaoProducaoPorId(id) {
+        return this.listarOperacoesProducao().find(item => String(item.id) === String(id));
+    },
+
+    listarHistoricoProducao() {
+        return JSON.parse(localStorage.getItem(this.KEYS.historicoProducao)) || [];
+    },
+
+    salvarHistoricoProducao(lista) {
+        localStorage.setItem(this.KEYS.historicoProducao, JSON.stringify(Array.isArray(lista) ? lista : []));
+    },
+
+    registrarHistoricoProducao(evento) {
+        const lista = this.listarHistoricoProducao();
+        lista.push({ id: evento.id || `hist-prod-${Date.now()}`, criadoEm: evento.criadoEm || new Date().toISOString(), ...evento });
+        this.salvarHistoricoProducao(lista);
+        return evento;
+    },
+
+    listarManutencoes() {
+        return JSON.parse(localStorage.getItem(this.KEYS.manutencoes)) || [];
+    },
+
+    salvarManutencoes(lista) {
+        localStorage.setItem(this.KEYS.manutencoes, JSON.stringify(Array.isArray(lista) ? lista : []));
+    },
+
+    salvarManutencao(manutencao) {
+        const lista = this.listarManutencoes();
+        const index = lista.findIndex(item => String(item.id) === String(manutencao.id));
+        if (index === -1) lista.push(manutencao); else lista[index] = manutencao;
+        this.salvarManutencoes(lista);
+        return manutencao;
+    },
+
+    listarReservasFilamento() {
+        return JSON.parse(localStorage.getItem(this.KEYS.reservasFilamento)) || [];
+    },
+
+    salvarReservasFilamento(lista) {
+        localStorage.setItem(this.KEYS.reservasFilamento, JSON.stringify(Array.isArray(lista) ? lista : []));
+    },
+
+    salvarReservaFilamento(reserva) {
+        const lista = this.listarReservasFilamento();
+        const index = lista.findIndex(item => String(item.id) === String(reserva.id));
+        if (index === -1) lista.push(reserva); else lista[index] = reserva;
+        this.salvarReservasFilamento(lista);
+        return reserva;
+    },
+
+    listarLotesExecucao() {
+        return JSON.parse(localStorage.getItem(this.KEYS.lotesExecucao)) || [];
+    },
+
+    salvarLotesExecucao(lista) {
+        localStorage.setItem(this.KEYS.lotesExecucao, JSON.stringify(Array.isArray(lista) ? lista : []));
+    },
+
+    salvarLoteExecucao(lote) {
+        const lista = this.listarLotesExecucao();
+        const index = lista.findIndex(item => String(item.id) === String(lote.id));
+        if (index === -1) lista.push(lote); else lista[index] = lote;
+        this.salvarLotesExecucao(lista);
+        return lote;
+    },
+
+    buscarLoteExecucaoPorId(id) {
+        return this.listarLotesExecucao().find(item => String(item.id) === String(id));
+    },
+
+    listarHistoricoFilamentos() {
+        return JSON.parse(localStorage.getItem(this.KEYS.historicoFilamentos)) || [];
+    },
+
+    salvarHistoricoFilamentos(lista) {
+        localStorage.setItem(this.KEYS.historicoFilamentos, JSON.stringify(Array.isArray(lista) ? lista : []));
+    },
+
+    salvarHistoricoFilamento(evento) {
+        const lista = this.listarHistoricoFilamentos();
+        const index = lista.findIndex(item => String(item.id) === String(evento.id));
+        if (index === -1) lista.push(evento); else lista[index] = evento;
+        this.salvarHistoricoFilamentos(lista);
+        return evento;
+    },
+
     salvarFilamentos(lista) {
         localStorage.setItem(this.KEYS.filamentos, JSON.stringify(Array.isArray(lista) ? lista : []));
     },
@@ -698,7 +858,10 @@ const Storage = {
         const filamento = this.buscarFilamentoPorId(id);
         const consumo = Math.max(0, Number(quantidadeKg) || 0);
         if (!filamento || consumo <= 0) return false;
-        filamento.pesoAtualKg = Math.max(0, Number(filamento.pesoAtualKg || 0) - consumo);
+        const atualGramas = Math.max(0, Number(filamento.pesoAtualGramas ?? (Number(filamento.pesoAtualKg || 0) * 1000)) || 0);
+        filamento.pesoAtualGramas = Math.max(0, atualGramas - consumo * 1000);
+        filamento.pesoAtualKg = filamento.pesoAtualGramas / 1000;
+        filamento.status = filamento.pesoAtualGramas <= 0 ? "vazio" : filamento.status;
         filamento.atualizadoEm = new Date().toISOString();
         this.salvarFilamento(filamento);
         return filamento;
@@ -810,6 +973,14 @@ const Storage = {
             financeiro: this.listarLancamentosFinanceiros(),
             notificacoes: this.listarNotificacoes(),
             filamentos: this.listarFilamentos(),
+            impressoras: this.listarImpressoras(),
+            ordensProducao: this.listarOrdensProducao(),
+            operacoesProducao: this.listarOperacoesProducao(),
+            historicoProducao: this.listarHistoricoProducao(),
+            manutencoes: this.listarManutencoes(),
+            reservasFilamento: this.listarReservasFilamento(),
+            lotesExecucao: this.listarLotesExecucao(),
+            historicoFilamentos: this.listarHistoricoFilamentos(),
             configuracoesCustos: this.carregarConfigCustos(),
             gerador3d: this.carregarConfigGerador3D(),
             configuracoes: {
@@ -872,7 +1043,7 @@ const Storage = {
         const empresasValidas = dados.empresas === undefined
             || Array.isArray(dados.empresas);
 
-        const novosDadosValidos = ["clientes", "pedidos", "orcamentos", "pagamentos", "financeiro", "notificacoes", "filamentos"]
+        const novosDadosValidos = ["clientes", "pedidos", "orcamentos", "pagamentos", "financeiro", "notificacoes", "filamentos", "impressoras", "ordensProducao", "operacoesProducao", "historicoProducao", "manutencoes", "reservasFilamento", "lotesExecucao", "historicoFilamentos"]
             .every(campo => dados[campo] === undefined || Array.isArray(dados[campo]));
         const custosValidos = dados.configuracoesCustos === undefined
             || (dados.configuracoesCustos && typeof dados.configuracoesCustos === "object" && !Array.isArray(dados.configuracoesCustos));
@@ -911,6 +1082,14 @@ const Storage = {
             financeiro: Array.isArray(dados?.financeiro) ? dados.financeiro : [],
             notificacoes: Array.isArray(dados?.notificacoes) ? dados.notificacoes : [],
             filamentos: Array.isArray(dados?.filamentos) ? dados.filamentos : [],
+            impressoras: Array.isArray(dados?.impressoras) ? dados.impressoras : [],
+            ordensProducao: Array.isArray(dados?.ordensProducao) ? dados.ordensProducao : [],
+            operacoesProducao: Array.isArray(dados?.operacoesProducao) ? dados.operacoesProducao : [],
+            historicoProducao: Array.isArray(dados?.historicoProducao) ? dados.historicoProducao : [],
+            manutencoes: Array.isArray(dados?.manutencoes) ? dados.manutencoes : [],
+            reservasFilamento: Array.isArray(dados?.reservasFilamento) ? dados.reservasFilamento : [],
+            lotesExecucao: Array.isArray(dados?.lotesExecucao) ? dados.lotesExecucao : [],
+            historicoFilamentos: Array.isArray(dados?.historicoFilamentos) ? dados.historicoFilamentos : [],
             configuracoesCustos: dados?.configuracoesCustos || this.carregarConfigCustos(),
             gerador3d: dados?.gerador3d || this.carregarConfigGerador3D()
         };
@@ -936,6 +1115,14 @@ const Storage = {
         this.salvarLancamentosFinanceiros(dadosNormalizados.financeiro);
         this.salvarNotificacoes(dadosNormalizados.notificacoes);
         this.salvarFilamentos(dadosNormalizados.filamentos);
+        this.salvarImpressoras(dadosNormalizados.impressoras);
+        this.salvarOrdensProducao(dadosNormalizados.ordensProducao);
+        this.salvarOperacoesProducao(dadosNormalizados.operacoesProducao);
+        this.salvarHistoricoProducao(dadosNormalizados.historicoProducao);
+        this.salvarManutencoes(dadosNormalizados.manutencoes);
+        this.salvarReservasFilamento(dadosNormalizados.reservasFilamento);
+        this.salvarLotesExecucao(dadosNormalizados.lotesExecucao);
+        this.salvarHistoricoFilamentos(dadosNormalizados.historicoFilamentos);
         this.salvarConfigCustos(dadosNormalizados.configuracoesCustos);
         this.salvarConfigGerador3D(dadosNormalizados.gerador3d);
         localStorage.setItem(

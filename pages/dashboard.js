@@ -227,13 +227,22 @@ function calcularFinanceiro(dados, intervalo) {
 
 function calcularPedidos(dados, intervalo) {
     const lista = dados.pedidos.filter(p => noPeriodoDashboard(p.criadoEm || p.dataPedido, intervalo));
+    const lotes = (Storage.listarLotesExecucao?.() || []).filter(l => noPeriodoDashboard(l.iniciadoEm || l.criadoEm, intervalo));
+    const impressoras = (Storage.listarImpressoras?.() || []).filter(i => i.ativa !== false);
+    const minutosProduzidos = lotes.filter(l => l.status === "concluido").reduce((t,l)=>t+Number(l.tempoRealMinutos||0),0);
     return {
         criados: lista.length,
         producao: lista.filter(p => p.statusPedido === "em_producao").length,
         prontos: lista.filter(p => p.statusPedido === "pronto").length,
         entregues: lista.filter(p => p.statusPedido === "entregue").length,
         cancelados: lista.filter(p => p.statusPedido === "cancelado").length,
-        tempoMedio: calcularTempoMedioProducaoDashboard(lista.filter(p => p.statusPedido === "entregue"))
+        tempoMedio: calcularTempoMedioProducaoDashboard(lista.filter(p => p.statusPedido === "entregue")),
+        impressorasOcupadas: impressoras.filter(i => ["imprimindo","pausada"].includes(i.status)).length,
+        impressorasLivres: impressoras.filter(i => i.status === "livre").length,
+        horasProduzidas: minutosProduzidos / 60,
+        operacoesConcluidas: lotes.filter(l => l.status === "concluido").length,
+        falhas: lotes.filter(l => l.status === "falhou").length,
+        utilizacao: impressoras.length ? impressoras.filter(i => ["imprimindo","pausada"].includes(i.status)).length / impressoras.length * 100 : 0
     };
 }
 
@@ -468,7 +477,12 @@ function renderResumoPedidosDashboard(p) {
         ["Prontos", p.prontos],
         ["Entregues", p.entregues],
         ["Cancelados", p.cancelados],
-        ["Tempo médio", `${p.tempoMedio.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} dias`]
+        ["Tempo médio", `${p.tempoMedio.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} dias`],
+        ["Impressoras ocupadas / livres", `${p.impressorasOcupadas} / ${p.impressorasLivres}`],
+        ["Horas produzidas", `${p.horasProduzidas.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h`],
+        ["Operações concluídas", p.operacoesConcluidas],
+        ["Falhas", p.falhas],
+        ["Utilização atual", `${p.utilizacao.toFixed(0)}%`]
     ]);
 }
 

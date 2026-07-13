@@ -1,6 +1,7 @@
 let filamentoEditandoId = null;
 
 function renderFilamentos() {
+    FilamentIntegration.migrarDados();
     const filamentos = Storage.listarFilamentos().filter(item => item.ativo !== false);
     const pesquisa = document.getElementById("pesquisaFilamento")?.value || "";
     const material = document.getElementById("filtroMaterialFilamento")?.value || "";
@@ -49,9 +50,9 @@ function renderCardsFilamentos(lista) {
         const baixo = Number(f.pesoAtualKg || 0) <= Number(f.alertaMinimoKg || 0);
         const percentual = Math.min(100, Number(f.pesoTotalKg) ? Number(f.pesoAtualKg || 0) / Number(f.pesoTotalKg) * 100 : 0);
         return `<article class="erpEntityCard filamentCard ${baixo?"isLow":""}">
-            <div class="erpEntityTop"><div class="filamentSwatch"><i data-lucide="spool"></i></div><div><h3>${escaparFilamento(f.material)} ${escaparFilamento(f.cor)}</h3><p>${escaparFilamento(f.marca || "Marca não informada")}</p></div>${baixo?`<span class="erpBadge danger">Baixo estoque</span>`:""}</div>
+            <div class="erpEntityTop"><div class="filamentSwatch"><i data-lucide="spool"></i></div><div><h3>${escaparFilamento(f.material)} ${escaparFilamento(f.cor)}</h3><p>${escaparFilamento(f.marca || "Marca não informada")} · ${escaparFilamento(f.codigo||"Sem código")}</p></div>${baixo?`<span class="erpBadge danger">Baixo estoque</span>`:`<span class="erpBadge status-${f.status}">${escaparFilamento(f.status||"disponível")}</span>`}</div>
             <div class="filamentProgress"><div style="width:${percentual}%"></div></div>
-            <div class="filamentNumbers"><div><span>Atual</span><strong>${Number(f.pesoAtualKg||0).toLocaleString("pt-BR")} kg</strong></div><div><span>Preço/kg</span><strong>${Utils.moeda(f.precoKg)}</strong></div><div><span>Local</span><strong>${escaparFilamento(f.local||"-")}</strong></div></div>
+            <div class="filamentNumbers"><div><span>Disponível</span><strong>${FilamentIntegration.pesoDisponivel(f.id).toFixed(0)} g</strong></div><div><span>Reservado</span><strong>${FilamentIntegration.pesoReservado(f.id).toFixed(0)} g</strong></div><div><span>Local</span><strong>${escaparFilamento(f.localizacao||f.local||"estoque")}</strong></div></div>
             <div class="erpCardActions"><button onclick="abrirModalConsumoFilamento('${f.id}')"><i data-lucide="minus-circle"></i> Baixar consumo</button><button onclick="abrirModalFilamento('${f.id}')"><i data-lucide="pencil"></i> Editar</button><button class="danger" onclick="inativarFilamento('${f.id}')"><i data-lucide="archive"></i></button></div>
         </article>`;
     }).join("");
@@ -62,7 +63,7 @@ function abrirModalFilamento(id=null) {
     filamentoEditandoId = f?.id || null;
     const campo = (label,idCampo,valor="",tipo="text",step="") => `<label class="inputGroup"><span>${label}</span><input id="${idCampo}" type="${tipo}" ${step?`step="${step}"`:""} min="0" value="${escaparFilamento(valor)}"></label>`;
     Modal.abrir(f?"Editar filamento":"Novo filamento", `<div class="erpFormGrid">
-        ${campo("Material *","filamentoMaterial",f?.material||"")}${campo("Cor *","filamentoCor",f?.cor||"")}${campo("Marca","filamentoMarca",f?.marca||"")}
+        ${campo("Código do rolo","filamentoCodigo",f?.codigo||"")}${campo("Material *","filamentoMaterial",f?.material||"")}${campo("Cor *","filamentoCor",f?.cor||"")}${campo("Marca","filamentoMarca",f?.marca||"")}
         ${campo("Peso total (kg) *","filamentoPesoTotal",f?.pesoTotalKg||1,"number","0.001")}${campo("Peso atual (kg) *","filamentoPesoAtual",f?.pesoAtualKg??1,"number","0.001")}${campo("Preço por kg *","filamentoPrecoKg",f?.precoKg||85,"number","0.01")}
         ${campo("Alerta mínimo (kg)","filamentoAlerta",f?.alertaMinimoKg??0.15,"number","0.001")}${campo("Local","filamentoLocal",f?.local||"")}
         <label class="inputGroup erpFull"><span>Observações</span><textarea id="filamentoObservacoes" rows="3">${escaparFilamento(f?.observacoes||"")}</textarea></label></div>
@@ -74,7 +75,8 @@ function salvarFilamento() {
     const anterior = filamentoEditandoId ? Storage.buscarFilamentoPorId(filamentoEditandoId) : null;
     if (!valor("filamentoMaterial") || !valor("filamentoCor")) return Toast.show("Informe material e cor.");
     const agora = new Date().toISOString();
-    Storage.salvarFilamento({id:anterior?.id||`fil-${Date.now()}`,material:valor("filamentoMaterial"),cor:valor("filamentoCor"),marca:valor("filamentoMarca"),pesoTotalKg:Number(valor("filamentoPesoTotal"))||0,pesoAtualKg:Number(valor("filamentoPesoAtual"))||0,precoKg:Number(valor("filamentoPrecoKg"))||0,alertaMinimoKg:Number(valor("filamentoAlerta"))||0,local:valor("filamentoLocal"),observacoes:valor("filamentoObservacoes"),ativo:true,criadoEm:anterior?.criadoEm||agora,atualizadoEm:agora});
+    const rolo=FilamentIntegration.normalizarRolo({id:anterior?.id||`fil-${Date.now()}`,codigo:valor("filamentoCodigo")||anterior?.codigo,material:valor("filamentoMaterial"),cor:valor("filamentoCor"),marca:valor("filamentoMarca"),pesoTotalKg:Number(valor("filamentoPesoTotal"))||0,pesoAtualKg:Number(valor("filamentoPesoAtual"))||0,precoKg:Number(valor("filamentoPrecoKg"))||0,alertaMinimoKg:Number(valor("filamentoAlerta"))||0,local:valor("filamentoLocal"),localizacao:anterior?.localizacao||"estoque",observacoes:valor("filamentoObservacoes"),status:anterior?.status||"disponivel",ativo:true,criadoEm:anterior?.criadoEm||agora,atualizadoEm:agora});
+    Storage.salvarFilamento(rolo);if(!anterior)FilamentIntegration.registrar("rolo_cadastrado",rolo.id,null,`${rolo.material} ${rolo.cor} cadastrado.`);else FilamentIntegration.registrar("peso_corrigido",rolo.id,FilamentIntegration.localDoRolo(rolo.id)?.impressoraId,"Cadastro ou peso do rolo atualizado.");
     Modal.fechar(); renderFilamentos(); Toast.show("Filamento salvo!");
 }
 

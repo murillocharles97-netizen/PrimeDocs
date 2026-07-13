@@ -36,6 +36,7 @@ const Storage = {
         manutencoes: "primedocs_manutencoes",
         reservasFilamento: "primedocs_reservas_filamento",
         lotesExecucao: "primedocs_lotes_execucao",
+        historicoFilamentos: "primedocs_historico_filamentos",
 
     },
 
@@ -811,6 +812,22 @@ const Storage = {
         return this.listarLotesExecucao().find(item => String(item.id) === String(id));
     },
 
+    listarHistoricoFilamentos() {
+        return JSON.parse(localStorage.getItem(this.KEYS.historicoFilamentos)) || [];
+    },
+
+    salvarHistoricoFilamentos(lista) {
+        localStorage.setItem(this.KEYS.historicoFilamentos, JSON.stringify(Array.isArray(lista) ? lista : []));
+    },
+
+    salvarHistoricoFilamento(evento) {
+        const lista = this.listarHistoricoFilamentos();
+        const index = lista.findIndex(item => String(item.id) === String(evento.id));
+        if (index === -1) lista.push(evento); else lista[index] = evento;
+        this.salvarHistoricoFilamentos(lista);
+        return evento;
+    },
+
     salvarFilamentos(lista) {
         localStorage.setItem(this.KEYS.filamentos, JSON.stringify(Array.isArray(lista) ? lista : []));
     },
@@ -841,7 +858,10 @@ const Storage = {
         const filamento = this.buscarFilamentoPorId(id);
         const consumo = Math.max(0, Number(quantidadeKg) || 0);
         if (!filamento || consumo <= 0) return false;
-        filamento.pesoAtualKg = Math.max(0, Number(filamento.pesoAtualKg || 0) - consumo);
+        const atualGramas = Math.max(0, Number(filamento.pesoAtualGramas ?? (Number(filamento.pesoAtualKg || 0) * 1000)) || 0);
+        filamento.pesoAtualGramas = Math.max(0, atualGramas - consumo * 1000);
+        filamento.pesoAtualKg = filamento.pesoAtualGramas / 1000;
+        filamento.status = filamento.pesoAtualGramas <= 0 ? "vazio" : filamento.status;
         filamento.atualizadoEm = new Date().toISOString();
         this.salvarFilamento(filamento);
         return filamento;
@@ -960,6 +980,7 @@ const Storage = {
             manutencoes: this.listarManutencoes(),
             reservasFilamento: this.listarReservasFilamento(),
             lotesExecucao: this.listarLotesExecucao(),
+            historicoFilamentos: this.listarHistoricoFilamentos(),
             configuracoesCustos: this.carregarConfigCustos(),
             gerador3d: this.carregarConfigGerador3D(),
             configuracoes: {
@@ -1022,7 +1043,7 @@ const Storage = {
         const empresasValidas = dados.empresas === undefined
             || Array.isArray(dados.empresas);
 
-        const novosDadosValidos = ["clientes", "pedidos", "orcamentos", "pagamentos", "financeiro", "notificacoes", "filamentos", "impressoras", "ordensProducao", "operacoesProducao", "historicoProducao", "manutencoes", "reservasFilamento", "lotesExecucao"]
+        const novosDadosValidos = ["clientes", "pedidos", "orcamentos", "pagamentos", "financeiro", "notificacoes", "filamentos", "impressoras", "ordensProducao", "operacoesProducao", "historicoProducao", "manutencoes", "reservasFilamento", "lotesExecucao", "historicoFilamentos"]
             .every(campo => dados[campo] === undefined || Array.isArray(dados[campo]));
         const custosValidos = dados.configuracoesCustos === undefined
             || (dados.configuracoesCustos && typeof dados.configuracoesCustos === "object" && !Array.isArray(dados.configuracoesCustos));
@@ -1068,6 +1089,7 @@ const Storage = {
             manutencoes: Array.isArray(dados?.manutencoes) ? dados.manutencoes : [],
             reservasFilamento: Array.isArray(dados?.reservasFilamento) ? dados.reservasFilamento : [],
             lotesExecucao: Array.isArray(dados?.lotesExecucao) ? dados.lotesExecucao : [],
+            historicoFilamentos: Array.isArray(dados?.historicoFilamentos) ? dados.historicoFilamentos : [],
             configuracoesCustos: dados?.configuracoesCustos || this.carregarConfigCustos(),
             gerador3d: dados?.gerador3d || this.carregarConfigGerador3D()
         };
@@ -1100,6 +1122,7 @@ const Storage = {
         this.salvarManutencoes(dadosNormalizados.manutencoes);
         this.salvarReservasFilamento(dadosNormalizados.reservasFilamento);
         this.salvarLotesExecucao(dadosNormalizados.lotesExecucao);
+        this.salvarHistoricoFilamentos(dadosNormalizados.historicoFilamentos);
         this.salvarConfigCustos(dadosNormalizados.configuracoesCustos);
         this.salvarConfigGerador3D(dadosNormalizados.gerador3d);
         localStorage.setItem(

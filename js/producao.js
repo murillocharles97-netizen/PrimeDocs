@@ -20,6 +20,7 @@ const Producao = (() => {
 
     const STATUS_OPERACAO = {
         aguardando: "Aguardando",
+        aguardando_preparacao: "Aguardando preparação",
         pronta_para_iniciar: "Pronta para iniciar",
         em_fila: "Em fila",
         em_execucao: "Em execução",
@@ -269,10 +270,11 @@ const Producao = (() => {
     }
 
     function pesoReservadoFilamento(filamentoId, ignorarLoteId = "") {
-        return Storage.listarReservasFilamento().filter(reserva => reserva.status === "ativa" && String(reserva.filamentoId) === String(filamentoId) && String(reserva.loteExecucaoId) !== String(ignorarLoteId)).reduce((total, reserva) => total + Number(reserva.pesoReservadoGramas || 0), 0);
+        return window.FilamentIntegration ? FilamentIntegration.pesoReservado(filamentoId, ignorarLoteId) : Storage.listarReservasFilamento().filter(reserva => reserva.status === "ativa" && String(reserva.filamentoId) === String(filamentoId) && String(reserva.loteExecucaoId) !== String(ignorarLoteId)).reduce((total, reserva) => total + Number(reserva.pesoReservadoGramas || 0), 0);
     }
 
     function pesoDisponivelFilamento(filamentoId, ignorarLoteId = "") {
+        if (window.FilamentIntegration) return FilamentIntegration.pesoDisponivel(filamentoId, ignorarLoteId);
         const filamento = Storage.buscarFilamentoPorId(filamentoId);
         if (!filamento || filamento.ativo === false) return 0;
         return Math.max(0, Number(filamento.pesoAtualKg || 0) * 1000 - pesoReservadoFilamento(filamentoId, ignorarLoteId));
@@ -286,7 +288,9 @@ const Producao = (() => {
     }
 
     function liberarReservasLote(loteId, status = "liberada") {
-        Storage.listarReservasFilamento().filter(reserva => String(reserva.loteExecucaoId) === String(loteId) && reserva.status === "ativa").forEach(reserva => Storage.salvarReservaFilamento({ ...reserva, status, atualizadoEm: new Date().toISOString() }));
+        const filamentos = new Set();
+        Storage.listarReservasFilamento().filter(reserva => String(reserva.loteExecucaoId) === String(loteId) && reserva.status === "ativa").forEach(reserva => { filamentos.add(reserva.filamentoId); Storage.salvarReservaFilamento({ ...reserva, status, atualizadoEm: new Date().toISOString() }); });
+        if (window.FilamentIntegration) filamentos.forEach(filamentoId => FilamentIntegration.atualizarStatusRolo(filamentoId));
     }
 
     function removerLoteDaFila(lote) {
@@ -323,7 +327,7 @@ const Producao = (() => {
                 const filamento = Storage.buscarFilamentoPorId(selecao.filamentoId);
                 if (!receita || !filamento || filamento.ativo === false) throw new Error("Selecione filamentos ativos para todos os materiais.");
                 if (receita.material && String(filamento.material).toLocaleLowerCase("pt-BR") !== String(receita.material).toLocaleLowerCase("pt-BR")) throw new Error(`O filamento ${filamento.material} ${filamento.cor} não corresponde ao material ${receita.material}.`);
-                if (receita.cor && String(filamento.cor).toLocaleLowerCase("pt-BR") !== String(receita.cor).toLocaleLowerCase("pt-BR")) throw new Error(`Selecione um filamento da cor ${receita.cor}.`);
+                if (receita.cor && !selecao.permitirCorAlternativa && String(filamento.cor).toLocaleLowerCase("pt-BR") !== String(receita.cor).toLocaleLowerCase("pt-BR")) throw new Error(`Selecione um filamento da cor ${receita.cor}.`);
                 const peso = Number(receita.pesoPrevistoGramas || 0) * proporcao;
                 necessidadePorFilamento.set(String(filamento.id), (necessidadePorFilamento.get(String(filamento.id)) || 0) + peso);
             });
@@ -347,27 +351,30 @@ const Producao = (() => {
                 const filamento = Storage.buscarFilamentoPorId(selecao.filamentoId);
                 if (!filamento || filamento.ativo === false) throw new Error(`Selecione um filamento ativo para ${receita.cor || receita.material}.`);
                 if (receita.material && String(filamento.material).toLocaleLowerCase("pt-BR") !== String(receita.material).toLocaleLowerCase("pt-BR")) throw new Error(`O filamento ${filamento.material} ${filamento.cor} não corresponde ao material ${receita.material}.`);
-                if (receita.cor && String(filamento.cor).toLocaleLowerCase("pt-BR") !== String(receita.cor).toLocaleLowerCase("pt-BR")) throw new Error(`Selecione um filamento da cor ${receita.cor}.`);
+                if (receita.cor && !selecao.permitirCorAlternativa && String(filamento.cor).toLocaleLowerCase("pt-BR") !== String(receita.cor).toLocaleLowerCase("pt-BR")) throw new Error(`Selecione um filamento da cor ${receita.cor}.`);
                 const pesoPrevistoGramas = Number(receita.pesoPrevistoGramas || 0) * proporcao;
                 if (pesoDisponivelFilamento(filamento.id) < pesoPrevistoGramas) throw new Error(`Estoque insuficiente de ${filamento.material} ${filamento.cor}.`);
-                return { ...receita, filamentoId: filamento.id, filamentoNome: [filamento.material, filamento.cor, filamento.marca].filter(Boolean).join(" · "), slotAms: selecao.slotAms ?? receita.slotAms ?? "", pesoPrevistoGramas, pesoRealGramas: 0 };
+                const local=window.FilamentIntegration?FilamentIntegration.localDoRolo(filamento.id):null;
+                const carregadoAqui=local&&String(local.impressoraId)===String(impressora.id);
+                return { ...receita, necessidadeMaterialId:receita.materialReceitaId, filamentoId: filamento.id, filamentoNome: [filamento.material, filamento.cor, filamento.marca].filter(Boolean).join(" · "), tipoCarregamento:carregadoAqui?local.tipo:"manual", slotAms: carregadoAqui?local.slotAms:(selecao.slotAms ?? receita.slotAms ?? ""), preparacaoNecessaria:!carregadoAqui, pesoPrevistoGramas, pesoReservadoGramas:pesoPrevistoGramas, pesoRealGramas: 0 };
             });
             if (selecoes.length !== (operacao.filamentosSelecionados || []).length) throw new Error("Selecione um rolo para cada material da receita.");
             const ocupada = ["imprimindo", "pausada"].includes(impressora.status) || Boolean(impressora.operacaoAtualId);
+            const requerPreparacao=selecoes.some(material=>material.preparacaoNecessaria);
             const fila = [...(impressora.filaOperacoes || []), loteId];
             impressora.filaOperacoes = fila;
             impressora.atualizadoEm = agora;
             Storage.salvarImpressora(impressora);
-            const lote = { id: loteId, operacaoId: operacao.id, ordemProducaoId: ordem.id, pedidoId: pedido?.id || ordem.pedidoId, impressoraId: impressora.id, impressoraNome: impressora.nome, quantidade: Number(distribuicao.quantidade), status: ocupada ? "em_fila" : "pronta_para_iniciar", posicaoFila: fila.length, filamentosSelecionados: selecoes, tempoPrevistoMinutos: Number(operacao.tempoPrevistoMinutos || 0) * proporcao, pesoPrevistoGramas: Number(operacao.pesoPrevistoGramas || 0) * proporcao, tempoPausadoAcumulado: 0, iniciadoEm: null, pausadoEm: null, concluidoEm: null, criadoEm: agora, atualizadoEm: agora };
+            const lote = { id: loteId, operacaoId: operacao.id, ordemProducaoId: ordem.id, pedidoId: pedido?.id || ordem.pedidoId, impressoraId: impressora.id, impressoraNome: impressora.nome, quantidade: Number(distribuicao.quantidade), status: requerPreparacao ? "aguardando_preparacao" : ocupada ? "em_fila" : "pronta_para_iniciar", preparacaoNecessaria:requerPreparacao, posicaoFila: fila.length, filamentosSelecionados: selecoes, tempoPrevistoMinutos: Number(operacao.tempoPrevistoMinutos || 0) * proporcao, pesoPrevistoGramas: Number(operacao.pesoPrevistoGramas || 0) * proporcao, tempoPausadoAcumulado: 0, iniciadoEm: null, pausadoEm: null, concluidoEm: null, criadoEm: agora, atualizadoEm: agora };
             Storage.salvarLoteExecucao(lote);
-            selecoes.forEach(material => Storage.salvarReservaFilamento({ id: id("reserva"), filamentoId: material.filamentoId, materialReceitaId: material.materialReceitaId, loteExecucaoId: lote.id, operacaoId: operacao.id, pesoReservadoGramas: material.pesoPrevistoGramas, criadoEm: agora, atualizadoEm: agora, status: "ativa" }));
+            selecoes.forEach(material => {Storage.salvarReservaFilamento({ id: id("reserva"), filamentoId: material.filamentoId, materialReceitaId: material.materialReceitaId, necessidadeMaterialId:material.materialReceitaId, impressoraId:impressora.id, tipoCarregamento:material.tipoCarregamento, slotAms:material.slotAms, loteExecucaoId: lote.id, operacaoId: operacao.id, pesoPrevistoGramas:material.pesoPrevistoGramas,pesoReservadoGramas: material.pesoPrevistoGramas, criadoEm: agora, atualizadoEm: agora, status: "ativa" });if(window.FilamentIntegration){FilamentIntegration.atualizarStatusRolo(material.filamentoId);FilamentIntegration.registrar("rolo_reservado",material.filamentoId,impressora.id,`${material.pesoPrevistoGramas.toFixed(1)}g reservados para ${operacao.nome}.`,{loteId:lote.id});}});
             registrar("lote_criado", { pedido, ordem, operacao, lote, impressora }, `Lote ${indice + 1} alocado em ${impressora.nome}.`, { quantidade: lote.quantidade });
             return lote;
         });
         operacao.lotesExecucaoIds = loteBase
             ? [...(operacao.lotesExecucaoIds || []).filter(idLote => String(idLote) !== String(loteBase.id)), ...novos.map(lote => lote.id)]
             : novos.map(lote => lote.id);
-        operacao.status = novos.some(lote => lote.status === "em_fila") ? "em_fila" : "pronta_para_iniciar";
+        operacao.status = novos.some(lote => lote.status === "aguardando_preparacao") ? "aguardando_preparacao" : novos.some(lote => lote.status === "em_fila") ? "em_fila" : "pronta_para_iniciar";
         salvarOperacaoCompleta(operacao);
         registrar("operacao_alocada", { pedido, ordem, operacao }, `${operacao.nome} alocada em ${novos.length} lote(s).`);
         return novos;
@@ -411,12 +418,13 @@ const Producao = (() => {
 
     async function iniciarLoteExecucao(loteId) {
         const lote = Storage.buscarLoteExecucaoPorId(loteId);
-        if (!lote || !["pronta_para_iniciar", "em_fila"].includes(lote.status)) throw new Error("Este lote não está pronto para iniciar.");
+        if (!lote || !["pronta_para_iniciar", "em_fila"].includes(lote.status)) throw new Error(lote?.status === "aguardando_preparacao" ? "Conclua a preparação dos filamentos antes de iniciar." : "Este lote não está pronto para iniciar.");
         const { operacao, ordem, pedido } = contextoOperacao(lote.operacaoId);
         const impressora = Storage.buscarImpressoraPorId(lote.impressoraId);
         if (!impressora || impressora.ativa === false || ["manutencao", "offline"].includes(impressora.status)) throw new Error("Impressora indisponível.");
         if (["imprimindo", "pausada"].includes(impressora.status) && String(impressora.operacaoAtualId) !== String(lote.id)) throw new Error("A impressora está ocupada.");
         if (!dependenciasConcluidas(operacao)) throw new Error("Conclua as dependências antes de iniciar.");
+        if (window.FilamentIntegration) { const carregamento = FilamentIntegration.validarCarregamentoLote(lote); if (!carregamento.valido) throw new Error(carregamento.problemas[0]); }
         const reservas = Storage.listarReservasFilamento().filter(item => String(item.loteExecucaoId) === String(lote.id) && item.status === "ativa");
         if (reservas.length !== (lote.filamentosSelecionados || []).length) throw new Error("As reservas de filamento não estão completas.");
         const reservasPorFilamento = new Map();
@@ -467,6 +475,7 @@ const Producao = (() => {
             else if (lotes.some(lote => lote.status === "pausada")) operacao.status = "pausada";
             else if (lotes.some(lote => lote.status === "falhou")) operacao.status = "falhou";
             else if (lotes.some(lote => lote.status === "em_fila")) operacao.status = "em_fila";
+            else if (lotes.some(lote => lote.status === "aguardando_preparacao")) operacao.status = "aguardando_preparacao";
             else if (lotes.some(lote => lote.status === "pronta_para_iniciar")) operacao.status = "pronta_para_iniciar";
             else if (lotes.some(lote => lote.status === "aguardando_alocacao")) operacao.status = "aguardando";
             else if (!lotes.length || lotes.every(lote => lote.status === "cancelado")) operacao.status = dependenciasConcluidas(operacao) ? "aguardando" : "aguardando_dependencia";
@@ -499,9 +508,10 @@ const Producao = (() => {
         lote.concluidoEm = agora; lote.status = falha ? "falhou" : "concluido"; lote.resultado = falha ? "falha" : (dados.resultado || "sucesso"); lote.quantidadeConcluida = Math.max(0, Number(dados.quantidadeConcluida ?? lote.quantidade) || 0); lote.pecasDefeito = Math.max(0, Number(dados.pecasDefeito) || 0); lote.motivoFalha = dados.motivoFalha || ""; lote.observacoesResultado = dados.observacoes || "";
         lote.filamentosSelecionados = (lote.filamentosSelecionados || []).map(material => ({ ...material, pesoRealGramas: Math.max(0, Number(dados.consumos?.find(item => String(item.materialReceitaId) === String(material.materialReceitaId))?.pesoRealGramas ?? material.pesoPrevistoGramas) || 0) }));
         lote.custosReais = calcularCustoRealLote(lote, lote.filamentosSelecionados); lote.custoReal = lote.custosReais.total; lote.tempoRealMinutos = calcularTempoDecorrido(lote); lote.atualizadoEm = agora; Storage.salvarLoteExecucao(lote);
-        lote.filamentosSelecionados.forEach(material => { if (material.filamentoId && material.pesoRealGramas > 0) Storage.baixarFilamento(material.filamentoId, material.pesoRealGramas / 1000); });
+        lote.filamentosSelecionados.forEach(material => { if (material.filamentoId && material.pesoRealGramas > 0) { Storage.baixarFilamento(material.filamentoId, material.pesoRealGramas / 1000); if (window.FilamentIntegration) FilamentIntegration.tratarRoloAposConsumo(material.filamentoId); } });
         Storage.listarReservasFilamento().filter(reserva => String(reserva.loteExecucaoId) === String(lote.id) && reserva.status === "ativa").forEach(reserva => Storage.salvarReservaFilamento({ ...reserva, status: "consumida", pesoConsumidoGramas: lote.filamentosSelecionados.find(item => String(item.materialReceitaId) === String(reserva.materialReceitaId))?.pesoRealGramas || 0, atualizadoEm: agora }));
-        if (impressora) { const horas = lote.tempoRealMinutos / 60; impressora.status = "livre"; impressora.operacaoAtualId = null; impressora.horasTotais = Number(impressora.horasTotais || 0) + horas; impressora.horasDesdeManutencao = Number(impressora.horasDesdeManutencao || 0) + horas; impressora.filaOperacoes = (impressora.filaOperacoes || []).filter(idFila => String(idFila) !== String(lote.id)); impressora.atualizadoEm = agora; Storage.salvarImpressora(impressora); }
+        if (window.FilamentIntegration) lote.filamentosSelecionados.forEach(material => FilamentIntegration.atualizarStatusRolo(material.filamentoId));
+        if (impressora) { const horas = lote.tempoRealMinutos / 60; const impressoraAtual = Storage.buscarImpressoraPorId(impressora.id) || impressora; impressoraAtual.status = "livre"; impressoraAtual.operacaoAtualId = null; impressoraAtual.horasTotais = Number(impressoraAtual.horasTotais || 0) + horas; impressoraAtual.horasDesdeManutencao = Number(impressoraAtual.horasDesdeManutencao || 0) + horas; impressoraAtual.filaOperacoes = (impressoraAtual.filaOperacoes || []).filter(idFila => String(idFila) !== String(lote.id)); impressoraAtual.atualizadoEm = agora; Storage.salvarImpressora(impressoraAtual); }
         registrar(falha ? "falha" : "impressao_concluida", { pedido, ordem, operacao, lote, impressora }, falha ? `Falha registrada em ${operacao.nome}.` : `${operacao.nome} concluída.`, { custos: lote.custosReais, motivo: lote.motivoFalha });
         const resultado = atualizarHierarquia(operacao.id);
         if (falha && dados.repetir) criarNovaTentativa(lote.id);
@@ -521,12 +531,36 @@ const Producao = (() => {
         const lote = Storage.buscarLoteExecucaoPorId(loteId); if (!lote?.impressoraId || lote.status !== "em_fila") throw new Error("Lote não está em fila."); const impressora = Storage.buscarImpressoraPorId(lote.impressoraId); const fila = [...(impressora.filaOperacoes || [])]; const index = fila.findIndex(idFila => String(idFila) === String(lote.id)); const destino = index + Number(direcao); if (index < 0 || destino < 0 || destino >= fila.length) return lote; [fila[index], fila[destino]] = [fila[destino], fila[index]]; impressora.filaOperacoes = fila; Storage.salvarImpressora(impressora); fila.forEach((idFila, posicao) => { const item = Storage.buscarLoteExecucaoPorId(idFila); if (item) Storage.salvarLoteExecucao({ ...item, posicaoFila: posicao + 1 }); }); return lote;
     }
 
+    function confirmarPreparacaoLote(loteId) {
+        const lote = Storage.buscarLoteExecucaoPorId(loteId);
+        if (!lote || lote.status !== "aguardando_preparacao") throw new Error("Este lote não aguarda preparação.");
+        if (window.FilamentIntegration) {
+            const validacao = FilamentIntegration.validarCarregamentoLote(lote);
+            if (!validacao.valido) throw new Error(validacao.problemas?.[0] || "Carregue os rolos indicados antes de concluir a preparação.");
+            lote.filamentosSelecionados = (lote.filamentosSelecionados || []).map(material => {
+                const local = FilamentIntegration.localDoRolo(material.filamentoId);
+                return { ...material, tipoCarregamento: local?.tipo || "manual", slotAms: local?.tipo === "ams" ? local.slotAms : "", preparacaoNecessaria: false };
+            });
+            Storage.listarReservasFilamento().filter(reserva => reserva.status === "ativa" && String(reserva.loteExecucaoId) === String(lote.id)).forEach(reserva => {
+                const material = lote.filamentosSelecionados.find(item => String(item.materialReceitaId) === String(reserva.materialReceitaId));
+                if (material) Storage.salvarReservaFilamento({ ...reserva, tipoCarregamento: material.tipoCarregamento, slotAms: material.slotAms, atualizadoEm: new Date().toISOString() });
+            });
+        }
+        lote.status = Number(lote.posicaoFila || 1) > 1 ? "em_fila" : "pronta_para_iniciar";
+        lote.preparacaoConcluidaEm = new Date().toISOString();
+        lote.atualizadoEm = lote.preparacaoConcluidaEm;
+        Storage.salvarLoteExecucao(lote);
+        registrar("preparacao_concluida", { lote, operacaoId: lote.operacaoId }, "Preparação de filamentos concluída.");
+        atualizarHierarquia(lote.operacaoId);
+        return lote;
+    }
+
     function prepararRealocacaoLote(loteId) {
-        const lote = Storage.buscarLoteExecucaoPorId(loteId); if (!lote || !["em_fila", "pronta_para_iniciar", "aguardando_alocacao"].includes(lote.status)) throw new Error("Este lote não pode ser realocado agora."); liberarReservasLote(lote.id); removerLoteDaFila(lote); lote.status = "aguardando_alocacao"; lote.impressoraId = null; lote.impressoraNome = ""; lote.filamentosSelecionados = (lote.filamentosSelecionados || []).map(item => ({ ...item, filamentoId: null, pesoRealGramas: 0 })); lote.atualizadoEm = new Date().toISOString(); Storage.salvarLoteExecucao(lote); registrar("reserva_liberada", { lote, operacaoId: lote.operacaoId }, "Reservas liberadas para realocação do lote."); atualizarHierarquia(lote.operacaoId); return lote;
+        const lote = Storage.buscarLoteExecucaoPorId(loteId); if (!lote || !["em_fila", "pronta_para_iniciar", "aguardando_preparacao", "aguardando_alocacao"].includes(lote.status)) throw new Error("Este lote não pode ser realocado agora."); liberarReservasLote(lote.id); removerLoteDaFila(lote); lote.status = "aguardando_alocacao"; lote.impressoraId = null; lote.impressoraNome = ""; lote.filamentosSelecionados = (lote.filamentosSelecionados || []).map(item => ({ ...item, filamentoId: null, pesoRealGramas: 0 })); lote.atualizadoEm = new Date().toISOString(); Storage.salvarLoteExecucao(lote); registrar("reserva_liberada", { lote, operacaoId: lote.operacaoId }, "Reservas liberadas para realocação do lote."); atualizarHierarquia(lote.operacaoId); return lote;
     }
 
     function removerLoteFilaExecucao(loteId) {
-        const lote = Storage.buscarLoteExecucaoPorId(loteId); if (!lote || !["em_fila", "pronta_para_iniciar", "aguardando_alocacao"].includes(lote.status)) throw new Error("Este lote não pode ser removido da fila."); liberarReservasLote(lote.id, "cancelada"); removerLoteDaFila(lote); lote.status = "cancelado"; lote.atualizadoEm = new Date().toISOString(); Storage.salvarLoteExecucao(lote); registrar("lote_cancelado", { lote, operacaoId: lote.operacaoId }, "Lote removido da fila."); atualizarHierarquia(lote.operacaoId); return lote;
+        const lote = Storage.buscarLoteExecucaoPorId(loteId); if (!lote || !["em_fila", "pronta_para_iniciar", "aguardando_preparacao", "aguardando_alocacao"].includes(lote.status)) throw new Error("Este lote não pode ser removido da fila."); liberarReservasLote(lote.id, "cancelada"); removerLoteDaFila(lote); lote.status = "cancelado"; lote.atualizadoEm = new Date().toISOString(); Storage.salvarLoteExecucao(lote); registrar("lote_cancelado", { lote, operacaoId: lote.operacaoId }, "Lote removido da fila."); atualizarHierarquia(lote.operacaoId); return lote;
     }
 
     function iniciarOperacaoManual(operacaoId) {
@@ -538,6 +572,7 @@ const Producao = (() => {
     }
 
     function migrarDados() {
+        if (window.FilamentIntegration) FilamentIntegration.migrarDados();
         let mudouProdutos = false;
         const produtos = Storage.listarProdutos().map(produto => {
             const normalizado = normalizarProduto(produto);
@@ -566,7 +601,7 @@ const Producao = (() => {
         return { produtos: mudouProdutos, pedidos: mudouPedidos, impressoras: mudouImpressoras };
     }
 
-    return { TIPOS, STATUS: STATUS_ORDEM, STATUS_ORDEM, STATUS_OPERACAO, normalizarMaterial, calcularPesoMateriais, calcularCustoMateriais, normalizarOperacaoModelo, normalizarProduto, obterReceita, gerarPreviaPedido, criarOrdensDoPedido, contextoOperacao, pesoReservadoFilamento, pesoDisponivelFilamento, impressoraCompativel, criarAlocacao, calcularTempoDecorrido, calcularProgressoLote, iniciarLoteExecucao, pausarLoteExecucao, retomarLoteExecucao, concluirLoteExecucao, registrarFalhaLote, criarNovaTentativa, moverLoteFila, prepararRealocacaoLote, removerLoteFilaExecucao, iniciarOperacaoManual, concluirOperacaoManual, atualizarHierarquia, migrarDados };
+    return { TIPOS, STATUS: STATUS_ORDEM, STATUS_ORDEM, STATUS_OPERACAO, normalizarMaterial, calcularPesoMateriais, calcularCustoMateriais, normalizarOperacaoModelo, normalizarProduto, obterReceita, gerarPreviaPedido, criarOrdensDoPedido, contextoOperacao, pesoReservadoFilamento, pesoDisponivelFilamento, impressoraCompativel, criarAlocacao, calcularTempoDecorrido, calcularProgressoLote, iniciarLoteExecucao, pausarLoteExecucao, retomarLoteExecucao, concluirLoteExecucao, registrarFalhaLote, criarNovaTentativa, moverLoteFila, confirmarPreparacaoLote, prepararRealocacaoLote, removerLoteFilaExecucao, iniciarOperacaoManual, concluirOperacaoManual, atualizarHierarquia, migrarDados };
 })();
 
 window.Producao = Producao;

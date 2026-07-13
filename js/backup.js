@@ -19,7 +19,8 @@ const Backup = (() => {
         "historicoProducao",
         "manutencoes",
         "reservasFilamento",
-        "lotesExecucao"
+        "lotesExecucao",
+        "historicoFilamentos"
     ];
 
     function normalizarBackup(json) {
@@ -86,6 +87,7 @@ const Backup = (() => {
             manutencoes: [],
             reservasFilamento: [],
             lotesExecucao: [],
+            historicoFilamentos: [],
             configuracoes: {},
             configuracoesCustos: {},
             gerador3d: {}

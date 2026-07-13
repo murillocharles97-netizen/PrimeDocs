@@ -17,10 +17,10 @@ function renderProducao() {
     const horasPendentes = lotes.filter(l => !["concluido", "falhou", "cancelado"].includes(l.status)).reduce((t,l)=>t+Number(l.tempoPrevistoMinutos||0),0)/60;
     const aguardando = operacoes.filter(o => ["aguardando", "aguardando_dependencia", "aguardando_alocacao"].includes(o.status)).length;
     const montagemPendente = operacoes.filter(o => o.tipo === "montagem" && !["concluida", "cancelada"].includes(o.status)).length;
-    app.innerHTML = `<button class="back" onclick="navegar('home')"><i data-lucide="arrow-left"></i> Voltar</button><div class="productionPageHeading">${Page.titulo("🏭 Produção", "Execução real, impressoras, filas e consumo de filamentos.")}<button class="btn productionNewButton" onclick="abrirNovaProducao()"><i data-lucide="plus"></i> Nova produção</button></div>
+    app.innerHTML = `<div class="productionPage"><button class="back" onclick="navegar('home')"><i data-lucide="arrow-left"></i> Voltar</button><div class="productionPageHeading">${Page.titulo("🏭 Produção", "Execução real, impressoras, filas e consumo de filamentos.")}<button class="btn productionNewButton" onclick="abrirNovaProducao()"><i data-lucide="plus"></i> Nova produção</button></div>
         <section class="erpSummaryGrid productionSummary">${cardResumoERP("hourglass",aguardando,"Aguardando")}${cardResumoERP("activity",lotes.filter(l=>l.status==="em_execucao").length,"Em execução")}${cardResumoERP("circle-check",impressoras.filter(i=>i.status==="livre").length,"Impressoras livres")}${cardResumoERP("timer-off",atrasadas,"Atrasadas")}${cardResumoERP("blocks",montagemPendente,"Montagem pendente")}${cardResumoERP("triangle-alert",falhasHoje,"Falhas hoje")}${cardResumoERP("clock",`${horasPendentes.toFixed(1)} h`,"Horas pendentes")}</section>
         <nav class="productionTabs" aria-label="Status da produção">${[["aguardando","Aguardando"],["preparando","Preparando"],["fila","Em fila"],["imprimindo","Imprimindo"],["montagem","Montagem"],["acabamento","Acabamento"],["pronto","Pronto"],["falhas","Falhas"]].map(([v,l])=>`<button class="${producaoView===v?"isActive":""}" onclick="alterarVisaoProducao('${v}')">${l}</button>`).join("")}</nav>
-        <div id="conteudoProducao">${renderVisaoProducao(ordens,lotes,impressoras)}</div>`;
+        <div id="conteudoProducao">${renderVisaoProducao(ordens,lotes,impressoras)}</div></div>`;
     lucide.createIcons();
     producaoTimer = setInterval(atualizarContadoresProducao, 30000);
 }

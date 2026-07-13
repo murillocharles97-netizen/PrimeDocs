@@ -1,4 +1,4 @@
-const CACHE_VERSION = "primedocs-v41";
+const CACHE_VERSION = "primedocs-v42";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 

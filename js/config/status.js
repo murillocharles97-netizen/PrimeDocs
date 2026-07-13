@@ -1,6 +1,6 @@
 const STATUS_PEDIDOS = {
     aguardando_orcamento: "Aguardando orçamento",
-    aguardando_aceite: "Aguardando aceitar orçamento",
+    aguardando_aceite: "Aguardando aceite",
     aprovado: "Aprovado",
     em_producao: "Em produção",
     pronto: "Pronto",

@@ -2,42 +2,73 @@ let produtoEditando = null;
 let tipoProducaoEdicao = "simples";
 let operacoesModeloEdicao = [];
 let materiaisSimplesEdicao = [];
+let tempoSimplesMinutosEdicao = 0;
+let salvandoProduto = false;
+let colecaoProdutosAtiva = null;
+let filtroFavoritosProdutos = false;
+let filtroSemEstoqueProdutos = false;
 
 function renderProdutos() {
     Producao.migrarDados();
+    Storage.migrarColecoesProdutos();
+    colecaoProdutosAtiva = null;
+    filtroFavoritosProdutos = false;
+    filtroSemEstoqueProdutos = false;
+    renderTelaProdutos();
+}
+
+function renderTelaProdutos() {
+    if (colecaoProdutosAtiva) return renderProdutosDaColecao();
+    const colecoes = Storage.listarColecoesProdutos().filter(item => item.ativo !== false).sort((a, b) => Number(a.ordem || 0) - Number(b.ordem || 0) || String(a.nome).localeCompare(String(b.nome), "pt-BR"));
     app.innerHTML = `
         <button class="back" onclick="navegar('home')">
             <i data-lucide="arrow-left"></i>
             Voltar
         </button>
-
-        ${Page.titulo("📦 Produtos", "Catálogo de produtos da PrimeLine 3D")}
-
-        <section class="productToolbar">
-            <div class="productSearch">
-                <i data-lucide="search"></i>
-                <input id="pesquisaProduto" placeholder="Pesquisar produto, categoria ou código..." oninput="listarProdutos()">
-            </div>
-            <button class="btn productNewButton" onclick="abrirModalProduto()">
-                <i data-lucide="plus"></i>
-                Novo produto
-            </button>
-        </section>
-
-        <div id="listaProdutos" class="productsGrid"></div>
-
-        <button class="fab" onclick="abrirModalProduto()" aria-label="Novo produto">+</button>
+        <div class="productPageHeading"><div>${Page.titulo("📦 Produtos", "Organize o catálogo por coleções.")}</div><div><button class="btnSecondary" type="button" onclick="abrirModalColecaoProduto()"><i data-lucide="folder-plus"></i> Nova coleção</button><button class="btn" type="button" onclick="abrirModalProduto()"><i data-lucide="plus"></i> Novo produto</button></div></div>
+        <section class="collectionIntro"><div><span>COLEÇÕES</span><h3>Seu catálogo organizado</h3><p>Abra uma coleção para pesquisar, ordenar e gerenciar somente os produtos relacionados.</p></div><strong>${colecoes.length} ${colecoes.length === 1 ? "coleção" : "coleções"}</strong></section>
+        <div class="productCollectionsGrid">${colecoes.map(criarCardColecaoProduto).join("")}</div>
     `;
-
-    listarProdutos();
     lucide.createIcons();
 }
 
+function criarCardColecaoProduto(colecao) {
+    const produtos = Storage.listarProdutos().filter(produto => produto.ativo !== false && String(produto.colecaoId) === String(colecao.id));
+    const estoque = produtos.reduce((total, produto) => total + obterEstoqueProduto(produto), 0);
+    const valorEstoque = produtos.reduce((total, produto) => total + obterEstoqueProduto(produto) * Number(produto.preco || 0), 0);
+    const vendas = produtos.flatMap(produto => obterVendasProduto(produto.id));
+    const ultimaVenda = vendas.sort((a, b) => new Date(b.data) - new Date(a.data))[0]?.data;
+    const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0, 0, 0, 0);
+    const vendidasMes = vendas.filter(venda => new Date(venda.data) >= inicioMes).reduce((total, venda) => total + venda.quantidade, 0);
+    return `<article class="productCollectionCard" style="--collection-color:${escaparProduto(colecao.cor || "#6D4AFF")}">
+        <header><span class="collectionIcon"><i data-lucide="${escaparProduto(colecao.icone || "boxes")}"></i></span><button class="btn-icon" type="button" onclick="abrirModalColecaoProduto('${colecao.id}')" aria-label="Editar coleção ${escaparProduto(colecao.nome)}"><i data-lucide="ellipsis"></i></button></header>
+        <div><span>COLEÇÃO</span><h3>${escaparProduto(colecao.nome)}</h3><p>${escaparProduto(colecao.descricao || "Produtos organizados nesta coleção.")}</p></div>
+        <section class="collectionMetrics"><div><span>Modelos</span><strong>${produtos.length}</strong></div><div><span>Em estoque</span><strong>${estoque}</strong></div><div><span>Valor estimado</span><strong>${Utils.moeda(valorEstoque)}</strong></div><div><span>Vendidos no mês</span><strong>${vendidasMes}</strong></div></section>
+        <footer><span><i data-lucide="clock-3"></i> ${ultimaVenda ? `Última venda ${rotuloDataColecao(ultimaVenda)}` : "Sem vendas registradas"}</span><button type="button" onclick="abrirColecaoProdutos('${colecao.id}')">Abrir <i data-lucide="arrow-right"></i></button></footer>
+    </article>`;
+}
+
+function abrirColecaoProdutos(id) { colecaoProdutosAtiva = id; filtroFavoritosProdutos = false; filtroSemEstoqueProdutos = false; renderProdutosDaColecao(); }
+function voltarColecoesProdutos() { colecaoProdutosAtiva = null; renderTelaProdutos(); }
+
+function renderProdutosDaColecao() {
+    const colecao = Storage.buscarColecaoProdutoPorId(colecaoProdutosAtiva);
+    if (!colecao || colecao.ativo === false) { colecaoProdutosAtiva = null; return renderTelaProdutos(); }
+    app.innerHTML = `<button class="back" onclick="voltarColecoesProdutos()"><i data-lucide="arrow-left"></i> Coleções</button>
+        <div class="collectionDetailHeading"><div class="collectionIcon" style="--collection-color:${escaparProduto(colecao.cor)}"><i data-lucide="${escaparProduto(colecao.icone || "boxes")}"></i></div><div><span>COLEÇÃO</span><h2>${escaparProduto(colecao.nome)}</h2><p>${escaparProduto(colecao.descricao || "Gerencie os produtos desta coleção.")}</p></div><button class="btn" type="button" onclick="abrirModalProduto()"><i data-lucide="plus"></i> Novo produto</button></div>
+        <section class="productToolbar collectionProductToolbar"><div class="productSearch"><i data-lucide="search"></i><input id="pesquisaProduto" placeholder="Pesquisar nesta coleção..." oninput="listarProdutos()"></div><select id="ordemProdutos" onchange="listarProdutos()" aria-label="Ordenar produtos"><option value="nome">Nome A–Z</option><option value="recentes">Mais recentes</option><option value="vendidos">Mais vendidos</option><option value="lucrativos">Mais lucrativos</option></select><button class="productFilterChip ${filtroFavoritosProdutos ? "isActive" : ""}" type="button" onclick="alternarFiltroProdutos('favoritos')"><i data-lucide="star"></i> Favoritos</button><button class="productFilterChip ${filtroSemEstoqueProdutos ? "isActive" : ""}" type="button" onclick="alternarFiltroProdutos('semEstoque')"><i data-lucide="package-x"></i> Sem estoque</button></section>
+        <div id="resumoColecaoProdutos" class="collectionProductsSummary"></div><div id="listaProdutos" class="productsGrid"></div>`;
+    listarProdutos(); lucide.createIcons();
+}
+
+function alternarFiltroProdutos(tipo) { if (tipo === "favoritos") filtroFavoritosProdutos = !filtroFavoritosProdutos; if (tipo === "semEstoque") filtroSemEstoqueProdutos = !filtroSemEstoqueProdutos; renderProdutosDaColecao(); }
+
 function listarProdutos() {
     const lista = document.getElementById("listaProdutos");
+    if (!lista) return;
     const pesquisa = String(document.getElementById("pesquisaProduto")?.value || "").trim().toLowerCase();
-
-    let produtos = Storage.listarProdutos();
+    const ordenacao = document.getElementById("ordemProdutos")?.value || "nome";
+    let produtos = Storage.listarProdutos().filter(produto => produto.ativo !== false && (!colecaoProdutosAtiva || String(produto.colecaoId) === String(colecaoProdutosAtiva)));
 
     if (pesquisa) {
         produtos = produtos.filter(prod => {
@@ -50,11 +81,17 @@ function listarProdutos() {
             return texto.includes(pesquisa);
         });
     }
-
+    if (filtroFavoritosProdutos) produtos = produtos.filter(produto => Boolean(produto.favorito));
+    if (filtroSemEstoqueProdutos) produtos = produtos.filter(produto => obterEstoqueProduto(produto) <= 0);
     produtos = produtos.sort((a, b) => {
+        if (ordenacao === "recentes") return new Date(b.atualizadoEm || b.criadoEm || 0) - new Date(a.atualizadoEm || a.criadoEm || 0);
+        if (ordenacao === "vendidos") return totalVendidoProduto(b.id) - totalVendidoProduto(a.id);
+        if (ordenacao === "lucrativos") return (Number(b.preco || 0) - Number(b.custo || 0)) - (Number(a.preco || 0) - Number(a.custo || 0));
         if (Boolean(b.favorito) !== Boolean(a.favorito)) return Number(b.favorito) - Number(a.favorito);
         return String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR");
     });
+    const resumo = document.getElementById("resumoColecaoProdutos");
+    if (resumo) resumo.innerHTML = `<span><strong>${produtos.length}</strong> modelos exibidos</span><span><strong>${produtos.reduce((total, produto) => total + obterEstoqueProduto(produto), 0)}</strong> peças em estoque</span>`;
 
     if (!produtos.length) {
         lista.className = "";
@@ -214,37 +251,61 @@ function abrirDetalhesProduto(id) {
 
 function editarProduto(id) {
     produtoEditando = Storage.buscarProdutoPorId(id);
+    if (!produtoEditando) return Toast.show("Produto não encontrado.", "error");
     produtoEditando = Producao.normalizarProduto(produtoEditando);
     tipoProducaoEdicao = produtoEditando?.tipoProducao === "composta" ? "composta" : "simples";
     operacoesModeloEdicao = (produtoEditando?.operacoesModelo || []).map((op, index) => Producao.normalizarOperacaoModelo(op, index));
     materiaisSimplesEdicao = (produtoEditando?.materiais || []).map(MaterialListEditor.normalizar);
+    tempoSimplesMinutosEdicao = minutosDoTempoProduto(produtoEditando?.tempo);
     Modal.abrir("Editar Produto", montarFormularioProduto(produtoEditando));
+    configurarModalProduto();
     renderEditorReceitaProduto();
+    vincularResumoProduto();
 }
 
 function montarFormularioProduto(prod = {}) {
+    const categorias = CATEGORIAS.map(categoria => `<option value="${escaparProduto(categoria)}" ${categoria === prod.categoria ? "selected" : ""}>${escaparProduto(categoria)}</option>`).join("");
+    const colecoes = Storage.listarColecoesProdutos().filter(colecao => colecao.ativo !== false);
+    const colecaoSelecionada = prod.colecaoId || colecaoProdutosAtiva || Storage.garantirColecaoGeral().id;
+    const opcoesColecao = colecoes.map(colecao => `<option value="${colecao.id}" ${String(colecao.id) === String(colecaoSelecionada) ? "selected" : ""}>${escaparProduto(colecao.nome)}</option>`).join("");
     return `
-        ${Input.text("Nome", "nomeProduto", "Ex: Taça da Copa", prod.nome || "")}
-        ${Input.select("Categoria", "categoria", CATEGORIAS, prod.categoria || "")}
-        ${Input.number("Preço", "preco", prod.preco || "")}
-        ${Input.number("Custo", "custo", prod.custo || "")}
-        ${Input.number("Peso resumido (g)", "peso", prod.peso || "")}
-        ${Input.text("Tempo", "tempo", "3h25", prod.tempo || "")}
-        ${Input.text("Cor predominante", "cor", "Branco", prod.cor || "")}
+        <div class="productEditorForm">
+            <section class="productFormSection productCommercialSection">
+                <div class="productSectionHeader">
+                    <span>INFORMAÇÕES COMERCIAIS</span>
+                    <h3>Dados do produto</h3>
+                    <p>Informe somente os dados usados na venda. Peso, custo e cores são calculados pela receita.</p>
+                </div>
+                <div class="erpFormGrid productCommercialGrid">
+                    <label class="inputGroup"><span>Nome <b aria-hidden="true">*</b></span><input id="nomeProduto" value="${escaparProduto(prod.nome || "")}" placeholder="Ex: Taça da Copa" autocomplete="off"></label>
+                    <label class="inputGroup"><span>Código / SKU</span><input id="codigoProduto" value="${escaparProduto(prod.codigo || "")}" placeholder="Gerado automaticamente se vazio" autocomplete="off"></label>
+                    <label class="inputGroup"><span>Categoria <b aria-hidden="true">*</b></span><select id="categoria">${categorias}</select></label>
+                    <div class="inputGroup productCollectionField"><span>Coleção <b aria-hidden="true">*</b></span><div class="productCollectionSelectRow"><select id="colecaoProdutoSelect">${opcoesColecao}</select><button class="btnSecondary" type="button" onclick="alternarNovaColecaoInline()"><i data-lucide="plus"></i> Nova coleção</button></div></div>
+                    <div id="novaColecaoInline" class="newCollectionInline erpFull"><label class="inputGroup"><span>Nome da coleção</span><input id="novaColecaoNome" placeholder="Ex: Chaveiros"></label><label class="inputGroup"><span>Ícone</span><input id="novaColecaoIcone" value="boxes" placeholder="boxes"></label><label class="inputGroup"><span>Cor</span><input id="novaColecaoCor" type="color" value="#6D4AFF"></label><button class="btn" type="button" onclick="salvarNovaColecaoInline()">Criar e selecionar</button></div>
+                    <label class="inputGroup"><span>Preço de venda <b aria-hidden="true">*</b></span><input id="preco" type="number" min="0" step="0.01" inputmode="decimal" value="${prod.preco ?? ""}" placeholder="0,00"></label>
+                    <label class="inputGroup erpFull"><span>Descrição</span><textarea id="descricaoProduto" rows="3" placeholder="Detalhes comerciais, acabamento ou observações para venda">${escaparProduto(prod.descricao || "")}</textarea></label>
+                    <label class="favoriteToggle erpFull"><input id="favorito" type="checkbox" ${prod.favorito ? "checked" : ""}><span><i data-lucide="star"></i> Marcar como favorito</span></label>
+                </div>
+            </section>
 
-        <section class="productionRecipeEditor">
-            <div class="recipeHeader"><div><span>RECEITA DE PRODUÇÃO</span><h3>Como este produto é fabricado?</h3><p>Simples significa uma única operação; ela pode usar quantas cores e materiais forem necessários.</p></div></div>
-            <label class="inputGroup"><span>Tipo de produção</span><select id="tipoProducao" onchange="alterarTipoProducaoProduto(this.value)"><option value="simples" ${tipoProducaoEdicao === "simples" ? "selected" : ""}>Simples — uma impressão</option><option value="composta" ${tipoProducaoEdicao === "composta" ? "selected" : ""}>Composta — várias operações</option></select></label>
-            <div id="editorOperacoesProduto"></div>
-        </section>
+            <section class="productionRecipeEditor productFormSection" id="receitaProdutoSection">
+                <div class="recipeHeader"><div><span>RECEITA DE PRODUÇÃO</span><h3>Como este produto é fabricado?</h3><p>A receita é a fonte oficial de peso, materiais, cores, tempo, AMS e custo estimado.</p></div></div>
+                <label class="inputGroup"><span>Tipo de produção</span><select id="tipoProducao" onchange="alterarTipoProducaoProduto(this.value)"><option value="simples" ${tipoProducaoEdicao === "simples" ? "selected" : ""}>Simples — uma impressão</option><option value="composta" ${tipoProducaoEdicao === "composta" ? "selected" : ""}>Composta — várias operações</option></select></label>
+                <div id="editorOperacoesProduto"></div>
+            </section>
 
-        <label class="favoriteToggle">
-            <input id="favorito" type="checkbox" ${prod.favorito ? "checked" : ""}>
-            <span>Favorito</span>
-        </label>
+            <section class="productFormSection productAutomaticSummarySection">
+                <div class="productSectionHeader"><span>RESUMO AUTOMÁTICO</span><h3>Produto e produção</h3><p>Os indicadores abaixo são atualizados enquanto você preenche.</p></div>
+                <div id="resumoAutomaticoProduto" class="productAutomaticSummary" aria-live="polite"></div>
+            </section>
 
-        <div class="space"></div>
-        ${Button.primary(prod.id ? "Salvar Alterações" : "Salvar Produto", "salvarProduto()")}
+            <div class="productSaveBar">
+                <p><i data-lucide="shield-check"></i> Os dados técnicos serão calculados e salvos automaticamente.</p>
+                <button id="salvarProdutoButton" class="btn btn-primary" type="button" onclick="salvarProduto()">
+                    <i data-lucide="save"></i><span>${prod.id ? "Salvar Alterações" : "Salvar Produto"}</span>
+                </button>
+            </div>
+        </div>
     `;
 }
 
@@ -253,13 +314,70 @@ function abrirModalProduto() {
     tipoProducaoEdicao = "simples";
     operacoesModeloEdicao = [];
     materiaisSimplesEdicao = [MaterialListEditor.criar()];
+    tempoSimplesMinutosEdicao = 0;
     Modal.abrir("Novo Produto", montarFormularioProduto());
+    configurarModalProduto();
     renderEditorReceitaProduto();
+    vincularResumoProduto();
+}
+
+function configurarModalProduto() {
+    document.querySelector("#modalRoot .modalContainer")?.classList.add("productEditorModal");
+    lucide.createIcons();
+}
+
+function obterVendasProduto(produtoId) {
+    return Storage.listarPedidos().filter(pedido => pedido.ativo !== false && !["cancelado", "aguardando_orcamento", "aguardando_aceite"].includes(pedido.statusPedido)).flatMap(pedido => (pedido.itens || []).filter(item => String(item.produtoId) === String(produtoId)).map(item => ({ quantidade: Math.max(0, Number(item.quantidade) || 0), data: pedido.dataEntrega || pedido.dataPedido || pedido.criadoEm || "" }))).filter(item => item.data);
+}
+function totalVendidoProduto(produtoId) { return obterVendasProduto(produtoId).reduce((total, venda) => total + venda.quantidade, 0); }
+function rotuloDataColecao(data) { const hoje = Utils.hoje(); if (String(data).slice(0, 10) === hoje) return "hoje"; return new Date(data).toLocaleDateString("pt-BR"); }
+
+function abrirModalColecaoProduto(id = "") {
+    const colecao = id ? Storage.buscarColecaoProdutoPorId(id) : null;
+    Modal.abrir(colecao ? "Editar coleção" : "Nova coleção", `<div class="collectionForm"><div class="erpFormGrid"><label class="inputGroup"><span>Nome *</span><input id="nomeColecaoProduto" value="${escaparProduto(colecao?.nome || "")}" placeholder="Ex: Chaveiros"></label><label class="inputGroup"><span>Ícone Lucide</span><input id="iconeColecaoProduto" value="${escaparProduto(colecao?.icone || "boxes")}" placeholder="boxes"></label><label class="inputGroup"><span>Cor principal</span><input id="corColecaoProduto" type="color" value="${escaparProduto(colecao?.cor || "#6D4AFF")}"></label><label class="inputGroup"><span>Ordem</span><input id="ordemColecaoProduto" type="number" min="0" value="${Number(colecao?.ordem ?? Storage.listarColecoesProdutos().length)}"></label><label class="inputGroup erpFull"><span>Descrição</span><textarea id="descricaoColecaoProduto" rows="3">${escaparProduto(colecao?.descricao || "")}</textarea></label></div><div class="modalActions">${colecao && String(colecao.nome).toLocaleLowerCase("pt-BR") !== "geral" ? `<button class="btnSecondary dangerButton" type="button" onclick="inativarColecaoProdutoUI('${colecao.id}')">Inativar</button>` : ""}<button class="btnSecondary" type="button" onclick="Modal.fechar()">Cancelar</button><button class="btn" type="button" onclick="salvarColecaoProdutoUI('${colecao?.id || ""}')">Salvar coleção</button></div></div>`);
+    lucide.createIcons();
+}
+
+function salvarColecaoProdutoUI(id = "") {
+    try {
+        const existente = id ? Storage.buscarColecaoProdutoPorId(id) : null;
+        const colecao = Storage.salvarColecaoProduto({ ...existente, id: id || undefined, nome: document.getElementById("nomeColecaoProduto")?.value, icone: document.getElementById("iconeColecaoProduto")?.value || "boxes", cor: document.getElementById("corColecaoProduto")?.value || "#6D4AFF", ordem: document.getElementById("ordemColecaoProduto")?.value, descricao: document.getElementById("descricaoColecaoProduto")?.value || "", ativo: true });
+        Modal.fechar(); renderTelaProdutos(); Toast.show(`Coleção ${colecao.nome} salva.`, "success");
+    } catch (erro) { Toast.show(erro.message || "Não foi possível salvar a coleção.", "error"); }
+}
+
+function inativarColecaoProdutoUI(id) {
+    try { Storage.inativarColecaoProduto(id); Modal.fechar(); colecaoProdutosAtiva = null; renderTelaProdutos(); Toast.show("Coleção inativada. Os produtos foram movidos para Geral.", "success"); }
+    catch (erro) { Toast.show(erro.message || "Não foi possível inativar a coleção.", "error"); }
+}
+
+function alternarNovaColecaoInline() { document.getElementById("novaColecaoInline")?.classList.toggle("isOpen"); }
+function salvarNovaColecaoInline() {
+    try {
+        const nome = document.getElementById("novaColecaoNome")?.value.trim();
+        const colecao = Storage.salvarColecaoProduto({ nome, icone: document.getElementById("novaColecaoIcone")?.value || "boxes", cor: document.getElementById("novaColecaoCor")?.value || "#6D4AFF", ativo: true });
+        const select = document.getElementById("colecaoProdutoSelect");
+        if (select) { const option = document.createElement("option"); option.value = colecao.id; option.textContent = colecao.nome; option.selected = true; select.appendChild(option); }
+        document.getElementById("novaColecaoInline")?.classList.remove("isOpen");
+        Toast.show("Coleção criada e selecionada.", "success");
+    } catch (erro) { Toast.show(erro.message || "Não foi possível criar a coleção.", "error"); }
+}
+
+function vincularResumoProduto() {
+    ["nomeProduto", "preco", "favorito", "categoria"].forEach(id => {
+        const campo = document.getElementById(id);
+        campo?.addEventListener("input", atualizarResumoAutomaticoProduto);
+        campo?.addEventListener("change", atualizarResumoAutomaticoProduto);
+    });
+    atualizarResumoAutomaticoProduto();
 }
 
 function alterarTipoProducaoProduto(tipo) {
     capturarOperacoesModeloFormulario();
-    if (tipoProducaoEdicao === "simples") materiaisSimplesEdicao = MaterialListEditor.obter("produto-simples");
+    if (tipoProducaoEdicao === "simples") {
+        capturarTempoSimplesProduto();
+        if (document.getElementById("material-editor-produto-simples")) materiaisSimplesEdicao = MaterialListEditor.obter("produto-simples");
+    }
     tipoProducaoEdicao = tipo === "composta" ? "composta" : "simples";
     renderEditorReceitaProduto();
 }
@@ -302,15 +420,18 @@ function moverOperacaoModeloProduto(index, delta) {
 function renderEditorReceitaProduto() {
     const el = document.getElementById("editorOperacoesProduto"); if (!el) return;
     if (tipoProducaoEdicao !== "composta") {
-        el.innerHTML = `<div id="material-editor-produto-simples"></div><div id="resumoReceitaSimples" class="simpleRecipeSummary"></div>`;
+        const horas = Math.floor(tempoSimplesMinutosEdicao / 60);
+        const minutos = tempoSimplesMinutosEdicao % 60;
+        el.innerHTML = `<div class="simpleRecipeTime"><div><strong>Tempo da impressão</strong><small>Use o tempo total previsto para uma unidade.</small></div><div class="simpleRecipeTimeFields"><label class="inputGroup"><span>Horas</span><input id="tempoSimplesHoras" type="number" min="0" step="1" inputmode="numeric" value="${horas}"></label><label class="inputGroup"><span>Minutos</span><input id="tempoSimplesMinutos" type="number" min="0" max="59" step="1" inputmode="numeric" value="${minutos}"></label></div></div><div id="material-editor-produto-simples"></div><div id="resumoReceitaSimples" class="simpleRecipeSummary"></div>`;
         MaterialListEditor.render("produto-simples", materiaisSimplesEdicao, {
             titulo: "Materiais e cores da impressão",
             descricao: "Uma única impressão pode combinar uma ou várias cores, com ou sem AMS.",
-            pesoInformado: Number(document.getElementById("peso")?.value) || 0,
-            onChange: (materiais, peso) => { materiaisSimplesEdicao = materiais; atualizarResumoReceitaSimples(peso); }
+            pesoInformado: Number(produtoEditando?.peso) || 0,
+            onChange: (materiais, peso) => { materiaisSimplesEdicao = materiais; atualizarResumoReceitaSimples(peso); atualizarResumoAutomaticoProduto(); }
         });
-        document.getElementById("tempo")?.addEventListener("input", () => atualizarResumoReceitaSimples(MaterialListEditor.calcularPesoTotalMateriais("produto-simples")));
+        ["tempoSimplesHoras", "tempoSimplesMinutos"].forEach(id => document.getElementById(id)?.addEventListener("input", () => { capturarTempoSimplesProduto(); atualizarResumoReceitaSimples(MaterialListEditor.calcularPesoTotalMateriais("produto-simples")); atualizarResumoAutomaticoProduto(); }));
         atualizarResumoReceitaSimples(MaterialListEditor.calcularPesoTotalMateriais(materiaisSimplesEdicao));
+        atualizarResumoAutomaticoProduto();
         lucide.createIcons(); return;
     }
     const impressoras = Storage.listarImpressoras().filter(i => i.ativa !== false);
@@ -326,18 +447,32 @@ function renderEditorReceitaProduto() {
             titulo: `Materiais — ${op.nome}`,
             descricao: "Cada operação de impressão possui sua própria combinação de filamentos.",
             pesoInformado: Number(op.pesoInformadoAnterior ?? op.pesoTotalGramas) || 0,
-            onChange: (materiais, peso) => { if (operacoesModeloEdicao[index]) { operacoesModeloEdicao[index].materiais = materiais; operacoesModeloEdicao[index].pesoTotalGramas = peso; const campo = document.querySelector(`[data-recipe-index="${index}"] [data-field="pesoTotalGramas"]`); if (campo) campo.value = peso; } }
+            onChange: (materiais, peso) => { if (operacoesModeloEdicao[index]) { operacoesModeloEdicao[index].materiais = materiais; operacoesModeloEdicao[index].pesoTotalGramas = peso; const campo = document.querySelector(`[data-recipe-index="${index}"] [data-field="pesoTotalGramas"]`); if (campo) campo.value = peso; atualizarResumoAutomaticoProduto(); } }
         });
     });
+    el.querySelectorAll("[data-recipe-index] input, [data-recipe-index] select, [data-recipe-index] textarea").forEach(campo => {
+        if (campo.dataset.field === "tipo") return;
+        const atualizar = () => { capturarOperacoesModeloFormulario(); atualizarResumoAutomaticoProduto(); };
+        campo.addEventListener("input", atualizar);
+        campo.addEventListener("change", atualizar);
+    });
+    atualizarResumoAutomaticoProduto();
     lucide.createIcons();
 }
 
 function atualizarResumoReceitaSimples(peso) {
     const el = document.getElementById("resumoReceitaSimples"); if (!el) return;
-    const materiais = MaterialListEditor.obter("produto-simples");
-    const cores = materiais.filter(item => String(item.cor || "").trim()).length;
-    const tempo = document.getElementById("tempo")?.value || "Não informado";
-    el.innerHTML = `<div><span>Tempo total da impressão</span><strong>${escaparProduto(tempo)}</strong></div><div><span>Estrutura</span><strong>1 operação · ${cores} ${cores === 1 ? "cor" : "cores"}</strong></div>`;
+    const materiais = document.getElementById("material-editor-produto-simples") ? MaterialListEditor.obter("produto-simples") : materiaisSimplesEdicao;
+    const cores = valoresUnicosProduto(materiais, "cor").length;
+    const materiaisDistintos = valoresUnicosProduto(materiais, "material").length;
+    el.innerHTML = `<div><span>Tempo total</span><strong>${escaparProduto(formatarTempoProduto(tempoSimplesMinutosEdicao))}</strong></div><div><span>Peso total</span><strong>${formatarNumeroProduto(peso)} g</strong></div><div><span>Materiais</span><strong>${materiaisDistintos}</strong></div><div><span>Estrutura</span><strong>1 operação · ${cores} ${cores === 1 ? "cor" : "cores"}</strong></div>`;
+}
+
+function capturarTempoSimplesProduto() {
+    const horas = Math.max(0, Number(document.getElementById("tempoSimplesHoras")?.value) || 0);
+    const minutos = Math.min(59, Math.max(0, Number(document.getElementById("tempoSimplesMinutos")?.value) || 0));
+    tempoSimplesMinutosEdicao = Math.round((horas * 60) + minutos);
+    return tempoSimplesMinutosEdicao;
 }
 
 function capturarOperacoesModeloFormulario() {
@@ -352,55 +487,135 @@ function capturarOperacoesModeloFormulario() {
     return operacoesModeloEdicao;
 }
 
-function salvarProduto() {
-    const nome = document.getElementById("nomeProduto").value.trim();
-    const categoria = document.getElementById("categoria").value;
-    const preco = document.getElementById("preco").value;
-    const custo = document.getElementById("custo").value;
-
-    if (!nome) return Toast.show("Informe o nome do produto.");
-    if (preco === "") return Toast.show("Informe o preço.");
-    if (custo === "") return Toast.show("Informe o custo.");
-    capturarOperacoesModeloFormulario();
-    if (tipoProducaoEdicao === "simples") materiaisSimplesEdicao = MaterialListEditor.obter("produto-simples");
-    if (tipoProducaoEdicao === "composta" && !operacoesModeloEdicao.length) return Toast.show("Adicione pelo menos uma operação à receita composta.");
-    if (operacoesModeloEdicao.some(op => !op.nome)) return Toast.show("Informe o nome de todas as operações.");
-    const operacoesImpressao = tipoProducaoEdicao === "simples" ? [{ materiais: materiaisSimplesEdicao }] : operacoesModeloEdicao.filter(op => op.tipo === "impressao");
-    for (const operacao of operacoesImpressao) {
-        const validacao = MaterialListEditor.validarMateriais(operacao.materiais);
-        if (!validacao.valido) return Toast.show(validacao.mensagem);
-        operacao.materiais = validacao.materiais;
-        operacao.pesoTotalGramas = validacao.pesoTotal;
+function calcularResumoTecnicoProduto() {
+    if (tipoProducaoEdicao === "simples") {
+        capturarTempoSimplesProduto();
+        if (document.getElementById("material-editor-produto-simples")) materiaisSimplesEdicao = MaterialListEditor.obter("produto-simples");
+    } else {
+        capturarOperacoesModeloFormulario();
     }
-    const pesoMateriais = tipoProducaoEdicao === "simples"
-        ? MaterialListEditor.calcularPesoTotalMateriais(materiaisSimplesEdicao)
-        : operacoesModeloEdicao.reduce((total, op) => total + (op.tipo === "impressao" ? MaterialListEditor.calcularPesoTotalMateriais(op.materiais) * Math.max(1, Number(op.quantidadePorProduto) || 1) : 0), 0);
-
-    const produto = {
-        ...produtoEditando,
-        id: produtoEditando?.id || Utils.gerarId(),
-        codigo: produtoEditando?.codigo || Utils.gerarCodigo(categoria),
-        nome,
-        categoria,
-        preco: Number(preco),
-        custo: Number(custo),
-        peso: pesoMateriais || Number(document.getElementById("peso").value) || 0,
-        tempo: document.getElementById("tempo").value,
-        cor: document.getElementById("cor").value,
-        favorito: document.getElementById("favorito").checked,
-        tipoProducao: tipoProducaoEdicao,
-        materiais: tipoProducaoEdicao === "simples" ? materiaisSimplesEdicao.map(MaterialListEditor.normalizar) : [],
-        operacoesModelo: tipoProducaoEdicao === "composta" ? operacoesModeloEdicao.map((op,index)=>({ ...op, ordem:index, pesoInformadoAnterior: op.pesoTotalGramas })) : [],
-        ativo: true,
-        criadoEm: produtoEditando?.criadoEm || Utils.hoje()
-    };
-
-    Storage.salvarProduto(produto);
-    produtoEditando = null;
-    Modal.fechar();
-    listarProdutos();
-    Toast.show("Produto salvo com sucesso!");
+    const operacoes = tipoProducaoEdicao === "simples"
+        ? [{ tipo: "impressao", quantidadePorProduto: 1, tempoHoras: Math.floor(tempoSimplesMinutosEdicao / 60), tempoMinutos: tempoSimplesMinutosEdicao % 60, materiais: materiaisSimplesEdicao }]
+        : operacoesModeloEdicao;
+    const materiaisExpandidos = [];
+    let pesoTotal = 0;
+    let custoMateriais = 0;
+    let tempoTotalMinutos = 0;
+    operacoes.forEach(operacao => {
+        const quantidade = Math.max(1, Number(operacao.quantidadePorProduto) || 1);
+        tempoTotalMinutos += ((Math.max(0, Number(operacao.tempoHoras) || 0) * 60) + Math.min(59, Math.max(0, Number(operacao.tempoMinutos) || 0))) * quantidade;
+        if (operacao.tipo !== "impressao") return;
+        const materiais = (operacao.materiais || []).map(MaterialListEditor.normalizar);
+        pesoTotal += MaterialListEditor.calcularPesoTotalMateriais(materiais) * quantidade;
+        custoMateriais += MaterialListEditor.calcularCustoMateriais(materiais, Storage.listarFilamentos().filter(item => item.ativo !== false)) * quantidade;
+        for (let repeticao = 0; repeticao < quantidade; repeticao += 1) materiaisExpandidos.push(...materiais);
+    });
+    const config = Storage.carregarConfigCustos();
+    const custoHora = Number(config.custoEnergiaHora || 0) + Number(config.custoDepreciacaoHora || 0) + (config.cobrarMaoDeObraPorPadrao ? Number(config.valorMaoDeObraHora || 0) : 0);
+    const perda = Math.max(0, Number(config.perdaPercentual || 0)) / 100;
+    const custoEstimado = (custoMateriais * (1 + perda)) + ((tempoTotalMinutos / 60) * custoHora);
+    const preco = Math.max(0, Number(document.getElementById("preco")?.value) || 0);
+    const lucro = preco - custoEstimado;
+    const margem = preco > 0 ? (lucro / preco) * 100 : 0;
+    const cores = valoresUnicosProduto(materiaisExpandidos, "cor");
+    const materiais = valoresUnicosProduto(materiaisExpandidos, "material");
+    return { operacoes, pesoTotal, tempoTotalMinutos, custoEstimado, lucro, margem, quantidadeCores: cores.length, quantidadeMateriais: materiais.length, ams: cores.length > 4 ? "Multicolor avançado" : cores.length > 1 ? "Compatível com AMS" : "Uma cor", corPredominante: cores[0] || "" };
 }
+
+function atualizarResumoAutomaticoProduto() {
+    const el = document.getElementById("resumoAutomaticoProduto");
+    if (!el) return;
+    const resumo = calcularResumoTecnicoProduto();
+    const nome = document.getElementById("nomeProduto")?.value.trim() || "Produto sem nome";
+    const preco = Math.max(0, Number(document.getElementById("preco")?.value) || 0);
+    const favorito = Boolean(document.getElementById("favorito")?.checked);
+    el.innerHTML = `<div class="productSummaryHero"><span>Produto</span><strong>${escaparProduto(nome)}</strong><small>${favorito ? "★★★★★ Favorito" : "Produto regular"}</small></div><div><span>Preço de venda</span><strong>${Utils.moeda(preco)}</strong></div><div><span>Custo estimado</span><strong>${Utils.moeda(resumo.custoEstimado)}</strong></div><div><span>Lucro estimado</span><strong class="${resumo.lucro < 0 ? "negative" : "positive"}">${Utils.moeda(resumo.lucro)}</strong></div><div><span>Margem</span><strong>${formatarNumeroProduto(resumo.margem)}%</strong></div><div><span>Peso total</span><strong>${formatarNumeroProduto(resumo.pesoTotal)} g</strong></div><div><span>Tempo total</span><strong>${escaparProduto(formatarTempoProduto(resumo.tempoTotalMinutos))}</strong></div><div><span>Operações</span><strong>${resumo.operacoes.length}</strong></div><div><span>Cores / materiais</span><strong>${resumo.quantidadeCores} / ${resumo.quantidadeMateriais}</strong></div><div><span>AMS</span><strong>${escaparProduto(resumo.ams)}</strong></div>`;
+}
+
+function salvarProduto() {
+    if (salvandoProduto) return;
+    limparErrosProduto();
+    const botao = document.getElementById("salvarProdutoButton");
+    const textoOriginal = botao?.querySelector("span")?.textContent || "Salvar";
+    try {
+        salvandoProduto = true;
+        if (botao) { botao.disabled = true; botao.setAttribute("aria-busy", "true"); if (botao.querySelector("span")) botao.querySelector("span").textContent = "Salvando..."; }
+        const nome = document.getElementById("nomeProduto")?.value.trim() || "";
+        const codigoInformado = document.getElementById("codigoProduto")?.value.trim() || "";
+        const categoria = document.getElementById("categoria")?.value || "";
+        const colecaoId = document.getElementById("colecaoProdutoSelect")?.value || "";
+        const precoTexto = document.getElementById("preco")?.value ?? "";
+        if (!nome) throw criarErroProduto("Informe o nome do produto.", "nomeProduto");
+        if (!categoria) throw criarErroProduto("Selecione a categoria do produto.", "categoria");
+        if (!colecaoId) throw criarErroProduto("Selecione a coleção do produto.", "colecaoProdutoSelect");
+        if (precoTexto === "") throw criarErroProduto("Informe o preço de venda do produto.", "preco");
+        const preco = Number(precoTexto);
+        if (!Number.isFinite(preco) || preco < 0) throw criarErroProduto("O preço de venda deve ser um valor válido e não negativo.", "preco");
+        if (tipoProducaoEdicao === "simples") {
+            capturarTempoSimplesProduto();
+            if (document.getElementById("material-editor-produto-simples")) materiaisSimplesEdicao = MaterialListEditor.obter("produto-simples");
+        } else {
+            capturarOperacoesModeloFormulario();
+            if (!operacoesModeloEdicao.length) throw criarErroProduto("Adicione pelo menos uma operação à receita composta.", "receitaProdutoSection");
+            if (operacoesModeloEdicao.some(op => !String(op.nome || "").trim())) throw criarErroProduto("Informe o nome de todas as operações da receita.", "receitaProdutoSection");
+        }
+        const operacoesImpressao = tipoProducaoEdicao === "simples" ? [{ materiais: materiaisSimplesEdicao }] : operacoesModeloEdicao.filter(op => op.tipo === "impressao");
+        for (const operacao of operacoesImpressao) {
+            const validacao = MaterialListEditor.validarMateriais(operacao.materiais);
+            if (!validacao.valido) throw criarErroProduto(validacao.mensagem, "receitaProdutoSection");
+            operacao.materiais = validacao.materiais;
+            operacao.pesoTotalGramas = validacao.pesoTotal;
+        }
+        const resumo = calcularResumoTecnicoProduto();
+        const agora = new Date().toISOString();
+        const produto = {
+            ...produtoEditando,
+            id: produtoEditando?.id || Utils.gerarId(),
+            codigo: codigoInformado || produtoEditando?.codigo || Utils.gerarCodigo(categoria),
+            nome,
+            categoria,
+            colecaoId,
+            preco,
+            descricao: document.getElementById("descricaoProduto")?.value.trim() || "",
+            custo: Number(resumo.custoEstimado.toFixed(4)),
+            peso: Number(resumo.pesoTotal.toFixed(2)),
+            tempo: formatarTempoProduto(resumo.tempoTotalMinutos),
+            cor: resumo.corPredominante,
+            favorito: Boolean(document.getElementById("favorito")?.checked),
+            tipoProducao: tipoProducaoEdicao,
+            materiais: tipoProducaoEdicao === "simples" ? materiaisSimplesEdicao.map(MaterialListEditor.normalizar) : [],
+            operacoesModelo: tipoProducaoEdicao === "composta" ? operacoesModeloEdicao.map((op, index) => ({ ...op, ordem: index, pesoInformadoAnterior: op.pesoTotalGramas })) : [],
+            resumoProducao: { pesoTotal: resumo.pesoTotal, tempoTotalMinutos: resumo.tempoTotalMinutos, quantidadeCores: resumo.quantidadeCores, quantidadeMateriais: resumo.quantidadeMateriais, compatibilidadeAms: resumo.ams, custoEstimado: Number(resumo.custoEstimado.toFixed(4)) },
+            ativo: produtoEditando?.ativo !== false,
+            criadoEm: produtoEditando?.criadoEm || Utils.hoje(),
+            atualizadoEm: agora
+        };
+        const eraEdicao = Boolean(produtoEditando?.id);
+        Storage.salvarProduto(produto);
+        const salvo = Storage.buscarProdutoPorId(produto.id);
+        if (!salvo) throw new Error("O produto não foi confirmado no armazenamento local.");
+        produtoEditando = null;
+        Modal.fechar();
+        if (document.getElementById("listaProdutos")) listarProdutos();
+        else if (document.querySelector(".productCollectionsGrid")) renderTelaProdutos();
+        Toast.show(eraEdicao ? "Produto atualizado com sucesso." : "Produto cadastrado com sucesso.", "success");
+    } catch (erro) {
+        console.error("[PrimeDocs] Falha ao salvar produto:", erro);
+        if (erro?.campoId) marcarErroProduto(erro.campoId, erro.message);
+        Toast.show(erro?.message || "Não foi possível salvar o produto.", "error");
+    } finally {
+        salvandoProduto = false;
+        if (botao?.isConnected) { botao.disabled = false; botao.removeAttribute("aria-busy"); if (botao.querySelector("span")) botao.querySelector("span").textContent = textoOriginal; }
+    }
+}
+
+function criarErroProduto(mensagem, campoId) { const erro = new Error(mensagem); erro.campoId = campoId; return erro; }
+function limparErrosProduto() { document.querySelectorAll("#modalRoot .isInvalid").forEach(el => el.classList.remove("isInvalid")); document.querySelectorAll("#modalRoot [aria-invalid='true']").forEach(el => el.removeAttribute("aria-invalid")); document.querySelectorAll("#modalRoot .fieldErrorMessage").forEach(el => el.remove()); }
+function marcarErroProduto(campoId, mensagem) { const campo = document.getElementById(campoId); if (!campo) return; const grupo = campo.classList?.contains("productFormSection") ? campo : campo.closest?.(".inputGroup") || campo; grupo.classList.add("isInvalid"); campo.setAttribute?.("aria-invalid", "true"); const aviso = document.createElement("small"); aviso.className = "fieldErrorMessage"; aviso.textContent = mensagem; grupo.appendChild(aviso); campo.scrollIntoView?.({ behavior: "smooth", block: "center" }); if (campo.matches?.("input, select, textarea")) campo.focus?.(); }
+function minutosDoTempoProduto(valor) { if (Number.isFinite(Number(valor)) && String(valor).trim() !== "") return Math.max(0, Math.round(Number(valor) * 60)); const texto = String(valor || "").toLowerCase(); return Math.max(0, Math.round((Number(texto.match(/([\d.,]+)\s*h/)?.[1]?.replace(",", ".") || 0) * 60) + Number(texto.match(/([\d.,]+)\s*m/)?.[1]?.replace(",", ".") || 0))); }
+function formatarTempoProduto(totalMinutos) { const total = Math.max(0, Math.round(Number(totalMinutos) || 0)); const horas = Math.floor(total / 60); const minutos = total % 60; if (!horas) return `${minutos} min`; if (!minutos) return `${horas}h`; return `${horas}h${String(minutos).padStart(2, "0")}`; }
+function valoresUnicosProduto(lista, campo) { const mapa = new Map(); (lista || []).forEach(item => { const valor = String(item?.[campo] || "").trim(); const chave = valor.toLocaleLowerCase("pt-BR"); if (valor && !mapa.has(chave)) mapa.set(chave, valor); }); return [...mapa.values()]; }
+function formatarNumeroProduto(valor) { return Number(valor || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 }); }
 
 function escaparProduto(valor) {
     return String(valor ?? "")

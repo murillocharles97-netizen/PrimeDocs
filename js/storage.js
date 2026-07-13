@@ -13,6 +13,7 @@ const Storage = {
     KEYS: {
 
         produtos: "primedocs_produtos",
+        colecoesProdutos: "primedocs_colecoes_produtos",
         lojas: "primedocs_lojas",
         consignados: "primedocs_consignados",
         estoquesLojas: "primedocs_estoques_lojas",
@@ -133,6 +134,86 @@ const Storage = {
 
             );
 
+    },
+
+    // ===========================
+    // COLEÇÕES DE PRODUTOS
+    // ===========================
+
+    listarColecoesProdutos() {
+        try {
+            const lista = JSON.parse(localStorage.getItem(this.KEYS.colecoesProdutos));
+            return Array.isArray(lista) ? lista : [];
+        } catch (erro) {
+            return [];
+        }
+    },
+
+    salvarColecoesProdutos(lista) {
+        localStorage.setItem(this.KEYS.colecoesProdutos, JSON.stringify(Array.isArray(lista) ? lista : []));
+    },
+
+    salvarColecaoProduto(colecao) {
+        const lista = this.listarColecoesProdutos();
+        const index = lista.findIndex(item => String(item.id) === String(colecao.id));
+        const agora = new Date().toISOString();
+        const registro = {
+            id: colecao.id || `colecao-${Date.now()}`,
+            nome: String(colecao.nome || "").trim(),
+            icone: colecao.icone || "boxes",
+            cor: colecao.cor || "#6D4AFF",
+            descricao: colecao.descricao || "",
+            ordem: Math.max(0, Number(colecao.ordem ?? lista.length) || 0),
+            ativo: colecao.ativo !== false,
+            criadoEm: colecao.criadoEm || agora,
+            atualizadoEm: agora
+        };
+        if (!registro.nome) throw new Error("Informe o nome da coleção.");
+        const nomeNormalizado = registro.nome.toLocaleLowerCase("pt-BR");
+        if (lista.some(item => String(item.id) !== String(registro.id) && item.ativo !== false && String(item.nome || "").trim().toLocaleLowerCase("pt-BR") === nomeNormalizado)) {
+            throw new Error("Já existe uma coleção ativa com este nome.");
+        }
+        if (index < 0) lista.push(registro); else lista[index] = registro;
+        this.salvarColecoesProdutos(lista);
+        return registro;
+    },
+
+    buscarColecaoProdutoPorId(id) {
+        return this.listarColecoesProdutos().find(item => String(item.id) === String(id));
+    },
+
+    buscarColecaoGeral() {
+        return this.listarColecoesProdutos().find(item => item.ativo !== false && String(item.nome || "").trim().toLocaleLowerCase("pt-BR") === "geral");
+    },
+
+    inativarColecaoProduto(id) {
+        const colecao = this.buscarColecaoProdutoPorId(id);
+        if (!colecao) return false;
+        if (String(colecao.nome || "").trim().toLocaleLowerCase("pt-BR") === "geral") throw new Error("A coleção Geral não pode ser inativada.");
+        const geral = this.garantirColecaoGeral(id);
+        const produtos = this.listarProdutos().map(produto => String(produto.colecaoId) === String(id) ? { ...produto, colecaoId: geral.id, atualizadoEm: new Date().toISOString() } : produto);
+        this.salvarProdutos(produtos);
+        this.salvarColecaoProduto({ ...colecao, ativo: false });
+        return true;
+    },
+
+    garantirColecaoGeral(ignorarId = "") {
+        const existente = this.listarColecoesProdutos().find(item => String(item.id) !== String(ignorarId) && item.ativo !== false && String(item.nome || "").trim().toLocaleLowerCase("pt-BR") === "geral");
+        if (existente) return existente;
+        return this.salvarColecaoProduto({ id: "colecao-geral", nome: "Geral", icone: "boxes", cor: "#6D4AFF", descricao: "Produtos ainda não organizados em outra coleção.", ordem: 0, ativo: true });
+    },
+
+    migrarColecoesProdutos() {
+        const geral = this.garantirColecaoGeral();
+        const idsValidos = new Set(this.listarColecoesProdutos().filter(item => item.ativo !== false).map(item => String(item.id)));
+        let alterados = 0;
+        const produtos = this.listarProdutos().map(produto => {
+            if (produto.colecaoId && idsValidos.has(String(produto.colecaoId))) return produto;
+            alterados += 1;
+            return { ...produto, colecaoId: geral.id, atualizadoEm: produto.atualizadoEm || new Date().toISOString() };
+        });
+        if (alterados) this.salvarProdutos(produtos);
+        return { colecaoGeralId: geral.id, produtosMigrados: alterados };
     },
 
 
@@ -861,7 +942,10 @@ const Storage = {
         const atualGramas = Math.max(0, Number(filamento.pesoAtualGramas ?? (Number(filamento.pesoAtualKg || 0) * 1000)) || 0);
         filamento.pesoAtualGramas = Math.max(0, atualGramas - consumo * 1000);
         filamento.pesoAtualKg = filamento.pesoAtualGramas / 1000;
-        filamento.status = filamento.pesoAtualGramas <= 0 ? "vazio" : filamento.status;
+        if (filamento.pesoAtualGramas <= 0) {
+            filamento.status = "esgotado";
+            filamento.esgotado = true;
+        }
         filamento.atualizadoEm = new Date().toISOString();
         this.salvarFilamento(filamento);
         return filamento;
@@ -961,6 +1045,7 @@ const Storage = {
 
         return {
             produtos: this.listarProdutos(),
+            colecoesProdutos: this.listarColecoesProdutos(),
             lojas: this.listarLojas(),
             estoques: this.listarEstoquesLojas(),
             consignados: this.listarConsignados(),
@@ -1043,7 +1128,7 @@ const Storage = {
         const empresasValidas = dados.empresas === undefined
             || Array.isArray(dados.empresas);
 
-        const novosDadosValidos = ["clientes", "pedidos", "orcamentos", "pagamentos", "financeiro", "notificacoes", "filamentos", "impressoras", "ordensProducao", "operacoesProducao", "historicoProducao", "manutencoes", "reservasFilamento", "lotesExecucao", "historicoFilamentos"]
+        const novosDadosValidos = ["colecoesProdutos", "clientes", "pedidos", "orcamentos", "pagamentos", "financeiro", "notificacoes", "filamentos", "impressoras", "ordensProducao", "operacoesProducao", "historicoProducao", "manutencoes", "reservasFilamento", "lotesExecucao", "historicoFilamentos"]
             .every(campo => dados[campo] === undefined || Array.isArray(dados[campo]));
         const custosValidos = dados.configuracoesCustos === undefined
             || (dados.configuracoesCustos && typeof dados.configuracoesCustos === "object" && !Array.isArray(dados.configuracoesCustos));
@@ -1075,6 +1160,7 @@ const Storage = {
         const dadosNormalizados = {
             ...dados,
             empresas: Array.isArray(dados?.empresas) ? dados.empresas : [],
+            colecoesProdutos: Array.isArray(dados?.colecoesProdutos) ? dados.colecoesProdutos : [],
             clientes: Array.isArray(dados?.clientes) ? dados.clientes : [],
             pedidos: Array.isArray(dados?.pedidos) ? dados.pedidos : [],
             orcamentos: Array.isArray(dados?.orcamentos) ? dados.orcamentos : [],
@@ -1105,6 +1191,7 @@ const Storage = {
         }
 
         this.salvarProdutos(dadosNormalizados.produtos);
+        this.salvarColecoesProdutos(dadosNormalizados.colecoesProdutos);
         this.salvarLojas(dadosNormalizados.lojas);
         this.salvarEstoquesLojas(dadosNormalizados.estoques);
         this.salvarEmpresas(dadosNormalizados.empresas);
@@ -1134,6 +1221,7 @@ const Storage = {
             JSON.stringify(dadosNormalizados.conferencias)
         );
         this.salvarConfiguracoes(dadosNormalizados.configuracoes);
+        this.migrarColecoesProdutos();
 
         const tema = dadosNormalizados.configuracoes.tema === "dark" ? "dark" : "light";
         localStorage.setItem(this.KEYS.tema, tema);

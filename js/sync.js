@@ -9,6 +9,7 @@ const PrimeSync = (() => {
 
     const COLLECTIONS = [
         { nome: "produtos", tipo: "lista", obter: () => Storage.listarProdutos(), salvar: lista => Storage.salvarProdutos(lista) },
+        { nome: "colecoesProdutos", tipo: "lista", obter: () => Storage.listarColecoesProdutos(), salvar: lista => Storage.salvarColecoesProdutos(lista) },
         { nome: "clientes", tipo: "lista", obter: () => Storage.listarClientes(), salvar: lista => Storage.salvarClientes(lista) },
         { nome: "pedidos", tipo: "lista", obter: () => Storage.listarPedidos(), salvar: lista => Storage.salvarPedidos(lista) },
         { nome: "financeiro", tipo: "lista", obter: () => Storage.listarLancamentosFinanceiros(), salvar: lista => Storage.salvarLancamentosFinanceiros(lista) },
@@ -36,6 +37,7 @@ const PrimeSync = (() => {
 
     const COLECOES_COM_DADOS_REAIS = [
         "produtos",
+        "colecoesProdutos",
         "clientes",
         "pedidos",
         "financeiro",
@@ -73,6 +75,9 @@ const PrimeSync = (() => {
         atualizarProduto: "produtos",
         excluirProduto: "produtos",
         salvarProduto: "produtos",
+        salvarColecoesProdutos: "colecoesProdutos",
+        salvarColecaoProduto: "colecoesProdutos",
+        inativarColecaoProduto: "colecoesProdutos",
         salvarLojas: "lojas",
         salvarLoja: "lojas",
         excluirLoja: "lojas",

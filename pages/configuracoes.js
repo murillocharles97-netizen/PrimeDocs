@@ -69,6 +69,7 @@ function renderConfiguracoes() {
             </section>
 
             ${renderCardDashboardConfiguracoes()}
+            ${renderCardCRMConfiguracoes()}
             ${renderCardCustosConfiguracoes()}
             ${renderCardBackupConfiguracoes()}
         </div>
@@ -76,6 +77,9 @@ function renderConfiguracoes() {
 
     lucide.createIcons();
 }
+
+function renderCardCRMConfiguracoes(){const c=Storage.carregarConfiguracoes().crm||{};return `<section class="settingsCard settingsCrm"><div class="settingsCardHeader"><div class="settingsCardIcon"><i data-lucide="contact-round"></i></div><div><span>RELACIONAMENTO</span><h3>CRM</h3><p>Critérios usados para destacar clientes inativos, em risco e VIP.</p></div></div><div class="costSettingsGrid"><label class="inputGroup"><span>Dias para cliente inativo</span><input id="crmDiasInativo" type="number" min="1" value="${Number(c.diasClienteInativo||120)}"></label><label class="inputGroup"><span>Dias para cliente em risco</span><input id="crmDiasRisco" type="number" min="1" value="${Number(c.diasClienteRisco||60)}"></label><label class="inputGroup"><span>Valor mínimo para VIP</span><input id="crmValorVip" type="number" min="0" step="0.01" value="${Number(c.valorMinimoVip||2000)}"></label><label class="inputGroup"><span>Pedidos mínimos para VIP</span><input id="crmPedidosVip" type="number" min="1" value="${Number(c.pedidosMinimoVip||8)}"></label><label class="inputGroup"><span>Lembrete padrão de retorno (dias)</span><input id="crmLembreteDias" type="number" min="1" value="${Number(c.lembreteRetornoDias||3)}"></label></div><button class="btn settingsSaveButton" onclick="salvarConfigCRM()"><i data-lucide="save"></i> Salvar critérios do CRM</button></section>`;}
+function salvarConfigCRM(){const atual=Storage.carregarConfiguracoes();Storage.salvarConfiguracoes({...atual,crm:{diasClienteInativo:Number(document.getElementById("crmDiasInativo").value)||120,diasClienteRisco:Number(document.getElementById("crmDiasRisco").value)||60,valorMinimoVip:Number(document.getElementById("crmValorVip").value)||0,pedidosMinimoVip:Number(document.getElementById("crmPedidosVip").value)||1,lembreteRetornoDias:Number(document.getElementById("crmLembreteDias").value)||3}});Toast.show("Configurações do CRM salvas!");}
 
 function renderListaEmpresasConfiguracoes(empresas) {
     if (!empresas.length) {

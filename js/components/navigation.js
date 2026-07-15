@@ -14,6 +14,13 @@ const DRAWER_PRIMEDOCS = [
     ["configuracoes", "settings", "Configurações"]
 ];
 
+const BOTTOM_NAV_PRIMEDOCS = [
+    ["home", "house", "Início"],
+    ["produtos", "boxes", "Produtos"],
+    ["producao", "factory", "Produção"],
+    ["filamentos", "package-open", "Estoque"]
+];
+
 function renderNavegacaoPrimeDocs() {
     const empresa = Storage.buscarEmpresaPadrao();
     const container = document.getElementById("drawerNavigation");
@@ -41,8 +48,27 @@ function renderNavegacaoPrimeDocs() {
             <button class="drawerLogoutButton" type="button" onclick="sairPrimeDocs()"><i data-lucide="log-out"></i> Sair</button>
         </div>
     `;
+    renderNavegacaoInferiorPrimeDocs();
     atualizarCabecalhoPrimeDocs();
     lucide.createIcons();
+}
+
+function renderNavegacaoInferiorPrimeDocs() {
+    const container = document.getElementById("bottomNavigation");
+    if (!container) return;
+
+    container.innerHTML = `
+        ${BOTTOM_NAV_PRIMEDOCS.map(([pagina, icone, titulo]) => `
+            <button type="button" data-bottom-page="${pagina}" onclick="navegar('${pagina}')" aria-label="${titulo}">
+                <span><i data-lucide="${icone}"></i></span>
+                <small>${titulo}</small>
+            </button>
+        `).join("")}
+        <button type="button" data-bottom-page="mais" onclick="abrirDrawerPrimeDocs()" aria-label="Abrir mais opções">
+            <span><i data-lucide="ellipsis"></i></span>
+            <small>Mais</small>
+        </button>
+    `;
 }
 
 function selecionarDrawerPrimeDocs(pagina, futuro) {
@@ -69,6 +95,14 @@ function atualizarNavegacaoAtivaPrimeDocs(pagina) {
     const paginaAtiva = pagina === "conferencia" ? "consignado" : pagina === "relatorios" ? "dashboard" : pagina;
     document.querySelectorAll("[data-drawer-page]").forEach(item => {
         item.classList.toggle("isActive", item.dataset.drawerPage === paginaAtiva);
+    });
+    const paginasPrincipais = BOTTOM_NAV_PRIMEDOCS.map(item => item[0]);
+    document.querySelectorAll("[data-bottom-page]").forEach(item => {
+        const destino = item.dataset.bottomPage;
+        const ativo = destino === paginaAtiva || (destino === "mais" && !paginasPrincipais.includes(paginaAtiva));
+        item.classList.toggle("isActive", ativo);
+        if (ativo) item.setAttribute("aria-current", "page");
+        else item.removeAttribute("aria-current");
     });
 }
 

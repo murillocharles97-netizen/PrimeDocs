@@ -5,6 +5,7 @@ function navegar(pagina, opcoes = {}){
     if (pagina !== "producao" && typeof producaoTimer !== "undefined") clearInterval(producaoTimer);
 
     fecharDrawerPrimeDocs();
+    document.getElementById("content")?.classList.remove("pageEntering");
     window.__primeDocsNavigationOptions = opcoes || {};
 
     switch(pagina){
@@ -84,6 +85,8 @@ function navegar(pagina, opcoes = {}){
 
     atualizarNavegacaoAtivaPrimeDocs(pagina);
     atualizarCabecalhoPrimeDocs();
+    requestAnimationFrame(() => document.getElementById("content")?.classList.add("pageEntering"));
+    if (!opcoes?.preservarScroll) window.scrollTo({ top: 0, behavior: "auto" });
 
     if(window.lucide){
         lucide.createIcons();

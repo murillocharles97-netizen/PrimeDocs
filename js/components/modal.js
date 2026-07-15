@@ -19,11 +19,14 @@ const Modal = {
 
         }
 
+        document.body.classList.add("modalOpen");
         root.innerHTML = `
 
         <div class="modalOverlay" onclick="Modal.fechar(event)">
 
             <div class="modalContainer" role="dialog" aria-modal="true" aria-labelledby="primeDocsModalTitle" onclick="event.stopPropagation()">
+
+                <span class="modalHandle" aria-hidden="true"></span>
 
                 <div class="modalHeader">
 
@@ -63,6 +66,7 @@ const Modal = {
             if(event.target.classList.contains("modalOverlay")){
 
                 document.getElementById("modalRoot").innerHTML="";
+                document.body.classList.remove("modalOpen");
 
             }
 
@@ -71,6 +75,7 @@ const Modal = {
         }
 
         document.getElementById("modalRoot").innerHTML="";
+        document.body.classList.remove("modalOpen");
 
     }
 

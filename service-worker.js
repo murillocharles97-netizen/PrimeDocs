@@ -1,4 +1,4 @@
-const CACHE_VERSION = "primedocs-v42";
+const CACHE_VERSION = "primedocs-v43";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -11,6 +11,7 @@ const APP_SHELL = [
     "./assets/icon-512.png",
     "./assets/icon-maskable-512.png",
     "./css/style.css",
+    "./css/design-system.css",
     "./js/app.js",
     "./js/pdf.js",
     "./js/router.js",

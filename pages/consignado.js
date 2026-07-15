@@ -103,7 +103,13 @@ function renderNovoConsignado() {
 
         <div class="consignmentFlow">
             <details class="consignmentSection consignmentPrevious" open>
-                <summary><span><i data-lucide="archive"></i>Estoque atual na loja</span><i data-lucide="chevron-down"></i></summary>
+                <summary>
+                    <span><i data-lucide="archive"></i>Estoque atual na loja</span>
+                    <span class="consignmentSummaryActions">
+                        <button id="corrigirEstoqueConsignadoButton" class="btnSecondary consignmentCorrectionButton" type="button" hidden onclick="abrirCorrecaoEstoqueConsignado(event)"><i data-lucide="sliders-horizontal"></i><span>Corrigir estoque</span></button>
+                        <i data-lucide="chevron-down"></i>
+                    </span>
+                </summary>
                 <p class="consignmentHint">Este é o estoque registrado após a última movimentação da loja.</p>
                 <div id="estoqueAnteriorConsignado"></div>
             </details>
@@ -153,9 +159,25 @@ function carregarEstoqueAtualDaLoja(lojaId) {
     if (trocouLoja) Toast.show("A reposição foi limpa porque a loja foi alterada.");
 
     atualizarCabecalhoFluxoConsignado();
+    atualizarBotaoCorrecaoEstoqueConsignado();
     renderListaProdutosConsignado();
     renderEstoqueAnteriorConsignado();
     renderEstoqueFinalConsignado();
+}
+
+function atualizarBotaoCorrecaoEstoqueConsignado() {
+    const botao = document.getElementById("corrigirEstoqueConsignadoButton");
+    if (botao) botao.hidden = !lojaConsignadoAtual;
+}
+
+function abrirCorrecaoEstoqueConsignado(evento) {
+    evento?.preventDefault();
+    evento?.stopPropagation();
+    if (!lojaConsignadoAtual) {
+        Toast.show("Selecione uma loja antes de corrigir o estoque.");
+        return;
+    }
+    abrirCorrecaoEstoqueLoja(lojaConsignadoAtual.id, "consignado");
 }
 
 function preencherResponsavelLojaConsignado() {
@@ -163,14 +185,35 @@ function preencherResponsavelLojaConsignado() {
 }
 
 function normalizarItensEstoqueConsignado(itens = []) {
-    return (Array.isArray(itens) ? itens : []).map(item => ({
+    return (Array.isArray(itens) ? itens : []).map(item => {
+        const produtoAtual = Storage.buscarProdutoPorId?.(item.produtoId);
+        const valorUnitario = Number(item.valorUnitario ?? item.preco ?? item.precoVenda ?? produtoAtual?.preco) || 0;
+        return {
+            produtoId: item.produtoId,
+            nome: item.nome || item.produtoNome || produtoAtual?.nome || "Produto sem nome",
+            codigo: item.codigo || produtoAtual?.codigo || "",
+            categoria: item.categoria || produtoAtual?.categoria || "",
+            preco: valorUnitario,
+            valorUnitario,
+            quantidade: Math.max(0, Number(item.quantidade) || 0)
+        };
+    }).filter(item => item.quantidade > 0);
+}
+
+function serializarItemMovimentacaoConsignado(item) {
+    const quantidade = Math.max(0, Number(item.quantidade) || 0);
+    const valorUnitario = Number(item.valorUnitario ?? item.preco) || 0;
+    return {
         produtoId: item.produtoId,
+        produtoNome: item.nome || item.produtoNome || "Produto sem nome",
         nome: item.nome || item.produtoNome || "Produto sem nome",
         codigo: item.codigo || "",
         categoria: item.categoria || "",
-        preco: Number(item.preco ?? item.precoVenda) || 0,
-        quantidade: Math.max(0, Number(item.quantidade) || 0)
-    })).filter(item => item.quantidade > 0);
+        preco: valorUnitario,
+        valorUnitario,
+        quantidade,
+        valorTotal: quantidade * valorUnitario
+    };
 }
 
 function atualizarCabecalhoFluxoConsignado() {
@@ -430,10 +473,10 @@ function gerarPDFConsignado() {
         responsavel,
         data,
         observacoes,
-        estoqueAnterior: anterior.map(item => ({ ...item })),
-        itensReposicao: reposicao.map(item => ({ ...item })),
-        estoqueFinal: final.map(item => ({ ...item })),
-        itens: reposicao.map(item => ({ ...item })),
+        estoqueAnterior: anterior.map(serializarItemMovimentacaoConsignado),
+        itensReposicao: reposicao.map(serializarItemMovimentacaoConsignado),
+        estoqueFinal: final.map(serializarItemMovimentacaoConsignado),
+        itens: reposicao.map(serializarItemMovimentacaoConsignado),
         criadoEm,
         usuarioId: obterUsuarioIdConsignado()
     };

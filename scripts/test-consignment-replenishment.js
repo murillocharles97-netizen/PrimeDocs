@@ -75,20 +75,44 @@ assert.strictEqual(savedStocks.at(-1).itens[0].quantidade, 8);
 assert.match(storageSource, /findIndex\([\s\S]*String\(item\.id\) === String\(consignado\.id\)/);
 assert.match(storageSource, /consignados\[index\] = \{ \.\.\.consignados\[index\], \.\.\.consignado \}/);
 
-// 8. Correção manual exige justificativa e registra antes/depois.
+// 8. Correção manual completa: motivo, snapshots, diferenças, zero e produto ausente.
 assert.match(storeSource, /tipo:\s*"ajuste_manual_estoque_loja"/);
-assert.match(storeSource, /motivo\.length < 5/);
-assert.match(storeSource, /antes,[\s\S]*depois,[\s\S]*motivo/);
+assert.match(storeSource, /if \(!motivo\)/);
+assert.match(storeSource, /motivo === "Outro" && observacao\.length < 5/);
+assert.match(storeSource, /estoqueAnterior,[\s\S]*estoqueCorrigido,[\s\S]*diferencas,[\s\S]*motivo,[\s\S]*observacao/);
+assert.match(storeSource, /\.filter\(item => item\.quantidade > 0\)/);
+assert.match(storeSource, /adicionarProdutoAusenteAjusteLoja/);
+assert.match(source, /abrirCorrecaoEstoqueLoja\(lojaConsignadoAtual\.id, "consignado"\)/);
+const storeContext = vm.createContext({
+    console,
+    window: {},
+    Storage: {
+        buscarProdutoPorId: () => ({ id: "novo", nome: "Novo", codigo: "N1", categoria: "Teste", preco: 12 }),
+        listarProdutos: () => []
+    }
+});
+vm.runInContext(storeSource, storeContext);
+storeContext.itemAjusteTeste = { produtoId: "novo", quantidade: 4 };
+const produtoAusente = vm.runInContext("normalizarItemAjusteEstoqueLoja(itemAjusteTeste, 0)", storeContext);
+assert.strictEqual(produtoAusente.quantidadeRegistrada, 0);
+assert.strictEqual(produtoAusente.quantidade, 4);
+assert.strictEqual(produtoAusente.valorUnitario, 12);
 
-// 9. PDF contém os três blocos e os seis indicadores do resumo.
+// 9. PDF contém os três blocos, colunas detalhadas e totais financeiros.
 [
     "ESTOQUE ANTERIOR",
     "PRODUTOS DEIXADOS NESTA VISITA",
     "ESTOQUE FINAL ATUALIZADO",
-    "Quantidade adicionada",
-    "Valor total final"
+    "Total do estoque anterior",
+    "Valor total da reposição",
+    "Total geral em consignado",
+    "Modelos no estoque final",
+    "Valor total do estoque final"
 ].forEach(texto => assert.ok(pdfSource.includes(texto), `PDF sem bloco: ${texto}`));
+assert.match(pdfSource, /item\.valorUnitario \?\? item\.preco \?\? item\.precoVenda/);
+assert.match(source, /valorUnitario,[\s\S]*valorTotal: quantidade \* valorUnitario/);
 let arquivoPDF = "";
+const textosPDF = [];
 class FakePDF {
     constructor() {
         this.paginas = 1;
@@ -103,7 +127,7 @@ class FakePDF {
     setTextColor() {}
     setFont() {}
     setFontSize() {}
-    text() {}
+    text(valor) { textosPDF.push(Array.isArray(valor) ? valor.join(" ") : String(valor)); }
     setDrawColor() {}
     setLineWidth() {}
     line() {}
@@ -126,16 +150,21 @@ pdfContext.dadosPDFTeste = {
     responsavel: "Responsável",
     data: "2026-07-15",
     observacoes: "Teste",
-    estoqueAnterior: [item("taca", "Taça", 5)],
-    itensReposicao: [item("taca", "Taça", 3)],
-    estoqueFinal: [item("taca", "Taça", 8)]
+    estoqueAnterior: [{ ...item("taca", "Taça", 5), valorUnitario: 15, valorTotal: 75 }],
+    itensReposicao: [{ ...item("taca", "Taça", 3), valorUnitario: 15, valorTotal: 45 }],
+    estoqueFinal: [{ ...item("taca", "Taça", 8), valorUnitario: 15, valorTotal: 120 }]
 };
 assert.strictEqual(vm.runInContext("criarPDFReposicaoConsignado(dadosPDFTeste)", pdfContext), true);
 assert.strictEqual(arquivoPDF, "reposicao_consignado_loja-teste_2026-07-15.pdf");
+assert.ok(textosPDF.includes("8 un."));
+assert.ok(textosPDF.includes("R$ 15,00") || textosPDF.includes("R$ 15,00"));
+assert.ok(textosPDF.includes("R$ 120,00") || textosPDF.includes("R$ 120,00"));
 
 // 10. Responsividade e temas usam o design system, inclusive 320 px.
 assert.match(cssSource, /@media \(max-width: 330px\)/);
 assert.match(cssSource, /\.consignmentStockList[\s\S]*grid-template-columns:\s*1fr/);
+assert.match(cssSource, /\.stockAdjustmentProductValues[\s\S]*grid-template-columns:\s*1fr/);
+assert.match(cssSource, /\.consignmentCorrectionButton\[hidden\]/);
 assert.ok(cssSource.includes("var(--color-surface)"));
 assert.ok(cssSource.includes("var(--color-text)"));
 

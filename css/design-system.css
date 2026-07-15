@@ -628,10 +628,14 @@ input:focus, select:focus, textarea:focus { border-color: color-mix(in srgb, var
 .consignmentSection { min-width: 0; padding: 22px; border: 1px solid var(--color-border); border-radius: var(--radius-xl); background: var(--color-surface); box-shadow: var(--shadow-sm); }
 .consignmentSection > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 32px; cursor: pointer; list-style: none; color: var(--color-text); font-size: 16px; font-weight: 750; }
 .consignmentSection > summary::-webkit-details-marker { display: none; }
-.consignmentSection > summary span { display: inline-flex; align-items: center; gap: 10px; }
+.consignmentSection > summary > span { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
 .consignmentSection > summary svg { width: 19px; height: 19px; color: var(--color-primary); }
-.consignmentSection > summary > svg { transition: transform .18s ease; }
-.consignmentSection[open] > summary > svg { transform: rotate(180deg); }
+.consignmentSummaryActions { flex: none; }
+.consignmentSummaryActions > svg { transition: transform .18s ease; }
+.consignmentSection[open] > summary .consignmentSummaryActions > svg { transform: rotate(180deg); }
+.consignmentCorrectionButton { min-height: 36px; padding: 7px 11px; border-radius: 11px; font-size: 11px; }
+.consignmentCorrectionButton[hidden] { display: none !important; }
+.consignmentCorrectionButton svg { width: 15px !important; height: 15px !important; }
 .consignmentHint, .consignmentCorrectionHint, .consignmentSectionHeader p { margin: 5px 0 16px; color: var(--color-text-muted); font-size: 13px; line-height: 1.5; }
 .consignmentCorrectionHint { display: flex; align-items: flex-start; gap: 7px; margin: 14px 0 0; }
 .consignmentCorrectionHint svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--color-primary); }
@@ -673,12 +677,45 @@ input:focus, select:focus, textarea:focus { border-color: color-mix(in srgb, var
 .stockAdjustmentNotice { display: flex; gap: 10px; margin-bottom: 14px; padding: 12px; border: 1px solid color-mix(in srgb, var(--color-warning) 35%, var(--color-border)); border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-warning) 8%, var(--color-surface)); color: var(--color-text-muted); }
 .stockAdjustmentNotice svg { flex: none; width: 20px; color: var(--color-warning); }
 .stockAdjustmentNotice p { margin: 0; line-height: 1.5; }
+.stockAdjustmentHeader { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.stockAdjustmentHeader > div { display: grid; gap: 3px; padding: 11px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-subtle); }
+.stockAdjustmentHeader span { color: var(--color-text-muted); font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+.stockAdjustmentHeader strong { overflow: hidden; color: var(--color-text); text-overflow: ellipsis; white-space: nowrap; }
 .stockAdjustmentList { display: grid; gap: 8px; margin-bottom: 16px; }
 .stockAdjustmentItem { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-subtle); }
 .stockAdjustmentItem > span { display: grid; min-width: 0; gap: 2px; }
 .stockAdjustmentItem strong, .stockAdjustmentItem small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stockAdjustmentItem small { color: var(--color-text-muted); }
 .stockAdjustmentItem input { width: 92px; min-width: 92px; text-align: center; }
+.stockAdjustmentProduct { display: grid; gap: 12px; padding: 13px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-subtle); }
+.stockAdjustmentProduct > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.stockAdjustmentProduct > header > div { display: grid; min-width: 0; gap: 2px; }
+.stockAdjustmentProduct > header strong, .stockAdjustmentProduct > header span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stockAdjustmentProduct > header span { color: var(--color-text-muted); font-size: 11px; }
+.stockAdjustmentPrice { flex: none; color: var(--color-primary) !important; font-weight: 750; }
+.stockAdjustmentProductValues { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.stockAdjustmentProductValues > span, .stockAdjustmentProductValues > label { display: grid; align-content: center; gap: 4px; min-width: 0; min-height: 64px; padding: 8px; border: 1px solid var(--color-border); border-radius: 11px; background: var(--color-surface); text-align: center; }
+.stockAdjustmentProductValues small { color: var(--color-text-muted); font-size: 9px; }
+.stockAdjustmentProductValues input { width: 100%; min-width: 0; height: 36px; margin: 0; padding: 5px; text-align: center; }
+.isPositive { color: var(--color-success) !important; }
+.isNegative { color: var(--color-danger) !important; }
+.isNeutral { color: var(--color-text-muted) !important; }
+.stockAdjustmentRemoval { margin: 0; padding: 8px; border-radius: 9px; background: var(--color-danger-soft); color: var(--color-danger); font-size: 11px; font-weight: 700; }
+.stockAdjustmentAdd { display: grid; gap: 10px; margin: 14px 0; padding: 13px; border: 1px dashed color-mix(in srgb, var(--color-primary) 40%, var(--color-border)); border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface)); }
+.stockAdjustmentAdd h4 { margin: 3px 0 0; }
+.stockAdjustmentAddFields { display: grid; grid-template-columns: minmax(0, 1fr) 120px auto; gap: 8px; align-items: end; }
+.stockAdjustmentAddFields .inputGroup { margin: 0; }
+.stockAdjustmentAddFields button { min-height: var(--control-height); white-space: nowrap; }
+.stockAdjustmentReasonGrid { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 10px; }
+.stockAdjustmentReasonGrid .inputGroup { margin: 0; }
+.stockAdjustmentReasonGrid b { color: var(--color-danger); font-weight: 800; }
+.stockAdjustmentPreview { display: grid; gap: 10px; margin-top: 14px; padding: 13px; border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border)); border-radius: var(--radius-md); background: var(--color-primary-soft); }
+.stockAdjustmentPreview > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.stockAdjustmentPreview > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.stockAdjustmentPreview > div > span { display: grid; gap: 3px; min-width: 0; padding: 8px; border-radius: 10px; background: var(--color-surface); }
+.stockAdjustmentPreview small { color: var(--color-text-muted); font-size: 9px; }
+.stockAdjustmentPreview strong { overflow: hidden; color: var(--color-text); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.stockAdjustmentActions { position: sticky; z-index: 3; bottom: calc(-14px - env(safe-area-inset-bottom)); padding: 12px 0 calc(14px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--color-surface) 18%); }
 .stockHistoryTimeline { position: relative; display: grid; gap: 10px; }
 .stockHistoryItem { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 11px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-subtle); }
 .stockHistoryItem > span { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: var(--color-primary-soft); color: var(--color-primary); }
@@ -686,6 +723,10 @@ input:focus, select:focus, textarea:focus { border-color: color-mix(in srgb, var
 .stockHistoryItem > div { display: grid; gap: 3px; min-width: 0; }
 .stockHistoryItem small, .stockHistoryItem p { color: var(--color-text-muted); }
 .stockHistoryItem p { margin: 0; }
+.stockHistoryChanges { display: grid; gap: 4px; margin-top: 4px; }
+.stockHistoryChanges > span { display: flex; justify-content: space-between; gap: 10px; padding: 6px 8px; border-radius: 8px; background: var(--color-surface); }
+.stockHistoryChanges b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stockHistoryChanges em { flex: none; color: var(--color-primary); font-style: normal; font-weight: 800; }
 
 @media (max-width: 700px) {
     .consignmentMainFields { grid-template-columns: 1fr; }
@@ -697,6 +738,9 @@ input:focus, select:focus, textarea:focus { border-color: color-mix(in srgb, var
     .consignmentFlowAction { position: sticky; z-index: 4; bottom: calc(76px + env(safe-area-inset-bottom)); padding: 10px 0; background: linear-gradient(transparent, var(--color-background) 25%); }
     .consignmentFlowAction .btn { width: 100%; }
     .storeStockActions { display: grid; grid-template-columns: 1fr; }
+    .stockAdjustmentAddFields, .stockAdjustmentReasonGrid { grid-template-columns: 1fr; }
+    .stockAdjustmentAddFields button { width: 100%; }
+    .stockAdjustmentPreview > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 330px) {
@@ -708,6 +752,14 @@ input:focus, select:focus, textarea:focus { border-color: color-mix(in srgb, var
     .consignmentSummaryStrip { grid-template-columns: 1fr; }
     .stockAdjustmentItem { align-items: stretch; flex-direction: column; }
     .stockAdjustmentItem input { width: 100%; }
+    .consignmentSection > summary { align-items: flex-start; flex-wrap: wrap; }
+    .consignmentSummaryActions { justify-content: space-between; width: 100%; padding-left: 28px; }
+    .consignmentCorrectionButton { max-width: calc(100% - 28px); }
+    .consignmentCorrectionButton span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .stockAdjustmentProductValues { grid-template-columns: 1fr; }
+    .stockAdjustmentProductValues > span, .stockAdjustmentProductValues > label { min-height: 54px; }
+    .stockAdjustmentHeader { grid-template-columns: 1fr; }
+    .stockAdjustmentPreview > div { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 390px) {

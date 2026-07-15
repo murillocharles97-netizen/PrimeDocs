@@ -1,4 +1,8 @@
 let lojaEditando = null;
+let itensAjusteEstoqueLoja = [];
+let estoqueAnteriorAjusteLoja = [];
+let contextoAjusteEstoqueLoja = "lojas";
+let ajusteEstoqueLojaSalvando = false;
 
 function renderLojas() {
     app.innerHTML = `
@@ -203,11 +207,9 @@ function abrirEstoqueLoja(id) {
             <button class="btn" type="button" onclick="abrirHistoricoEstoqueLoja('${escaparHtmlLoja(loja.id)}')">
                 <i data-lucide="history"></i> Ver histórico
             </button>
-            ${itens.length ? `
-                <button class="btn" type="button" onclick="abrirCorrecaoEstoqueLoja('${escaparHtmlLoja(loja.id)}')">
-                    <i data-lucide="list-restart"></i> Corrigir estoque
-                </button>
-            ` : ""}
+            <button class="btn" type="button" onclick="abrirCorrecaoEstoqueLoja('${escaparHtmlLoja(loja.id)}')">
+                <i data-lucide="list-restart"></i> Corrigir estoque
+            </button>
         </div>`;
 
     Modal.abrir(
@@ -221,82 +223,233 @@ function obterUsuarioIdMovimentacaoLoja() {
     return window.PrimeFirebase?.auth?.currentUser?.uid || null;
 }
 
-function abrirCorrecaoEstoqueLoja(id) {
+function normalizarItemAjusteEstoqueLoja(item, quantidadeRegistrada = null) {
+    const produto = Storage.buscarProdutoPorId?.(item.produtoId);
+    const valorUnitario = Number(item.valorUnitario ?? item.preco ?? produto?.preco) || 0;
+    const quantidade = Math.max(0, Math.floor(Number(item.quantidade) || 0));
+    return {
+        produtoId: item.produtoId,
+        produtoNome: item.nome || item.produtoNome || produto?.nome || "Produto sem nome",
+        nome: item.nome || item.produtoNome || produto?.nome || "Produto sem nome",
+        codigo: item.codigo || produto?.codigo || "",
+        categoria: item.categoria || produto?.categoria || "",
+        preco: valorUnitario,
+        valorUnitario,
+        quantidadeRegistrada: quantidadeRegistrada === null ? quantidade : Math.max(0, Number(quantidadeRegistrada) || 0),
+        quantidade
+    };
+}
+
+function abrirCorrecaoEstoqueLoja(id, contexto = "lojas") {
     const loja = Storage.buscarLojaPorId(id);
-    const estoque = Storage.buscarEstoqueLoja(id);
-    const itens = (estoque?.itens || []).filter(item => Number(item.quantidade || 0) > 0);
-    if (!loja || !itens.length) {
-        Toast.show("Não há estoque para corrigir nesta loja.");
+    if (!loja) {
+        Toast.show("Loja não encontrada.");
         return;
     }
+    const estoque = Storage.buscarEstoqueLoja(id) || { itens: [] };
+    contextoAjusteEstoqueLoja = contexto;
+    ajusteEstoqueLojaSalvando = false;
+    estoqueAnteriorAjusteLoja = (estoque.itens || [])
+        .filter(item => Number(item.quantidade || 0) > 0)
+        .map(item => normalizarItemAjusteEstoqueLoja(item));
+    itensAjusteEstoqueLoja = estoqueAnteriorAjusteLoja.map(item => ({ ...item }));
+    renderModalCorrecaoEstoqueLoja(loja);
+}
 
-    Modal.abrir(`Corrigir estoque — ${escaparHtmlLoja(loja.nome)}`, `
-        <div class="stockAdjustmentNotice">
-            <i data-lucide="shield-alert"></i>
-            <p>Informe a quantidade física real. O saldo será corrigido sem apagar o histórico anterior.</p>
+function renderModalCorrecaoEstoqueLoja(loja, valoresFormulario = {}) {
+    const selecionados = new Set(itensAjusteEstoqueLoja.map(item => String(item.produtoId)));
+    const produtosDisponiveis = Storage.listarProdutos()
+        .filter(produto => produto.ativo !== false && !selecionados.has(String(produto.id)))
+        .sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR", { sensitivity: "base" }));
+    const motivoAtual = valoresFormulario.motivo ?? document.getElementById("motivoAjusteEstoqueLoja")?.value ?? "";
+    const observacaoAtual = valoresFormulario.observacao ?? document.getElementById("observacaoAjusteEstoqueLoja")?.value ?? "";
+    const motivos = [
+        "Contagem física", "Erro em consignação anterior", "Estoque duplicado",
+        "Produto não registrado", "Produto perdido ou danificado", "Retirada de produto",
+        "Correção após conferência", "Outro"
+    ];
+
+    Modal.abrir("Corrigir estoque da loja", `
+        <div class="stockAdjustmentHeader">
+            <div><span>LOJA</span><strong>${escaparHtmlLoja(loja.nome)}</strong></div>
+            <div><span>DATA</span><strong>${formatarDataBR(Utils.hoje())}</strong></div>
         </div>
-        <div class="stockAdjustmentList">
-            ${itens.map(item => `
-                <label class="stockAdjustmentItem">
-                    <span><strong>${escaparHtmlLoja(item.nome || "Produto")}</strong><small>${escaparHtmlLoja(item.codigo || item.categoria || "Sem código")}</small></span>
-                    <input type="number" min="0" step="1" value="${Math.max(0, Number(item.quantidade) || 0)}" data-ajuste-produto-id="${escaparHtmlLoja(item.produtoId)}" aria-label="Quantidade real de ${escaparHtmlLoja(item.nome || "produto")}">
-                </label>`).join("")}
+        <div class="stockAdjustmentNotice"><i data-lucide="shield-alert"></i><p>Use este ajuste apenas quando o estoque registrado estiver diferente do estoque físico encontrado na loja.</p></div>
+        <div class="stockAdjustmentList" id="listaAjusteEstoqueLoja">
+            ${itensAjusteEstoqueLoja.length ? itensAjusteEstoqueLoja.map(renderItemCorrecaoEstoqueLoja).join("") : '<div class="consignmentEmpty">Nenhum produto registrado. Adicione o estoque físico encontrado.</div>'}
         </div>
-        <label class="inputGroup"><span>Justificativa obrigatória</span><textarea id="motivoAjusteEstoqueLoja" placeholder="Ex.: correção após contagem física"></textarea></label>
-        <div class="modalActions">
-            <button class="btn" type="button" onclick="abrirEstoqueLoja('${escaparHtmlLoja(loja.id)}')">Cancelar</button>
-            <button class="btn" type="button" onclick="salvarCorrecaoEstoqueLoja('${escaparHtmlLoja(loja.id)}')"><i data-lucide="save"></i>Salvar correção</button>
+        <section class="stockAdjustmentAdd">
+            <div><span class="eyebrow">PRODUTO AUSENTE</span><h4>Adicionar produto ao ajuste</h4></div>
+            <div class="stockAdjustmentAddFields">
+                <label class="inputGroup"><span>Produto cadastrado</span><select id="produtoAusenteAjusteLoja"><option value="">Selecione</option>${produtosDisponiveis.map(produto => `<option value="${escaparHtmlLoja(produto.id)}">${escaparHtmlLoja(produto.nome)} · ${Utils.moeda(Number(produto.preco) || 0)}</option>`).join("")}</select></label>
+                <label class="inputGroup"><span>Quantidade real</span><input id="quantidadeProdutoAusenteAjuste" type="number" min="1" step="1" value="1"></label>
+                <button class="btnSecondary" type="button" onclick="adicionarProdutoAusenteAjusteLoja('${escaparHtmlLoja(loja.id)}')"><i data-lucide="plus"></i>Adicionar</button>
+            </div>
+        </section>
+        <div class="stockAdjustmentReasonGrid">
+            <label class="inputGroup"><span>Motivo do ajuste *</span><select id="motivoAjusteEstoqueLoja" onchange="atualizarObrigatoriedadeObservacaoAjuste()"><option value="">Selecione o motivo</option>${motivos.map(motivo => `<option value="${motivo}" ${motivoAtual === motivo ? "selected" : ""}>${motivo}</option>`).join("")}</select></label>
+            <label class="inputGroup"><span>Observação <b id="observacaoAjusteObrigatoria">${motivoAtual === "Outro" ? "*" : "(opcional)"}</b></span><textarea id="observacaoAjusteEstoqueLoja" placeholder="Detalhes da correção">${escaparHtmlLoja(observacaoAtual)}</textarea></label>
+        </div>
+        <div id="resumoAjusteEstoqueLoja"></div>
+        <div class="modalActions stockAdjustmentActions">
+            <button class="btnSecondary" type="button" onclick="cancelarCorrecaoEstoqueLoja('${escaparHtmlLoja(loja.id)}')">Cancelar</button>
+            <button id="salvarAjusteEstoqueLojaButton" class="btn" type="button" onclick="salvarCorrecaoEstoqueLoja('${escaparHtmlLoja(loja.id)}')"><i data-lucide="save"></i>Salvar ajuste</button>
         </div>`);
+    document.querySelectorAll("[data-nova-quantidade-ajuste]").forEach(input => input.addEventListener("input", atualizarPreviaCorrecaoEstoqueLoja));
+    atualizarPreviaCorrecaoEstoqueLoja();
     lucide.createIcons();
 }
 
-function salvarCorrecaoEstoqueLoja(id) {
-    const loja = Storage.buscarLojaPorId(id);
-    const estoque = Storage.buscarEstoqueLoja(id);
-    const motivo = document.getElementById("motivoAjusteEstoqueLoja")?.value.trim() || "";
-    if (!loja || !estoque) {
-        Toast.show("Estoque da loja não encontrado.");
+function renderItemCorrecaoEstoqueLoja(item) {
+    const diferenca = Number(item.quantidade || 0) - Number(item.quantidadeRegistrada || 0);
+    return `<article class="stockAdjustmentProduct" data-ajuste-card="${escaparHtmlLoja(item.produtoId)}">
+        <header><div><strong>${escaparHtmlLoja(item.nome)}</strong><span>${escaparHtmlLoja(item.codigo || "Sem código")}</span></div><span class="stockAdjustmentPrice">${Utils.moeda(item.valorUnitario)} cada</span></header>
+        <div class="stockAdjustmentProductValues">
+            <span><small>Registrado</small><strong>${item.quantidadeRegistrada}</strong></span>
+            <label><small>Nova quantidade</small><input type="number" min="0" step="1" value="${item.quantidade}" data-nova-quantidade-ajuste="${escaparHtmlLoja(item.produtoId)}"></label>
+            <span><small>Diferença</small><strong data-diferenca-ajuste="${escaparHtmlLoja(item.produtoId)}" class="${diferenca > 0 ? "isPositive" : diferenca < 0 ? "isNegative" : "isNeutral"}">${diferenca > 0 ? "+" : ""}${diferenca}</strong></span>
+        </div>
+        <p data-remocao-ajuste="${escaparHtmlLoja(item.produtoId)}" class="stockAdjustmentRemoval" ${Number(item.quantidade) === 0 ? "" : "hidden"}>Este produto será removido do estoque atual da loja.</p>
+    </article>`;
+}
+
+function sincronizarQuantidadesAjusteEstoqueLoja() {
+    document.querySelectorAll("[data-nova-quantidade-ajuste]").forEach(input => {
+        const item = itensAjusteEstoqueLoja.find(registro => String(registro.produtoId) === String(input.dataset.novaQuantidadeAjuste));
+        if (item) item.quantidade = Math.max(0, Math.floor(Number(input.value) || 0));
+    });
+}
+
+function atualizarPreviaCorrecaoEstoqueLoja() {
+    sincronizarQuantidadesAjusteEstoqueLoja();
+    itensAjusteEstoqueLoja.forEach(item => {
+        const diferenca = Number(item.quantidade) - Number(item.quantidadeRegistrada);
+        const elemento = document.querySelector(`[data-diferenca-ajuste="${CSS.escape(String(item.produtoId))}"]`);
+        if (elemento) {
+            elemento.textContent = `${diferenca > 0 ? "+" : ""}${diferenca}`;
+            elemento.className = diferenca > 0 ? "isPositive" : diferenca < 0 ? "isNegative" : "isNeutral";
+        }
+        const aviso = document.querySelector(`[data-remocao-ajuste="${CSS.escape(String(item.produtoId))}"]`);
+        if (aviso) aviso.hidden = item.quantidade !== 0;
+    });
+    const alterados = itensAjusteEstoqueLoja.filter(item => Number(item.quantidade) !== Number(item.quantidadeRegistrada)).length;
+    const pecasAntes = estoqueAnteriorAjusteLoja.reduce((total, item) => total + item.quantidade, 0);
+    const pecasDepois = itensAjusteEstoqueLoja.reduce((total, item) => total + item.quantidade, 0);
+    const valorAntes = estoqueAnteriorAjusteLoja.reduce((total, item) => total + item.quantidade * item.valorUnitario, 0);
+    const valorDepois = itensAjusteEstoqueLoja.reduce((total, item) => total + item.quantidade * item.valorUnitario, 0);
+    const resumo = document.getElementById("resumoAjusteEstoqueLoja");
+    if (resumo) resumo.innerHTML = `<section class="stockAdjustmentPreview"><header><span class="eyebrow">PRÉVIA DO AJUSTE</span><strong>${alterados} produto${alterados === 1 ? "" : "s"} alterado${alterados === 1 ? "" : "s"}</strong></header><div>${renderMetricaAjuste("Peças antes", pecasAntes)}${renderMetricaAjuste("Peças depois", pecasDepois)}${renderMetricaAjuste("Diferença total", pecasDepois - pecasAntes, true)}${renderMetricaAjuste("Valor antes", Utils.moeda(valorAntes))}${renderMetricaAjuste("Valor depois", Utils.moeda(valorDepois))}${renderMetricaAjuste("Diferença financeira", `${valorDepois - valorAntes > 0 ? "+" : ""}${Utils.moeda(valorDepois - valorAntes)}`, true, valorDepois - valorAntes)}</div></section>`;
+}
+
+function renderMetricaAjuste(rotulo, valor, diferenca = false, sinal = Number(valor)) {
+    const classe = diferenca ? (sinal > 0 ? "isPositive" : sinal < 0 ? "isNegative" : "isNeutral") : "";
+    const exibido = diferenca && typeof valor === "number" ? `${valor > 0 ? "+" : ""}${valor}` : valor;
+    return `<span><small>${rotulo}</small><strong class="${classe}">${exibido}</strong></span>`;
+}
+
+function adicionarProdutoAusenteAjusteLoja(lojaId) {
+    sincronizarQuantidadesAjusteEstoqueLoja();
+    const produtoId = document.getElementById("produtoAusenteAjusteLoja")?.value;
+    const quantidade = Math.max(1, Math.floor(Number(document.getElementById("quantidadeProdutoAusenteAjuste")?.value) || 1));
+    const produto = Storage.buscarProdutoPorId(produtoId);
+    if (!produto) {
+        Toast.show("Selecione um produto cadastrado.");
         return;
     }
-    if (motivo.length < 5) {
-        Toast.show("Informe uma justificativa com pelo menos 5 caracteres.");
+    if (itensAjusteEstoqueLoja.some(item => String(item.produtoId) === String(produto.id))) {
+        Toast.show("Este produto já está no ajuste.");
+        return;
+    }
+    const motivo = document.getElementById("motivoAjusteEstoqueLoja")?.value || "";
+    const observacao = document.getElementById("observacaoAjusteEstoqueLoja")?.value || "";
+    itensAjusteEstoqueLoja.push(normalizarItemAjusteEstoqueLoja({ ...produto, produtoId: produto.id, quantidade }, 0));
+    renderModalCorrecaoEstoqueLoja(Storage.buscarLojaPorId(lojaId), { motivo, observacao });
+    Toast.show("Produto adicionado ao ajuste.");
+}
+
+function atualizarObrigatoriedadeObservacaoAjuste() {
+    const outro = document.getElementById("motivoAjusteEstoqueLoja")?.value === "Outro";
+    const marcador = document.getElementById("observacaoAjusteObrigatoria");
+    if (marcador) marcador.textContent = outro ? "*" : "(opcional)";
+}
+
+function cancelarCorrecaoEstoqueLoja(lojaId) {
+    if (contextoAjusteEstoqueLoja === "consignado") Modal.fechar();
+    else abrirEstoqueLoja(lojaId);
+}
+
+function salvarCorrecaoEstoqueLoja(id) {
+    if (ajusteEstoqueLojaSalvando) return;
+    sincronizarQuantidadesAjusteEstoqueLoja();
+    const loja = Storage.buscarLojaPorId(id);
+    const estoque = Storage.buscarEstoqueLoja(id) || { itens: [] };
+    const motivo = document.getElementById("motivoAjusteEstoqueLoja")?.value || "";
+    const observacao = document.getElementById("observacaoAjusteEstoqueLoja")?.value.trim() || "";
+    if (!loja) {
+        Toast.show("Loja não encontrada.");
+        return;
+    }
+    if (!motivo) {
+        Toast.show("Selecione o motivo do ajuste.");
         document.getElementById("motivoAjusteEstoqueLoja")?.focus();
         return;
     }
+    if (motivo === "Outro" && observacao.length < 5) {
+        Toast.show("Descreva o motivo do ajuste no campo Observação.");
+        document.getElementById("observacaoAjusteEstoqueLoja")?.focus();
+        return;
+    }
 
-    const antes = (estoque.itens || []).map(item => ({ ...item, quantidade: Math.max(0, Number(item.quantidade) || 0) }));
-    const quantidades = new Map([...document.querySelectorAll("[data-ajuste-produto-id]")].map(input => [
-        String(input.dataset.ajusteProdutoId),
-        Math.max(0, Math.floor(Number(input.value) || 0))
-    ]));
-    const depois = antes.map(item => ({
-        ...item,
-        quantidade: quantidades.has(String(item.produtoId))
-            ? quantidades.get(String(item.produtoId))
-            : item.quantidade
-    })).filter(item => item.quantidade > 0);
-    const alterou = antes.some(item => Number(item.quantidade) !== Number(quantidades.get(String(item.produtoId)) ?? item.quantidade));
-    if (!alterou) {
+    const diferencas = itensAjusteEstoqueLoja.filter(item => Number(item.quantidade) !== Number(item.quantidadeRegistrada)).map(item => ({
+        produtoId: item.produtoId,
+        produtoNome: item.nome,
+        codigo: item.codigo,
+        quantidadeAnterior: item.quantidadeRegistrada,
+        quantidadeCorrigida: item.quantidade,
+        diferenca: item.quantidade - item.quantidadeRegistrada,
+        valorUnitario: item.valorUnitario,
+        diferencaFinanceira: (item.quantidade - item.quantidadeRegistrada) * item.valorUnitario
+    }));
+    if (!diferencas.length) {
         Toast.show("Nenhuma quantidade foi alterada.");
         return;
     }
 
+    ajusteEstoqueLojaSalvando = true;
+    const botao = document.getElementById("salvarAjusteEstoqueLojaButton");
+    if (botao) {
+        botao.disabled = true;
+        botao.textContent = "Salvando...";
+    }
     const idMovimentacao = Utils.gerarId();
     const criadoEm = new Date().toISOString();
+    const estoqueAnterior = estoqueAnteriorAjusteLoja.map(serializarItemAjusteEstoqueLoja);
+    const estoqueCorrigido = itensAjusteEstoqueLoja.filter(item => item.quantidade > 0).map(serializarItemAjusteEstoqueLoja);
     const aplicadas = Array.isArray(estoque.movimentacoesAplicadas) ? estoque.movimentacoesAplicadas.map(String) : [];
+    if (aplicadas.includes(String(idMovimentacao))) {
+        ajusteEstoqueLojaSalvando = false;
+        Toast.show("Este ajuste já foi aplicado.");
+        return;
+    }
+    const usuario = window.PrimeFirebase?.auth?.currentUser;
     Storage.salvarConsignado({
         id: idMovimentacao,
         tipo: "ajuste_manual_estoque_loja",
         lojaId: loja.id,
         lojaNome: loja.nome,
-        responsavel: estoque.responsavel || loja.responsavel || "",
+        responsavel: usuario?.displayName || usuario?.email || estoque.responsavel || loja.responsavel || "",
         data: Utils.hoje(),
-        antes,
-        depois,
+        estoqueAnterior,
+        estoqueCorrigido,
+        diferencas,
         motivo,
+        observacao,
+        antes: estoqueAnterior,
+        depois: estoqueCorrigido,
         itens: [],
         criadoEm,
-        usuarioId: obterUsuarioIdMovimentacaoLoja()
+        usuarioId: obterUsuarioIdMovimentacaoLoja(),
+        usuarioNome: usuario?.displayName || usuario?.email || ""
     });
     Storage.salvarEstoqueLoja({
         ...estoque,
@@ -305,11 +458,35 @@ function salvarCorrecaoEstoqueLoja(id) {
         atualizadoEm: criadoEm,
         ultimaMovimentacaoId: idMovimentacao,
         movimentacoesAplicadas: [...aplicadas, String(idMovimentacao)].slice(-100),
-        itens: depois
+        itens: estoqueCorrigido
     });
+
+    if (contextoAjusteEstoqueLoja === "consignado" && typeof lojaConsignadoAtual !== "undefined" && String(lojaConsignadoAtual?.id) === String(loja.id)) {
+        estoqueAnteriorConsignado = normalizarItensEstoqueConsignado(estoqueCorrigido);
+        renderEstoqueAnteriorConsignado();
+        renderEstoqueFinalConsignado();
+        atualizarCabecalhoFluxoConsignado();
+    }
+    ajusteEstoqueLojaSalvando = false;
     Modal.fechar();
-    listarLojas();
-    Toast.show("Estoque corrigido e ajuste registrado no histórico.");
+    if (document.getElementById("listaLojas")) listarLojas();
+    Toast.show("Estoque da loja corrigido com sucesso.");
+}
+
+function serializarItemAjusteEstoqueLoja(item) {
+    const quantidade = Math.max(0, Number(item.quantidade) || 0);
+    const valorUnitario = Number(item.valorUnitario ?? item.preco) || 0;
+    return {
+        produtoId: item.produtoId,
+        produtoNome: item.nome,
+        nome: item.nome,
+        codigo: item.codigo || "",
+        categoria: item.categoria || "",
+        preco: valorUnitario,
+        valorUnitario,
+        quantidade,
+        valorTotal: quantidade * valorUnitario
+    };
 }
 
 function abrirHistoricoEstoqueLoja(id) {
@@ -336,7 +513,11 @@ function abrirHistoricoEstoqueLoja(id) {
             const descricao = ajuste ? registro.motivo : conferencia
                 ? `${Number(registro.totalPecasVendidas || 0)} peças vendidas`
                 : `${total} peças adicionadas`;
-            return `<article class="stockHistoryItem"><span><i data-lucide="${ajuste ? "list-restart" : conferencia ? "clipboard-check" : "package-plus"}"></i></span><div><small>${formatarAtualizacaoEstoque(registro.criadoEm || registro.data)}</small><strong>${titulo}</strong><p>${escaparHtmlLoja(descricao || "Movimentação registrada")}</p></div></article>`;
+            const detalhesAjuste = ajuste ? `
+                <div class="stockHistoryChanges">${(registro.diferencas || []).map(item => `<span><b>${escaparHtmlLoja(item.produtoNome || "Produto")}</b><em>${Number(item.quantidadeAnterior || 0)} → ${Number(item.quantidadeCorrigida || 0)}</em></span>`).join("")}</div>
+                ${registro.observacao ? `<p>${escaparHtmlLoja(registro.observacao)}</p>` : ""}
+                ${registro.responsavel ? `<small>Responsável: ${escaparHtmlLoja(registro.responsavel)}</small>` : ""}` : "";
+            return `<article class="stockHistoryItem"><span><i data-lucide="${ajuste ? "list-restart" : conferencia ? "clipboard-check" : "package-plus"}"></i></span><div><small>${formatarAtualizacaoEstoque(registro.criadoEm || registro.data)}</small><strong>${titulo}</strong><p>${escaparHtmlLoja(descricao || "Movimentação registrada")}</p>${detalhesAjuste}</div></article>`;
         }).join("")}</div>` : '<div class="estoqueVazioModal textCenter"><i data-lucide="history"></i><h3>Nenhuma movimentação registrada</h3></div>');
     lucide.createIcons();
 }

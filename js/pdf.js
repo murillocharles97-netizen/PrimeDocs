@@ -371,7 +371,7 @@ function criarPDFReposicaoConsignado(dados, empresaInformada) {
         return y + 32;
     }
 
-    function tabela(y, titulo, colunas, linhas) {
+    function tabela(y, titulo, colunas, linhas, totalRotulo = "", totalValor = "") {
         y = garantirEspaco(y, 23);
         doc.setTextColor(...texto);
         doc.setFont("helvetica", "bold");
@@ -432,32 +432,57 @@ function criarPDFReposicaoConsignado(dados, empresaInformada) {
             });
             y += altura;
         });
+        if (totalRotulo) {
+            y = garantirEspaco(y, 12);
+            doc.setFillColor(239, 246, 255);
+            doc.setDrawColor(191, 219, 254);
+            doc.roundedRect(margem, y, larguraUtil, 10, 1.5, 1.5, "FD");
+            doc.setTextColor(...principal);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(7.4);
+            doc.text(String(totalRotulo).toUpperCase(), margem + 3, y + 6.4);
+            doc.setTextColor(...texto);
+            doc.setFontSize(9);
+            doc.text(String(totalValor), larguraPagina - margem - 3, y + 6.4, { align: "right" });
+            y += 10;
+        }
         return y + 8;
     }
 
     const anterior = dados.estoqueAnterior || [];
     const reposicao = dados.itensReposicao || [];
     const final = dados.estoqueFinal || [];
+    const valorUnitario = item => Number(item.valorUnitario ?? item.preco ?? item.precoVenda) || 0;
+    const valorTotal = item => item.valorTotal !== undefined
+        && item.valorTotal !== null
+        && Number.isFinite(Number(item.valorTotal))
+        ? Number(item.valorTotal)
+        : Number(item.quantidade || 0) * valorUnitario(item);
+    const quantidadeFormatada = (item, prefixo = "") => `${prefixo}${Number(item.quantidade || 0)} un.`;
     const somarPecas = itens => itens.reduce((total, item) => total + Number(item.quantidade || 0), 0);
-    const somarValor = itens => itens.reduce((total, item) => total + Number(item.quantidade || 0) * Number(item.preco || 0), 0);
+    const somarValor = itens => itens.reduce((total, item) => total + valorTotal(item), 0);
+    const totalAnterior = somarValor(anterior);
+    const totalReposicao = somarValor(reposicao);
+    const totalFinal = somarValor(final);
     let y = blocoInformacoes(cabecalho());
     y = tabela(y, "1. ESTOQUE ANTERIOR", [
-        { titulo: "PRODUTO", largura: 138 }, { titulo: "QUANTIDADE", largura: 40, alinhar: "center", destaque: true }
-    ], anterior.map(item => [item.nome || "-", Number(item.quantidade || 0)]));
+        { titulo: "PRODUTO", largura: 83 }, { titulo: "QUANTIDADE", largura: 24, alinhar: "center", destaque: true },
+        { titulo: "VALOR UNIT.", largura: 35, alinhar: "right" }, { titulo: "TOTAL", largura: 36, alinhar: "right", destaque: true }
+    ], anterior.map(item => [item.produtoNome || item.nome || "-", quantidadeFormatada(item), formatarMoeda(valorUnitario(item)), formatarMoeda(valorTotal(item))]), "Total do estoque anterior", formatarMoeda(totalAnterior));
     y = tabela(y, "2. PRODUTOS DEIXADOS NESTA VISITA", [
         { titulo: "PRODUTO", largura: 83 }, { titulo: "QTD. +", largura: 24, alinhar: "center", destaque: true },
         { titulo: "VALOR UNIT.", largura: 35, alinhar: "right" }, { titulo: "TOTAL", largura: 36, alinhar: "right", destaque: true }
-    ], reposicao.map(item => [item.nome || "-", `+${Number(item.quantidade || 0)}`, formatarMoeda(item.preco), formatarMoeda(Number(item.quantidade || 0) * Number(item.preco || 0))]));
+    ], reposicao.map(item => [item.produtoNome || item.nome || "-", quantidadeFormatada(item, "+"), formatarMoeda(valorUnitario(item)), formatarMoeda(valorTotal(item))]), "Valor total da reposição", formatarMoeda(totalReposicao));
     y = tabela(y, "3. ESTOQUE FINAL ATUALIZADO", [
         { titulo: "PRODUTO", largura: 83 }, { titulo: "QTD. FINAL", largura: 24, alinhar: "center", destaque: true },
         { titulo: "VALOR UNIT.", largura: 35, alinhar: "right" }, { titulo: "VALOR TOTAL", largura: 36, alinhar: "right", destaque: true }
-    ], final.map(item => [item.nome || "-", Number(item.quantidade || 0), formatarMoeda(item.preco), formatarMoeda(Number(item.quantidade || 0) * Number(item.preco || 0))]));
+    ], final.map(item => [item.produtoNome || item.nome || "-", quantidadeFormatada(item), formatarMoeda(valorUnitario(item)), formatarMoeda(valorTotal(item))]), "Total geral em consignado", formatarMoeda(totalFinal));
 
     y = garantirEspaco(y, 45);
     const resumo = [
-        ["Modelos antes", anterior.length], ["Peças antes", somarPecas(anterior)],
-        ["Quantidade adicionada", somarPecas(reposicao)], ["Quantidade final", somarPecas(final)],
-        ["Valor adicionado", formatarMoeda(somarValor(reposicao))], ["Valor total final", formatarMoeda(somarValor(final))]
+        ["Modelos no estoque final", final.length], ["Peças no estoque final", somarPecas(final)],
+        ["Valor da reposição", formatarMoeda(totalReposicao)], ["Valor total do estoque final", formatarMoeda(totalFinal)],
+        ["Valor do estoque anterior", formatarMoeda(totalAnterior)]
     ];
     doc.setFillColor(239, 246, 255);
     doc.setDrawColor(191, 219, 254);

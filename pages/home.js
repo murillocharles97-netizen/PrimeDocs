@@ -99,7 +99,7 @@ function calcularResumoDashboard() {
     const consignados = filtrarRegistrosLojasAtivas(
         Storage.listarConsignados(),
         lojasAtivasMap
-    );
+    ).filter(registro => registro.tipo !== "ajuste_manual_estoque_loja");
     const conferencias = filtrarRegistrosLojasAtivas(
         Storage.listarConferencias(),
         lojasAtivasMap

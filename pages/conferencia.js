@@ -363,8 +363,9 @@ function salvarResultadoConferencia() {
             quantidade: item.quantidadeSobra
         }));
 
+    const idConferencia = Utils.gerarId();
     Storage.salvarConferencia({
-        id: Utils.gerarId(),
+        id: idConferencia,
         lojaId: conferenciaAtual.lojaId,
         lojaNome: conferenciaAtual.lojaNome,
         data,
@@ -378,11 +379,18 @@ function salvarResultadoConferencia() {
     Financeiro.sincronizar();
     gerarNotificacoesOperacionais();
 
+    const estoquePersistido = Storage.buscarEstoqueLoja(conferenciaAtual.lojaId) || {};
+    const movimentacoesAplicadas = Array.isArray(estoquePersistido.movimentacoesAplicadas)
+        ? estoquePersistido.movimentacoesAplicadas.map(String)
+        : [];
     Storage.salvarEstoqueLoja({
+        ...estoquePersistido,
         lojaId: conferenciaAtual.lojaId,
         lojaNome: conferenciaAtual.lojaNome,
         responsavel: conferenciaAtual.responsavel,
         atualizadoEm: agora,
+        ultimaMovimentacaoId: idConferencia,
+        movimentacoesAplicadas: [...movimentacoesAplicadas, String(idConferencia)].slice(-100),
         itens: itensEstoque
     });
 

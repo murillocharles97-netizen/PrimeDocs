@@ -162,7 +162,7 @@ function abrirEstoqueLoja(id) {
         0
     );
 
-    const conteudo = itens.length === 0
+    let conteudo = itens.length === 0
         ? `
             <div class="estoqueVazioModal textCenter">
                 <i data-lucide="package-open"></i>
@@ -198,10 +198,147 @@ function abrirEstoqueLoja(id) {
             </div>
         `;
 
+    conteudo += `
+        <div class="modalActions storeStockActions">
+            <button class="btn" type="button" onclick="abrirHistoricoEstoqueLoja('${escaparHtmlLoja(loja.id)}')">
+                <i data-lucide="history"></i> Ver histórico
+            </button>
+            ${itens.length ? `
+                <button class="btn" type="button" onclick="abrirCorrecaoEstoqueLoja('${escaparHtmlLoja(loja.id)}')">
+                    <i data-lucide="list-restart"></i> Corrigir estoque
+                </button>
+            ` : ""}
+        </div>`;
+
     Modal.abrir(
         `Estoque atual — ${escaparHtmlLoja(loja.nome)}`,
         conteudo
     );
+    lucide.createIcons();
+}
+
+function obterUsuarioIdMovimentacaoLoja() {
+    return window.PrimeFirebase?.auth?.currentUser?.uid || null;
+}
+
+function abrirCorrecaoEstoqueLoja(id) {
+    const loja = Storage.buscarLojaPorId(id);
+    const estoque = Storage.buscarEstoqueLoja(id);
+    const itens = (estoque?.itens || []).filter(item => Number(item.quantidade || 0) > 0);
+    if (!loja || !itens.length) {
+        Toast.show("Não há estoque para corrigir nesta loja.");
+        return;
+    }
+
+    Modal.abrir(`Corrigir estoque — ${escaparHtmlLoja(loja.nome)}`, `
+        <div class="stockAdjustmentNotice">
+            <i data-lucide="shield-alert"></i>
+            <p>Informe a quantidade física real. O saldo será corrigido sem apagar o histórico anterior.</p>
+        </div>
+        <div class="stockAdjustmentList">
+            ${itens.map(item => `
+                <label class="stockAdjustmentItem">
+                    <span><strong>${escaparHtmlLoja(item.nome || "Produto")}</strong><small>${escaparHtmlLoja(item.codigo || item.categoria || "Sem código")}</small></span>
+                    <input type="number" min="0" step="1" value="${Math.max(0, Number(item.quantidade) || 0)}" data-ajuste-produto-id="${escaparHtmlLoja(item.produtoId)}" aria-label="Quantidade real de ${escaparHtmlLoja(item.nome || "produto")}">
+                </label>`).join("")}
+        </div>
+        <label class="inputGroup"><span>Justificativa obrigatória</span><textarea id="motivoAjusteEstoqueLoja" placeholder="Ex.: correção após contagem física"></textarea></label>
+        <div class="modalActions">
+            <button class="btn" type="button" onclick="abrirEstoqueLoja('${escaparHtmlLoja(loja.id)}')">Cancelar</button>
+            <button class="btn" type="button" onclick="salvarCorrecaoEstoqueLoja('${escaparHtmlLoja(loja.id)}')"><i data-lucide="save"></i>Salvar correção</button>
+        </div>`);
+    lucide.createIcons();
+}
+
+function salvarCorrecaoEstoqueLoja(id) {
+    const loja = Storage.buscarLojaPorId(id);
+    const estoque = Storage.buscarEstoqueLoja(id);
+    const motivo = document.getElementById("motivoAjusteEstoqueLoja")?.value.trim() || "";
+    if (!loja || !estoque) {
+        Toast.show("Estoque da loja não encontrado.");
+        return;
+    }
+    if (motivo.length < 5) {
+        Toast.show("Informe uma justificativa com pelo menos 5 caracteres.");
+        document.getElementById("motivoAjusteEstoqueLoja")?.focus();
+        return;
+    }
+
+    const antes = (estoque.itens || []).map(item => ({ ...item, quantidade: Math.max(0, Number(item.quantidade) || 0) }));
+    const quantidades = new Map([...document.querySelectorAll("[data-ajuste-produto-id]")].map(input => [
+        String(input.dataset.ajusteProdutoId),
+        Math.max(0, Math.floor(Number(input.value) || 0))
+    ]));
+    const depois = antes.map(item => ({
+        ...item,
+        quantidade: quantidades.has(String(item.produtoId))
+            ? quantidades.get(String(item.produtoId))
+            : item.quantidade
+    })).filter(item => item.quantidade > 0);
+    const alterou = antes.some(item => Number(item.quantidade) !== Number(quantidades.get(String(item.produtoId)) ?? item.quantidade));
+    if (!alterou) {
+        Toast.show("Nenhuma quantidade foi alterada.");
+        return;
+    }
+
+    const idMovimentacao = Utils.gerarId();
+    const criadoEm = new Date().toISOString();
+    const aplicadas = Array.isArray(estoque.movimentacoesAplicadas) ? estoque.movimentacoesAplicadas.map(String) : [];
+    Storage.salvarConsignado({
+        id: idMovimentacao,
+        tipo: "ajuste_manual_estoque_loja",
+        lojaId: loja.id,
+        lojaNome: loja.nome,
+        responsavel: estoque.responsavel || loja.responsavel || "",
+        data: Utils.hoje(),
+        antes,
+        depois,
+        motivo,
+        itens: [],
+        criadoEm,
+        usuarioId: obterUsuarioIdMovimentacaoLoja()
+    });
+    Storage.salvarEstoqueLoja({
+        ...estoque,
+        lojaId: loja.id,
+        lojaNome: loja.nome,
+        atualizadoEm: criadoEm,
+        ultimaMovimentacaoId: idMovimentacao,
+        movimentacoesAplicadas: [...aplicadas, String(idMovimentacao)].slice(-100),
+        itens: depois
+    });
+    Modal.fechar();
+    listarLojas();
+    Toast.show("Estoque corrigido e ajuste registrado no histórico.");
+}
+
+function abrirHistoricoEstoqueLoja(id) {
+    const loja = Storage.buscarLojaPorId(id);
+    if (!loja) {
+        Toast.show("Loja não encontrada.");
+        return;
+    }
+    const consignados = Storage.listarConsignados().filter(item => String(item.lojaId) === String(id));
+    const conferencias = Storage.listarConferencias().filter(item => String(item.lojaId) === String(id));
+    const registros = [
+        ...consignados.map(item => ({ ...item, origemHistorico: "consignado" })),
+        ...conferencias.map(item => ({ ...item, origemHistorico: "conferencia" }))
+    ].sort((a, b) => new Date(b.criadoEm || b.data || 0) - new Date(a.criadoEm || a.data || 0));
+
+    Modal.abrir(`Histórico — ${escaparHtmlLoja(loja.nome)}`, registros.length ? `
+        <div class="stockHistoryTimeline">${registros.map(registro => {
+            const ajuste = registro.tipo === "ajuste_manual_estoque_loja";
+            const conferencia = registro.origemHistorico === "conferencia";
+            const reposicao = registro.tipo === "reposicao_consignado";
+            const itens = ajuste ? (registro.depois || []) : conferencia ? (registro.itens || []) : (registro.itensReposicao || registro.itens || []);
+            const total = itens.reduce((soma, item) => soma + Number(item.quantidadeVendida ?? item.quantidade ?? item.quantidadeSobrou ?? 0), 0);
+            const titulo = ajuste ? "Ajuste manual" : conferencia ? "Conferência" : reposicao ? "Reposição" : "Consignação inicial";
+            const descricao = ajuste ? registro.motivo : conferencia
+                ? `${Number(registro.totalPecasVendidas || 0)} peças vendidas`
+                : `${total} peças adicionadas`;
+            return `<article class="stockHistoryItem"><span><i data-lucide="${ajuste ? "list-restart" : conferencia ? "clipboard-check" : "package-plus"}"></i></span><div><small>${formatarAtualizacaoEstoque(registro.criadoEm || registro.data)}</small><strong>${titulo}</strong><p>${escaparHtmlLoja(descricao || "Movimentação registrada")}</p></div></article>`;
+        }).join("")}</div>` : '<div class="estoqueVazioModal textCenter"><i data-lucide="history"></i><h3>Nenhuma movimentação registrada</h3></div>');
+    lucide.createIcons();
 }
 
 function formatarAtualizacaoEstoque(valor) {

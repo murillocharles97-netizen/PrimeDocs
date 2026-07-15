@@ -620,6 +620,96 @@ input:focus, select:focus, textarea:focus { border-color: color-mix(in srgb, var
 
 @keyframes pd-sheet-in { from { opacity: .7; transform: translateY(28px); } to { opacity: 1; transform: none; } }
 
+/* Consignado: saldo atual, reposição e saldo final */
+.consignmentMainFields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.consignmentMainFields .inputGroup { margin: 0; }
+.consignmentMainFields .consignmentNotes { grid-column: 1 / -1; }
+.consignmentFlow { display: grid; gap: 18px; margin-top: 20px; }
+.consignmentSection { min-width: 0; padding: 22px; border: 1px solid var(--color-border); border-radius: var(--radius-xl); background: var(--color-surface); box-shadow: var(--shadow-sm); }
+.consignmentSection > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 32px; cursor: pointer; list-style: none; color: var(--color-text); font-size: 16px; font-weight: 750; }
+.consignmentSection > summary::-webkit-details-marker { display: none; }
+.consignmentSection > summary span { display: inline-flex; align-items: center; gap: 10px; }
+.consignmentSection > summary svg { width: 19px; height: 19px; color: var(--color-primary); }
+.consignmentSection > summary > svg { transition: transform .18s ease; }
+.consignmentSection[open] > summary > svg { transform: rotate(180deg); }
+.consignmentHint, .consignmentCorrectionHint, .consignmentSectionHeader p { margin: 5px 0 16px; color: var(--color-text-muted); font-size: 13px; line-height: 1.5; }
+.consignmentCorrectionHint { display: flex; align-items: flex-start; gap: 7px; margin: 14px 0 0; }
+.consignmentCorrectionHint svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--color-primary); }
+.consignmentSectionHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 16px; }
+.consignmentSectionHeader h3 { margin: 3px 0 0; color: var(--color-text); font-size: 18px; }
+.consignmentSectionHeader p { margin-bottom: 0; }
+.consignmentSectionHeader .btn { flex: none; min-height: 44px; }
+.consignmentStockList, .consignmentReplenishmentList, .consignmentFinalList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.consignmentReadOnlyCard { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; padding: 14px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-subtle); }
+.consignmentReadOnlyCard > div, .consignmentFinalName { display: grid; min-width: 0; gap: 3px; }
+.consignmentReadOnlyCard strong, .consignmentFinalName strong { overflow: hidden; color: var(--color-text); text-overflow: ellipsis; white-space: nowrap; }
+.consignmentReadOnlyCard span, .consignmentFinalName span { overflow: hidden; color: var(--color-text-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.consignmentReadOnlyCard > strong { flex: none; color: var(--color-text); font-size: 18px; }
+.consignmentReadOnlyCard > strong small { color: var(--color-text-muted); font-size: 10px; }
+.consignmentEmpty { display: grid; justify-items: center; gap: 5px; padding: 22px 14px; border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-surface-subtle); color: var(--color-text-muted); text-align: center; }
+.consignmentEmpty strong { color: var(--color-text); }
+.consignmentReplenishmentCard { margin: 0; }
+.consignmentReplenishmentFooter, .consignmentAvailableMeta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.consignmentReplenishmentFooter .quantity { flex: none; }
+.produtoDisponivelConsignado { width: 100%; margin-bottom: 10px; border-color: var(--color-border); background: var(--color-surface); text-align: left; cursor: pointer; }
+.produtoDisponivelConsignado:hover { border-color: color-mix(in srgb, var(--color-primary) 48%, var(--color-border)); transform: translateY(-1px); }
+.produtoDisponivelConsignado .isFavorite { width: 18px; height: 18px; fill: #fbbf24; color: #f59e0b; }
+.consignmentFinal { border-color: color-mix(in srgb, var(--color-success) 28%, var(--color-border)); background: color-mix(in srgb, var(--color-success) 3%, var(--color-surface)); }
+.consignmentFinalCard { display: grid; gap: 13px; min-width: 0; padding: 15px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+.consignmentQuantityMetrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.consignmentQuantityMetrics > span { display: grid; gap: 2px; min-width: 0; padding: 8px; border-radius: 10px; background: var(--color-surface-subtle); text-align: center; }
+.consignmentQuantityMetrics small { overflow: hidden; color: var(--color-text-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.consignmentQuantityMetrics strong { color: var(--color-text); font-size: 16px; }
+.consignmentQuantityMetrics .isAdded { background: var(--color-primary-soft); }
+.consignmentQuantityMetrics .isAdded strong { color: var(--color-primary); }
+.consignmentQuantityMetrics .isFinal { background: color-mix(in srgb, var(--color-success) 13%, var(--color-surface)); }
+.consignmentQuantityMetrics .isFinal strong { color: var(--color-success); }
+.consignmentSummaryStrip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 12px; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-border); }
+.consignmentSummaryStrip > span { display: grid; gap: 3px; min-width: 0; padding: 13px; background: var(--color-surface); }
+.consignmentSummaryStrip small { color: var(--color-text-muted); font-size: 10px; }
+.consignmentSummaryStrip strong { overflow: hidden; color: var(--color-text); font-size: 15px; text-overflow: ellipsis; }
+.consignmentFlowAction { display: flex; justify-content: flex-end; padding: 20px 0 4px; }
+.consignmentFlowAction .btn { width: min(100%, 390px); min-height: 50px; }
+.stockAdjustmentNotice { display: flex; gap: 10px; margin-bottom: 14px; padding: 12px; border: 1px solid color-mix(in srgb, var(--color-warning) 35%, var(--color-border)); border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-warning) 8%, var(--color-surface)); color: var(--color-text-muted); }
+.stockAdjustmentNotice svg { flex: none; width: 20px; color: var(--color-warning); }
+.stockAdjustmentNotice p { margin: 0; line-height: 1.5; }
+.stockAdjustmentList { display: grid; gap: 8px; margin-bottom: 16px; }
+.stockAdjustmentItem { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-subtle); }
+.stockAdjustmentItem > span { display: grid; min-width: 0; gap: 2px; }
+.stockAdjustmentItem strong, .stockAdjustmentItem small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stockAdjustmentItem small { color: var(--color-text-muted); }
+.stockAdjustmentItem input { width: 92px; min-width: 92px; text-align: center; }
+.stockHistoryTimeline { position: relative; display: grid; gap: 10px; }
+.stockHistoryItem { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 11px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-subtle); }
+.stockHistoryItem > span { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: var(--color-primary-soft); color: var(--color-primary); }
+.stockHistoryItem > span svg { width: 18px; height: 18px; }
+.stockHistoryItem > div { display: grid; gap: 3px; min-width: 0; }
+.stockHistoryItem small, .stockHistoryItem p { color: var(--color-text-muted); }
+.stockHistoryItem p { margin: 0; }
+
+@media (max-width: 700px) {
+    .consignmentMainFields { grid-template-columns: 1fr; }
+    .consignmentMainFields .consignmentNotes { grid-column: auto; }
+    .consignmentSection { padding: 15px; }
+    .consignmentSectionHeader { align-items: stretch; flex-direction: column; }
+    .consignmentSectionHeader .btn { width: 100%; }
+    .consignmentStockList, .consignmentReplenishmentList, .consignmentFinalList { grid-template-columns: 1fr; }
+    .consignmentFlowAction { position: sticky; z-index: 4; bottom: calc(76px + env(safe-area-inset-bottom)); padding: 10px 0; background: linear-gradient(transparent, var(--color-background) 25%); }
+    .consignmentFlowAction .btn { width: 100%; }
+    .storeStockActions { display: grid; grid-template-columns: 1fr; }
+}
+
+@media (max-width: 330px) {
+    .consignmentSection { padding: 12px; }
+    .consignmentReplenishmentFooter { align-items: stretch; flex-direction: column; }
+    .consignmentReplenishmentFooter .quantity { width: 100%; }
+    .consignmentReplenishmentFooter .quantity input { min-width: 0; width: 100%; }
+    .consignmentQuantityMetrics > span { padding: 7px 4px; }
+    .consignmentSummaryStrip { grid-template-columns: 1fr; }
+    .stockAdjustmentItem { align-items: stretch; flex-direction: column; }
+    .stockAdjustmentItem input { width: 100%; }
+}
+
 @media (max-width: 390px) {
     #app { padding-inline: 8px; }
     .appHeader h1 { max-width: 65px !important; }

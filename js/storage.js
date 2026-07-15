@@ -295,11 +295,29 @@ const Storage = {
     salvarConsignado(consignado) {
 
         const consignados = this.listarConsignados();
-        consignados.push(consignado);
+        const index = consignados.findIndex(
+            item => String(item.id) === String(consignado.id)
+        );
+
+        if (index === -1) {
+            consignados.push(consignado);
+        } else {
+            consignados[index] = { ...consignados[index], ...consignado };
+        }
         localStorage.setItem(
             this.KEYS.consignados,
             JSON.stringify(consignados)
         );
+
+    },
+
+
+
+    buscarMovimentacaoConsignadoPorId(id) {
+
+        return this.listarConsignados().find(
+            item => String(item.id) === String(id)
+        ) || null;
 
     },
 
@@ -312,8 +330,11 @@ const Storage = {
         return [...this.listarConsignados()]
             .reverse()
             .find(consignado =>
-                String(consignado.lojaId) === String(referenciaLoja)
-                || String(consignado.lojaNome || "").toLocaleLowerCase("pt-BR") === referencia
+                consignado.tipo !== "ajuste_manual_estoque_loja"
+                && (
+                    String(consignado.lojaId) === String(referenciaLoja)
+                    || String(consignado.lojaNome || "").toLocaleLowerCase("pt-BR") === referencia
+                )
             );
 
     },

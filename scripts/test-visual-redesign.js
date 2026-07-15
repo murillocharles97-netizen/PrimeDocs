@@ -28,6 +28,6 @@ assert(modal.includes("modalHandle"), "Bottom sheet mobile sem alça visual.");
 assert(modal.includes('classList.add("modalOpen")'), "Bloqueio de fundo do modal ausente.");
 assert(page.includes("pageTitleIcon"), "Cabeçalho de página reutilizável sem ícone Lucide.");
 assert(home.includes("renderProducaoAtualInicio"), "Produção real em andamento ausente da Home.");
-assert(worker.includes("primedocs-v43") && worker.includes("./css/design-system.css"), "Novo visual não está protegido pelo cache offline.");
+assert(/primedocs-v\d+/.test(worker) && worker.includes("./css/design-system.css"), "Novo visual não está protegido pelo cache offline.");
 
 console.log("OK: Design System, temas, shell mobile, acessibilidade, Home e cache offline validados.");

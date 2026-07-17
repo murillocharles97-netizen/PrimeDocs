@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <title>Teste visual — Pedidos Mobile</title>
+    <script>if(new URLSearchParams(location.search).get("theme")==="dark")document.documentElement.dataset.theme="dark";</script>
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/design-system.css">
+    <link rel="stylesheet" href="../../css/pedidos-mobile.css">
+</head>
+<body>
+<div id="app" style="display:block">
+    <header class="appHeader">
+        <button class="headerIconButton menuTrigger" aria-label="Abrir menu"><i data-lucide="menu"></i></button>
+        <div class="headerBrand"><div class="brandMark"><i data-lucide="box"></i></div><div><h1>PrimeLine 3D</h1><span>Bom dia · 17 de jul.</span></div></div>
+        <div class="headerActions"><button class="headerGlobalSearch" aria-label="Buscar"><i data-lucide="search"></i><span>Buscar</span></button><button class="globalSyncStatus isSynced" aria-label="Sincronizado"><i data-lucide="refresh-cw"></i><span>Sincronizado</span></button><button class="headerIconButton" aria-label="Notificações"><i data-lucide="bell"></i></button><button class="themeToggle" aria-label="Tema"><i data-lucide="moon"></i></button></div>
+    </header>
+    <main id="content"></main>
+    <nav class="bottomNavigation"></nav>
+</div>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+window.Utils={moeda:v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})};
+window.formatarDataBR=v=>v?new Date(`${String(v).slice(0,10)}T12:00:00`).toLocaleDateString("pt-BR"):"Sem prazo";
+window.formatarMinutosProducao=v=>`${Math.floor(Number(v||0)/60)}h ${Number(v||0)%60}m`;
+window.navegar=window.abrirModalPedido=window.abrirMenuPedido=window.solicitarStatusPedido=window.abrirPreviaProducaoPedido=window.abrirItensPedido=window.abrirTimelinePedido=()=>{};
+window.Modal={abrir(){},fechar(){}}; window.Financeiro={sincronizar(){}}; window.Storage={listarLancamentosFinanceiros:()=>[]};
+window.renderNavegacaoInferiorPrimeDocs=pagina=>{document.querySelector(".bottomNavigation").className="bottomNavigation isOrdersMode";document.querySelector(".bottomNavigation").innerHTML=`<button><span><i data-lucide="house"></i></span><small>Início</small></button><button class="isActive"><span><i data-lucide="package"></i></span><small>Pedidos</small></button><button class="mobileBottomCreateOrder" aria-label="Novo pedido"><span><i data-lucide="plus"></i></span><small>Novo pedido</small></button><button><span><i data-lucide="factory"></i></span><small>Produção</small></button><button><span><i data-lucide="ellipsis"></i></span><small>Mais</small></button>`};
+window.atualizarNavegacaoAtivaPrimeDocs=()=>{};
+const pedidos=[
+ {id:"60830",clienteId:"c1",clienteNome:"Mercado Livre",clienteWhatsapp:"11999990001",dataPedido:"2026-07-17",dataEntregaPrevista:"2026-07-18",statusPedido:"em_producao",coluna:"producao",prioridade:"amanha",pagamento:"pago",valorTotal:89.9,valorPendente:0,tipos:2,pecas:6,progresso:65,minutosRestantes:135,impressoras:["A1 Mini 001"],itens:[{nome:"Taça da Copa",quantidade:4,valorUnitario:15},{nome:"Caixa",quantidade:2,valorUnitario:14.95}],observacoes:"Conferir acabamento dourado.",timeline:[{titulo:"Produção iniciada",criadoEm:"2026-07-17"}]},
+ {id:"60829",clienteId:"c2",clienteNome:"João Adidas",clienteWhatsapp:"11999990002",dataPedido:"2026-07-15",dataEntregaPrevista:"2026-07-15",statusPedido:"pronto",coluna:"pronto",prioridade:"atrasado",pagamento:"pendente",valorTotal:150,valorPendente:150,tipos:1,pecas:3,progresso:100,itens:[{nome:"Chaveiro Adidas",quantidade:3,valorUnitario:50}]},
+ {id:"60828",clienteId:"c3",clienteNome:"Nadine",dataPedido:"2026-07-16",dataEntregaPrevista:"2026-07-18",statusPedido:"aguardando_aceite",coluna:"aguardando",prioridade:"amanha",pagamento:"pendente",valorTotal:120,valorPendente:120,tipos:1,pecas:1,progresso:0,itens:[{nome:"Vaso personalizado",quantidade:1,valorUnitario:120}]},
+ {id:"60827",clienteId:"c4",clienteNome:"Pedro Mesquita",dataPedido:"2026-07-17",dataEntregaPrevista:"2026-07-17",statusPedido:"pronto",coluna:"pronto",prioridade:"hoje",pagamento:"pago",valorTotal:60,valorPendente:0,tipos:1,pecas:2,progresso:100,itens:[{nome:"Suporte",quantidade:2,valorUnitario:30}]},
+ {id:"60826",clienteId:"c5",clienteNome:"Casa Show",dataPedido:"2026-07-14",dataEntregaPrevista:"2026-07-14",statusPedido:"entregue",coluna:"entregue",prioridade:"normal",pagamento:"pago",valorTotal:75,valorPendente:0,tipos:2,pecas:2,progresso:100,itens:[{nome:"Brindes",quantidade:2,valorUnitario:37.5}]}
+];
+window.PedidosPremium={render(){document.getElementById("content").innerHTML='<main class="ordersPremiumPage">Desktop preservado</main>'},_renderDesktop(){document.getElementById("content").innerHTML='<main class="ordersPremiumPage">Desktop preservado</main>'},_criarContexto:()=>({hoje:"2026-07-17",clientes:[{id:"c1",nome:"Mercado Livre"},{id:"c2",nome:"João Adidas"},{id:"c3",nome:"Nadine"},{id:"c4",nome:"Pedro Mesquita"},{id:"c5",nome:"Casa Show"}],enriquecidos:pedidos})};
+</script>
+<script src="../../js/pedidos-mobile.js"></script>
+<script>PedidosMobile.render();lucide.createIcons();</script>
+</body>
+</html>

@@ -52,17 +52,24 @@ function renderNavegacaoPrimeDocs() {
     lucide.createIcons();
 }
 
-function renderNavegacaoInferiorPrimeDocs() {
+function renderNavegacaoInferiorPrimeDocs(paginaAtiva = "") {
     const container = document.getElementById("bottomNavigation");
     if (!container) return;
 
+    const modoPedido = paginaAtiva === "pedidos" && window.matchMedia?.("(max-width: 767px)").matches;
+    container.classList.toggle("isOrdersMode", modoPedido);
+    const itens = modoPedido
+        ? BOTTOM_NAV_PRIMEDOCS.filter(item => ["home", "pedidos", "producao"].includes(item[0]))
+        : BOTTOM_NAV_PRIMEDOCS;
+
     container.innerHTML = `
-        ${BOTTOM_NAV_PRIMEDOCS.map(([pagina, icone, titulo]) => `
+        ${itens.slice(0, modoPedido ? 2 : itens.length).map(([pagina, icone, titulo]) => `
             <button type="button" data-bottom-page="${pagina}" onclick="navegar('${pagina}')" aria-label="${titulo}">
                 <span><i data-lucide="${icone}"></i></span>
                 <small>${titulo}</small>
             </button>
         `).join("")}
+        ${modoPedido ? `<button class="mobileBottomCreateOrder" type="button" onclick="abrirModalPedido()" aria-label="Criar novo pedido"><span><i data-lucide="plus"></i></span><small>Novo pedido</small></button>${itens.slice(2).map(([pagina, icone, titulo]) => `<button type="button" data-bottom-page="${pagina}" onclick="navegar('${pagina}')" aria-label="${titulo}"><span><i data-lucide="${icone}"></i></span><small>${titulo}</small></button>`).join("")}` : ""}
         <button type="button" data-bottom-page="mais" onclick="abrirDrawerPrimeDocs()" aria-label="Abrir mais opções">
             <span><i data-lucide="ellipsis"></i></span>
             <small>Mais</small>
@@ -92,6 +99,7 @@ function alternarDrawerPrimeDocs() {
 
 function atualizarNavegacaoAtivaPrimeDocs(pagina) {
     const paginaAtiva = pagina === "conferencia" ? "consignado" : pagina === "relatorios" ? "dashboard" : pagina;
+    renderNavegacaoInferiorPrimeDocs(paginaAtiva);
     document.querySelectorAll("[data-drawer-page]").forEach(item => {
         item.classList.toggle("isActive", item.dataset.drawerPage === paginaAtiva);
     });

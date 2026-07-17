@@ -82,7 +82,7 @@ teste("23. movimento reduzido e foco visível são respeitados",()=>ok(css.inclu
 teste("24. camada mobile não escreve em Storage nem Firebase",()=>ok(!/Storage\.(salvar|excluir)|Firestore|setDoc|addDoc/.test(js)));
 teste("25. arquivos carregam depois da Central e antes do app",()=>ok(index.indexOf("central-operacoes.js")<index.indexOf("operations-mobile.js")&&index.indexOf("operations-mobile.js")<index.indexOf("js/app.js")));
 teste("26. desktop original não foi alterado pela camada mobile",()=>ok(desktopJs.includes("operationsCenter")&&desktopCss.includes("operationsCompactStrip")));
-teste("27. PWA offline contém a nova experiência",()=>ok(sw.includes("primedocs-v51")&&sw.includes("operations-mobile.css")&&sw.includes("operations-mobile.js")));
+teste("27. PWA offline contém a nova experiência",()=>ok(sw.includes("primedocs-v52")&&sw.includes("operations-mobile.css")&&sw.includes("operations-mobile.js")));
 teste("28. CSS mobile não possui seletor desktop fora do breakpoint principal",()=>ok(!css.includes(".operationsCenter")&&!css.includes(".operationsCompactStrip")));
 
 if(!process.exitCode)console.log(`\n${aprovados} verificações da Central de Operações Mobile aprovadas.`);

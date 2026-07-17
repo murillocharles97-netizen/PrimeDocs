@@ -1,0 +1,275 @@
+@media (max-width: 767px) {
+    html:has(.mobileDashboard),
+    body:has(.mobileDashboard) { min-width: 0; }
+
+    .mobileDashboard {
+        width: 100%;
+        max-width: 100%;
+        display: grid;
+        gap: 18px;
+        padding: 18px 16px calc(104px + env(safe-area-inset-bottom));
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .mobileDashboard button { min-height: 44px; }
+
+    .mobilePerformanceCard > header,
+    .mobileGoalsCard > header,
+    .mobileRankingCard > header {
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        flex-direction: row;
+        gap: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        text-align: left;
+    }
+
+    .mobileDashboardTitle {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .mobileDashboardTitle h1 { margin: 0 0 4px; font-size: clamp(24px, 7vw, 30px); letter-spacing: -.035em; }
+    .mobileDashboardTitle p { margin: 0; color: var(--color-text-secondary); font-size: 13px; line-height: 1.4; }
+    .mobileDashboardTitle > button {
+        max-width: 154px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border: 1px solid var(--color-border);
+        border-radius: 14px;
+        background: var(--color-surface);
+        color: var(--color-text);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .mobileDashboardTitle > button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+    .mobileDashboardTitle > button svg { width: 18px; flex: 0 0 18px; color: var(--color-primary); }
+
+    .mobilePerformanceCard {
+        position: relative;
+        overflow: hidden;
+        padding: 20px;
+        border: 1px solid color-mix(in srgb, #fff 16%, transparent);
+        border-radius: 24px;
+        color: #fff;
+        background:
+            radial-gradient(circle at 88% 16%, rgba(59,130,246,.36), transparent 34%),
+            linear-gradient(135deg, #5630ed 0%, #6d34ee 48%, #4822b8 100%);
+        box-shadow: 0 18px 42px rgba(94, 52, 222, .25);
+    }
+
+    .mobilePerformanceCard::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: .17;
+        background-image: linear-gradient(rgba(255,255,255,.14) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.14) 1px, transparent 1px);
+        background-size: 28px 28px;
+        mask-image: linear-gradient(to bottom, #000, transparent 70%);
+    }
+
+    .mobilePerformanceCard > * { position: relative; z-index: 1; }
+    .mobilePerformanceCard > header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    .mobilePerformanceCard > header > span { font-size: 15px; font-weight: 850; letter-spacing: .02em; text-transform: uppercase; }
+    .mobilePerformanceCard > header button { min-width: 44px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 14px; color: #fff; background: rgba(255,255,255,.1); }
+    .mobilePerformanceCard > header svg { width: 20px; }
+
+    .mobilePerformanceMain { display: grid; grid-template-columns: 130px minmax(0, 1fr); align-items: center; gap: 18px; }
+    .mobilePerformanceGauge {
+        --angle: calc(var(--progress) * 3.6);
+        width: 130px;
+        aspect-ratio: 1;
+        padding: 12px;
+        border-radius: 50%;
+        background: conic-gradient(#fff calc(var(--progress) * 3.6deg), rgba(255,255,255,.2) 0);
+        box-shadow: 0 10px 25px rgba(21, 8, 74, .2);
+    }
+
+    .mobilePerformanceGauge > div {
+        width: 100%; height: 100%; display: grid; place-content: center; text-align: center;
+        border-radius: inherit; background: rgba(255,255,255,.94); color: #5532da;
+    }
+
+    .mobilePerformanceGauge strong { font-size: 35px; line-height: 1; letter-spacing: -.05em; }
+    .mobilePerformanceGauge span { margin-top: 6px; font-size: 12px; font-weight: 750; }
+    .mobilePerformanceMessage h2 { margin: 0 0 9px; color: #fff; font-size: 20px; }
+    .mobilePerformanceMessage p { margin: 0 0 12px; color: rgba(255,255,255,.86); font-size: 13px; line-height: 1.55; }
+    .mobilePerformanceMessage strong { color: #fff; }
+    .paceBadge { width: fit-content; max-width: 100%; display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: 999px; color: #fff; background: rgba(20,10,80,.22); font-size: 12px; font-weight: 750; }
+    .paceBadge svg { width: 15px; flex: 0 0 15px; }
+
+    .mobilePerformanceCard > footer { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin-top: 18px; padding: 14px 4px; border-radius: 16px; background: rgba(255,255,255,.11); }
+    .mobilePerformanceCard > footer span { min-width: 0; display: grid; grid-template-columns: 20px minmax(0,1fr); align-items: center; column-gap: 7px; padding: 0 10px; border-right: 1px solid rgba(255,255,255,.18); }
+    .mobilePerformanceCard > footer span:last-child { border: 0; }
+    .mobilePerformanceCard > footer svg { grid-row: 1 / span 2; width: 18px; color: #ffd16a; }
+    .mobilePerformanceCard > footer strong { overflow: hidden; text-overflow: ellipsis; color: #fff; font-size: 13px; white-space: nowrap; }
+    .mobilePerformanceCard > footer small { color: rgba(255,255,255,.72); font-size: 10px; }
+
+    .mobilePerformanceCard.noGoal { min-height: 240px; display: flex; flex-direction: column; justify-content: center; }
+    .mobilePerformanceCard.noGoal h2 { margin: 8px 0; color: #fff; font-size: 22px; }
+    .mobilePerformanceCard.noGoal p { margin: 0 0 18px; max-width: 40ch; color: rgba(255,255,255,.8); }
+    .mobilePerformanceCard.noGoal > button { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid rgba(255,255,255,.28); border-radius: 14px; background: rgba(255,255,255,.14); color: #fff; font-weight: 800; }
+
+    .mobileGoalsCard, .mobileQuickSummary {
+        border: 1px solid var(--color-border);
+        border-radius: 20px;
+        background: var(--color-surface);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .mobileGoalsCard > header { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 10px; }
+    .mobileGoalsCard > header span { color: var(--color-primary); font-size: 10px; font-weight: 900; letter-spacing: .12em; }
+    .mobileGoalsCard > header h2 { margin: 2px 0 0; font-size: 17px; }
+    .mobileGoalsCard > header button { border: 0; background: transparent; color: var(--color-primary); font-weight: 800; }
+    .mobileGoalsCard > div { padding: 0 12px 10px; }
+
+    .mobileGoalRow {
+        width: 100%; display: grid; grid-template-columns: 42px minmax(0,1fr) 18px; align-items: center; gap: 10px; padding: 13px 4px;
+        border: 0; border-bottom: 1px solid var(--color-border); background: transparent; color: var(--color-text); text-align: left;
+    }
+    .mobileGoalRow:last-child { border-bottom: 0; }
+    .mobileGoalRow:active { background: var(--color-primary-soft); }
+    .mobileGoalRow > svg { width: 18px; color: var(--color-text-muted); }
+    .goalIcon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 13px; color: var(--color-primary); background: var(--color-primary-soft); }
+    .goalIcon svg { width: 20px; }
+    .mobileGoalRow.success .goalIcon { color: var(--color-success); background: var(--color-success-soft); }
+    .mobileGoalRow.warning .goalIcon { color: var(--color-warning); background: var(--color-warning-soft); }
+    .mobileGoalRow.danger .goalIcon { color: var(--color-danger); background: var(--color-danger-soft); }
+    .goalContent { display: grid; gap: 4px; }
+    .goalContent > span:first-child { display: flex; justify-content: space-between; gap: 8px; }
+    .goalContent strong { font-size: 14px; }
+    .goalContent b { color: var(--color-primary); font-size: 14px; }
+    .goalContent small { color: var(--color-text-secondary); font-size: 12px; }
+    .goalContent em { color: var(--color-text-secondary); font-size: 10px; font-style: normal; }
+    .goalProgress { height: 6px; overflow: hidden; border-radius: 999px; background: var(--color-border); }
+    .goalProgress i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--color-primary),#8b5cf6); animation: mobileGoalProgress .65s ease both; }
+    .mobileGoalRow.success .goalProgress i { background: var(--color-success); }
+    .mobileGoalRow.warning .goalProgress i { background: var(--color-warning); }
+    .mobileGoalRow.danger .goalProgress i { background: var(--color-danger); }
+
+    .mobileRankings { min-width: 0; }
+    .mobileRankings > header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 0 2px; }
+    .mobileRankings > header h2, .mobileQuickSummary > h2 { margin: 0; font-size: 17px; }
+    .mobileRankings > header button { display: inline-flex; align-items: center; gap: 3px; border: 0; background: transparent; color: var(--color-primary); font-weight: 800; }
+    .mobileRankings > header svg { width: 16px; }
+    .mobileRankingCarousel { display: flex; gap: 12px; margin: 0 -16px; padding: 2px 16px 8px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+    .mobileRankingCarousel::-webkit-scrollbar { display: none; }
+    .mobileRankingCard { flex: 0 0 86%; scroll-snap-align: start; overflow: hidden; border: 1px solid var(--color-border); border-radius: 18px; background: var(--color-surface); box-shadow: var(--shadow-sm); }
+    .mobileRankingCard > header { display: flex; align-items: center; justify-content: space-between; padding: 13px 14px; border-bottom: 1px solid var(--color-border); color: var(--color-primary); background: var(--color-primary-soft); font-weight: 850; }
+    .mobileRankingCard > header svg { width: 20px; }
+    .mobileRankingCard.clients > header { color: var(--color-success); background: var(--color-success-soft); }
+    .mobileRankingCard.stores > header { color: var(--color-warning); background: var(--color-warning-soft); }
+    .mobileRankingCard ol { margin: 0; padding: 8px 12px 10px; list-style: none; }
+    .mobileRankingCard li button { width: 100%; display: grid; grid-template-columns: 28px minmax(0,1fr) 16px; align-items: center; gap: 8px; padding: 6px 0; border: 0; background: transparent; color: var(--color-text); text-align: left; }
+    .mobileRankingCard li b { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #a2a8b6; font-size: 11px; }
+    .mobileRankingCard li:first-child b { background: #f5b51b; }
+    .mobileRankingCard li:nth-child(3) b { background: #cf8550; }
+    .mobileRankingCard li span { display: grid; }
+    .mobileRankingCard li strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+    .mobileRankingCard li small { color: var(--color-text-secondary); font-size: 11px; }
+    .mobileRankingCard li svg { width: 14px; color: var(--color-text-muted); }
+    .mobileRankingEmpty { min-height: 170px; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 20px; color: var(--color-text-secondary); text-align: center; }
+    .mobileRankingEmpty svg { color: var(--color-text-muted); }
+    .mobileRankingEmpty p { margin: 0; }
+    .mobileRankingDots { display: flex; justify-content: center; gap: 6px; margin-top: 3px; }
+    .mobileRankingDots i { width: 6px; height: 6px; border-radius: 50%; background: var(--color-border-strong); transition: width .2s ease, background .2s ease; }
+    .mobileRankingDots i.active { width: 18px; border-radius: 999px; background: var(--color-primary); }
+
+    .mobileQuickSummary { padding: 16px 0 12px; min-width: 0; overflow: hidden; }
+    .mobileQuickSummary > h2 { padding: 0 16px 12px; }
+    .mobileQuickSummary > div { display: flex; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
+    .mobileQuickSummary > div::-webkit-scrollbar { display: none; }
+    .mobileQuickSummary button { flex: 0 0 138px; scroll-snap-align: start; display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 2px 8px; padding: 5px 14px; border: 0; border-right: 1px solid var(--color-border); background: transparent; color: var(--color-text); text-align: left; }
+    .mobileQuickSummary button:last-child { border-right: 0; }
+    .mobileQuickSummary button > span { grid-row: 1 / span 2; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 12px; color: var(--color-primary); background: var(--color-primary-soft); }
+    .mobileQuickSummary button.green > span { color: var(--color-success); background: var(--color-success-soft); }
+    .mobileQuickSummary button.orange > span { color: var(--color-warning); background: var(--color-warning-soft); }
+    .mobileQuickSummary button.blue > span, .mobileQuickSummary button.cyan > span { color: var(--color-secondary); background: var(--color-secondary-soft); }
+    .mobileQuickSummary svg { width: 18px; }
+    .mobileQuickSummary strong { align-self: end; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+    .mobileQuickSummary small { color: var(--color-text-secondary); font-size: 11px; }
+    .mobileQuickSummary em { grid-column: 1 / -1; margin-top: 6px; color: var(--color-text-muted); font-size: 10px; font-style: normal; text-align: center; }
+
+    .mobileDashboardError { min-height: 55vh; display: grid; place-content: center; justify-items: center; gap: 10px; text-align: center; }
+    .mobileDashboardError > svg { width: 42px; height: 42px; color: var(--color-danger); }
+    .mobileDashboardError h1, .mobileDashboardError p { margin: 0; }
+    .mobileDashboardError p { color: var(--color-text-secondary); }
+    .mobileDashboardError button { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 0 18px; border: 0; border-radius: 13px; color: #fff; background: var(--color-primary); }
+
+    .mobileDashboardSkeleton .skeleton { border-radius: 18px; background: linear-gradient(100deg,var(--color-surface) 20%,var(--color-surface-soft) 40%,var(--color-surface) 60%); background-size: 240% 100%; animation: mobileSkeleton 1.2s infinite; }
+    .mobileDashboardSkeleton .title { height: 62px; }
+    .mobileDashboardSkeleton .performance { height: 330px; }
+    .mobileDashboardSkeleton .goals { height: 350px; }
+    .mobileDashboardSkeleton .rankings { height: 250px; }
+    .mobileDashboardSkeleton .summary { height: 140px; }
+
+    .mobilePeriodSheet { display: grid; gap: 4px; padding-bottom: env(safe-area-inset-bottom); }
+    .mobilePeriodSheet > button { width: 100%; min-height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 0; border-radius: 12px; background: transparent; color: var(--color-text); }
+    .mobilePeriodSheet > button span { display: flex; align-items: center; gap: 10px; font-weight: 750; }
+    .mobilePeriodSheet > button svg { width: 19px; color: var(--color-text-muted); }
+    .mobilePeriodSheet > button.active { background: var(--color-primary-soft); color: var(--color-primary); }
+    .mobilePeriodSheet > button.active svg { color: var(--color-primary); }
+    .mobilePeriodSheet > button small { color: var(--color-primary); }
+    .mobileCustomPeriod { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; border-radius: 14px; background: var(--color-surface-soft); }
+    .mobileCustomPeriod[hidden] { display: none; }
+    .mobileCustomPeriod label { display: grid; gap: 5px; color: var(--color-text-secondary); font-size: 11px; }
+    .mobileCustomPeriod input { width: 100%; min-height: 44px; padding: 8px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); color: var(--color-text); }
+    .mobileCustomPeriod .btn { grid-column: 1 / -1; }
+
+    .mobileGoalDetails { display: grid; gap: 14px; padding-bottom: env(safe-area-inset-bottom); }
+    .mobileGoalDetails > div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .mobileGoalDetails > div span { display: grid; gap: 3px; padding: 12px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-soft); color: var(--color-text-secondary); font-size: 11px; }
+    .mobileGoalDetails > div strong { color: var(--color-text); font-size: 14px; }
+    .mobileGoalDetails p { display: flex; align-items: flex-start; gap: 8px; margin: 0; color: var(--color-text-secondary); }
+    .mobileGoalDetails p svg { flex: 0 0 17px; width: 17px; color: var(--color-primary); }
+    .mobileGoalDetails.empty { justify-items: center; text-align: center; }
+    .mobileGoalDetails.empty > svg { width: 40px; height: 40px; color: var(--color-primary); }
+    .mobileGoalDetails.empty h3, .mobileGoalDetails.empty p { margin: 0; }
+
+    html[data-theme="dark"] .mobilePerformanceCard,
+    body.dark-mode .mobilePerformanceCard { background: radial-gradient(circle at 88% 16%,rgba(59,130,246,.25),transparent 34%),linear-gradient(135deg,#392080,#5225b7 50%,#2a175f); box-shadow: 0 18px 42px rgba(0,0,0,.3); }
+
+    @keyframes mobileGoalProgress { from { width: 0; } }
+    @keyframes mobileSkeleton { to { background-position: -140% 0; } }
+
+    @media (max-width: 389px) {
+        .mobileDashboard { padding-inline: 12px; gap: 15px; }
+        .mobileDashboardTitle { grid-template-columns: 1fr; }
+        .mobileDashboardTitle > button { max-width: 100%; width: 100%; }
+        .mobilePerformanceCard { padding: 16px; border-radius: 20px; }
+        .mobilePerformanceMain { grid-template-columns: 104px minmax(0,1fr); gap: 12px; }
+        .mobilePerformanceGauge { width: 104px; padding: 9px; }
+        .mobilePerformanceGauge strong { font-size: 29px; }
+        .mobilePerformanceMessage h2 { font-size: 17px; }
+        .mobilePerformanceMessage p { font-size: 12px; }
+        .mobilePerformanceCard > footer { padding-inline: 0; }
+        .mobilePerformanceCard > footer span { grid-template-columns: 1fr; justify-items: center; padding: 0 5px; text-align: center; }
+        .mobilePerformanceCard > footer svg { display: none; }
+        .mobilePerformanceCard > footer strong { font-size: 11px; }
+        .mobileRankingCarousel { margin-inline: -12px; padding-inline: 12px; }
+        .mobileRankingCard { flex-basis: 88%; }
+    }
+
+    @media (max-width: 335px) {
+        .mobilePerformanceMain { grid-template-columns: 1fr; justify-items: center; }
+        .mobilePerformanceMessage { text-align: center; }
+        .paceBadge { margin-inline: auto; }
+        .mobilePerformanceCard > footer small { font-size: 9px; }
+        .goalContent em { font-size: 9px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .mobileDashboard *, .mobileDashboardSkeleton .skeleton { animation: none !important; scroll-behavior: auto !important; transition: none !important; }
+    }
+}

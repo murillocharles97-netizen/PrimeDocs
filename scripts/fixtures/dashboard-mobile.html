@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <title>Teste visual — Dashboard Mobile</title>
+    <script>if(new URLSearchParams(location.search).get('theme')==='dark')document.documentElement.dataset.theme='dark';</script>
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/design-system.css">
+    <link rel="stylesheet" href="../../css/dashboard-mobile.css">
+</head>
+<body>
+<div id="app" style="display:block">
+    <header class="appHeader">
+        <button class="headerIconButton menuTrigger"><i data-lucide="menu"></i></button>
+        <div class="headerBrand"><div class="brandMark"><i data-lucide="box"></i></div><div><h1>PrimeLine 3D</h1><span>Bom dia · 17 de jul.</span></div></div>
+        <div class="headerActions"><button class="headerGlobalSearch"><i data-lucide="search"></i><span>Buscar</span></button><button class="globalSyncStatus isSynced"><i data-lucide="refresh-cw"></i><span>Sincronizado</span></button><button class="headerIconButton"><i data-lucide="bell"></i></button><button class="themeToggle"><i data-lucide="moon"></i></button></div>
+    </header>
+    <main id="content"></main>
+    <nav class="bottomNavigation"><button class="active"><i data-lucide="house"></i><span>Início</span></button><button><i data-lucide="package"></i><span>Pedidos</span></button><button><i data-lucide="printer"></i><span>Produção</span></button><button><i data-lucide="boxes"></i><span>Estoque</span></button><button><i data-lucide="ellipsis"></i><span>Mais</span></button></nav>
+</div>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+window.DashboardPremium={render(){document.getElementById('content').innerHTML='<main class="premiumDashboard">Desktop preservado</main>'}};
+window.Utils={moeda:v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})};
+window.Modal={abrir(){},fechar(){}}; window.Toast={show(){}}; window.navegar=()=>{};
+window.carregarDadosDashboardExecutivo=()=>({produtos:[],clientes:Array.from({length:48}),pedidos:[{statusPedido:'entregue'}],orcamentos:[],lojas:Array.from({length:4}),estoques:[],consignados:[],conferencias:[],filamentos:[],pagamentos:[],financeiro:[{status:'pendente'},{status:'pendente'}]});
+window.aplicarFiltrosDadosDashboard=d=>d; window.obterIntervaloAnteriorDashboard=i=>({...i,label:'anterior'}); window.noPeriodoDashboard=()=>true;
+window.calcularIndicadores=(d,i)=>({faturamento:i.label==='anterior'?1800:2198,lucroEstimado:1350,pedidos:10,pedidosEntregues:4,contasReceber:350,ticketMedio:219.8});
+window.calcularFinanceiro=()=>({receberHoje:350,atrasados:0}); window.calcularConsignado=()=>({valorEmLojas:1250});
+window.calcularRankings=()=>({clientes:[{nome:'João Silva',valor:620,quantidade:3},{nome:'Mercado Livre',valor:410,quantidade:2},{nome:'Nadine',valor:380,quantidade:2}],produtos:[{nome:'Taça da Copa',valor:420,quantidade:28},{nome:'Caixa da Copa',valor:330,quantidade:22},{nome:'Chaveiro Japão',valor:270,quantidade:18}],lojas:[{nome:'Papelaria Arthur',valor:480,quantidade:22},{nome:'KiBarato',valor:360,quantidade:16},{nome:'Hipercell',valor:210,quantidade:9}]});
+window.carregarMetasDashboardExecutivo=()=>({metaMensal:5000,metaAnual:60000,metaPedidos:40,metaLucro:2500}); window.calcularComparacaoDashboard=(a,b)=>({badge:'▲ 18%',percentual:18}); window.abrirMetasDashboardExecutivo=()=>{};
+</script>
+<script src="../../js/dashboard-mobile.js"></script>
+<script>DashboardMobile.render(); lucide.createIcons();</script>
+</body>
+</html>

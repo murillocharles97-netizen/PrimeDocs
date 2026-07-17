@@ -57,19 +57,25 @@ function renderNavegacaoInferiorPrimeDocs(paginaAtiva = "") {
     if (!container) return;
 
     const modoPedido = paginaAtiva === "pedidos" && window.matchMedia?.("(max-width: 767px)").matches;
+    const modoClientes = paginaAtiva === "clientes" && window.matchMedia?.("(max-width: 767px)").matches;
+    const modoCentral = modoPedido || modoClientes;
     container.classList.toggle("isOrdersMode", modoPedido);
-    const itens = modoPedido
+    container.classList.toggle("isClientsMode", modoClientes);
+    const itens = modoCentral
         ? BOTTOM_NAV_PRIMEDOCS.filter(item => ["home", "pedidos", "producao"].includes(item[0]))
         : BOTTOM_NAV_PRIMEDOCS;
+    const acaoCentral = modoClientes
+        ? { classe: "mobileBottomCreateClient", rotulo: "Novo cliente", aria: "Criar novo cliente", acao: "abrirModalCliente()" }
+        : { classe: "mobileBottomCreateOrder", rotulo: "Novo pedido", aria: "Criar novo pedido", acao: "abrirModalPedido()" };
 
     container.innerHTML = `
-        ${itens.slice(0, modoPedido ? 2 : itens.length).map(([pagina, icone, titulo]) => `
+        ${itens.slice(0, modoCentral ? 2 : itens.length).map(([pagina, icone, titulo]) => `
             <button type="button" data-bottom-page="${pagina}" onclick="navegar('${pagina}')" aria-label="${titulo}">
                 <span><i data-lucide="${icone}"></i></span>
                 <small>${titulo}</small>
             </button>
         `).join("")}
-        ${modoPedido ? `<button class="mobileBottomCreateOrder" type="button" onclick="abrirModalPedido()" aria-label="Criar novo pedido"><span><i data-lucide="plus"></i></span><small>Novo pedido</small></button>${itens.slice(2).map(([pagina, icone, titulo]) => `<button type="button" data-bottom-page="${pagina}" onclick="navegar('${pagina}')" aria-label="${titulo}"><span><i data-lucide="${icone}"></i></span><small>${titulo}</small></button>`).join("")}` : ""}
+        ${modoCentral ? `<button class="${acaoCentral.classe}" type="button" onclick="${acaoCentral.acao}" aria-label="${acaoCentral.aria}"><span><i data-lucide="plus"></i></span><small>${acaoCentral.rotulo}</small></button>${itens.slice(2).map(([pagina, icone, titulo]) => `<button type="button" data-bottom-page="${pagina}" onclick="navegar('${pagina}')" aria-label="${titulo}"><span><i data-lucide="${icone}"></i></span><small>${titulo}</small></button>`).join("")}` : ""}
         <button type="button" data-bottom-page="mais" onclick="abrirDrawerPrimeDocs()" aria-label="Abrir mais opções">
             <span><i data-lucide="ellipsis"></i></span>
             <small>Mais</small>

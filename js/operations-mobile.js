@@ -4,10 +4,11 @@
     if (!window.CentralOperacoes) return;
 
     const renderDesktop = CentralOperacoes.render;
-    const MOBILE_QUERY = "(max-width: 768px)";
+    const MOBILE_QUERY = "(max-width: 767px)";
     let contextoMobile = null;
     let ultimoModoMobile = null;
     let resizeTimer = null;
+    let refreshTimer = null;
 
     const esc = valor => String(valor ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
     const num = valor => Number(valor) || 0;
@@ -49,19 +50,31 @@
     }
 
     function MobileGreeting(contexto) {
-        const total = contexto.resumo.totalAtencao;
-        return `<header class="mobileOpsGreeting"><h1>${esc(saudacao(contexto.dados.agora))} <span aria-hidden="true">👋</span></h1><p>${total ? `Você possui ${total} ${total === 1 ? "prioridade" : "prioridades"} hoje.` : "Sua operação está em ordem agora."}</p></header>`;
+        const total = contexto.totalPrioridades;
+        return `<header class="mobileOpsGreeting"><h1>${esc(saudacao(contexto.dados.agora))} <span aria-hidden="true">👋</span></h1><p>${total ? `${total} ${total === 1 ? "prioridade precisa" : "prioridades precisam"} da sua atenção hoje.` : "Sua operação está em ordem agora."}</p></header>`;
+    }
+
+    function acaoPrioridade(item, dados) {
+        if (item.entidadeTipo === "financeiro") return "Receber";
+        if (item.entidadeTipo === "pedido") {
+            const pedido = dados.pedidos.find(registro => String(registro.id) === String(item.entidadeId));
+            if (pedido?.statusPedido === "pronto") return "Entregar";
+            if (["aprovado", "em_producao"].includes(pedido?.statusPedido)) return pedido.statusPedido === "aprovado" ? "Produzir" : "Ver produção";
+        }
+        if (item.rota === "filamentos") return "Resolver";
+        if (item.rota === "consignado") return "Conferir";
+        return item.acaoPrincipal || "Abrir";
     }
 
     function MobilePriorityCard(item, indice, dados) {
         const meta = prioridadeMeta(item, dados);
         const rotulo = indice === 0 ? "AGORA" : indice === 1 ? "PRÓXIMA" : `PRIORIDADE ${indice + 1}`;
-        return `<article class="mobilePriorityCard priority-${esc(item.prioridade)}" data-mobile-priority="${indice}" role="button" tabindex="0" onclick="CentralOperacoesMobile.abrirPrioridade(${indice})" onkeydown="CentralOperacoesMobile.ativarPrioridade(event,${indice})"><header><span><i></i>${rotulo}</span>${item.badge ? `<b>${esc(item.badge)}</b>` : ""}</header><div class="mobilePriorityBody"><span class="mobilePriorityIcon"><i data-lucide="${esc(item.icone || "circle-alert")}"></i></span><div><h2>${esc(item.titulo)}</h2><p>${esc(item.descricao)}</p>${meta.linhas.length ? `<div class="mobilePriorityMeta">${meta.linhas.map((linha, posicao) => `<span><i data-lucide="${posicao === meta.linhas.length - 1 && /R\$/.test(linha) ? "hand-coins" : "box"}"></i>${esc(linha)}</span>`).join("")}</div>` : ""}</div></div><button type="button" onclick="event.stopPropagation();CentralOperacoesMobile.abrirPrioridade(${indice})">${esc(item.acaoPrincipal || "Abrir")} <i data-lucide="arrow-right"></i></button></article>`;
+        return `<article class="mobilePriorityCard priority-${esc(item.prioridade)}" data-mobile-priority="${indice}" role="button" tabindex="0" onclick="CentralOperacoesMobile.abrirPrioridade(${indice})" onkeydown="CentralOperacoesMobile.ativarPrioridade(event,${indice})"><header><div><span><i></i>${rotulo}</span>${item.badge ? `<b>${esc(item.badge)}</b>` : ""}</div><button type="button" aria-label="Mais ações desta prioridade" onclick="event.stopPropagation();CentralOperacoesMobile.abrirMenuPrioridade(${indice})"><i data-lucide="ellipsis"></i></button></header><div class="mobilePriorityBody"><span class="mobilePriorityIcon"><i data-lucide="${esc(item.icone || "circle-alert")}"></i></span><div><h2>${esc(item.titulo)}</h2><p>${esc(item.descricao)}</p>${meta.linhas.length ? `<div class="mobilePriorityMeta">${meta.linhas.slice(0, 3).map((linha, posicao) => `<span><i data-lucide="${posicao === meta.linhas.length - 1 && /R\$/.test(linha) ? "hand-coins" : "box"}"></i>${esc(linha)}</span>`).join("")}</div>` : ""}</div></div><button class="mobilePriorityAction" type="button" onclick="event.stopPropagation();CentralOperacoesMobile.abrirPrioridade(${indice})">${esc(acaoPrioridade(item, dados))} <i data-lucide="arrow-right"></i></button></article>`;
     }
 
     function MobileNow(contexto) {
         if (!contexto.prioridades.length) return `<section class="mobileNowEmpty"><span><i data-lucide="circle-check-big"></i></span><div><strong>Tudo em ordem agora</strong><p>Nenhuma ação urgente precisa da sua atenção.</p></div></section>`;
-        return `<section class="mobileNow" aria-label="Prioridades do momento"><div class="mobilePriorityCarousel" id="mobilePriorityCarousel" onscroll="CentralOperacoesMobile.atualizarCarrossel()">${contexto.prioridades.map((item, indice) => MobilePriorityCard(item, indice, contexto.dados)).join("")}</div>${contexto.prioridades.length > 1 ? `<div class="mobileCarouselDots">${contexto.prioridades.slice(0, 5).map((_, indice) => `<i class="${indice === 0 ? "active" : ""}" data-mobile-dot="${indice}"></i>`).join("")}</div>` : ""}</section>`;
+        return `<section class="mobileNow" aria-label="Prioridades do momento"><div class="mobilePriorityCarousel" id="mobilePriorityCarousel" tabindex="0" onscroll="CentralOperacoesMobile.atualizarCarrossel()">${contexto.prioridades.map((item, indice) => MobilePriorityCard(item, indice, contexto.dados)).join("")}</div>${contexto.prioridades.length > 1 ? `<div class="mobileCarouselDots">${contexto.prioridades.map((_, indice) => `<i class="${indice === 0 ? "active" : ""}" data-mobile-dot="${indice}"></i>`).join("")}</div>` : ""}</section>`;
     }
 
     function obterImpressorasMobile(contexto) {
@@ -80,51 +93,60 @@
 
     function MobilePrinterCard(item) {
         const imagem = CentralOperacoes.getPrinterImage(item.impressora);
-        if (item.tipo === "livre") return `<article class="mobilePrinterCard is-free" onclick="CentralOperacoes.abrirRota('producao')" onkeydown="CentralOperacoes.ativarRotaComTeclado(event,'producao')" role="button" tabindex="0"><span class="mobilePrinterImage"><img src="${esc(imagem)}" alt="" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><i data-lucide="printer" hidden></i></span><div><header><strong>${esc(item.impressora.nome || "Impressora")}</strong><b>LIVRE</b></header><p>Pronta para usar</p><button type="button">Iniciar produção</button></div></article>`;
+        if (item.tipo === "livre") return `<article class="mobilePrinterCard is-free" onclick="CentralOperacoes.abrirRota('producao')" onkeydown="CentralOperacoes.ativarRotaComTeclado(event,'producao')" role="button" tabindex="0"><span class="mobilePrinterImage"><img src="${esc(imagem)}" alt="" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><i data-lucide="printer" hidden></i></span><div><header><strong>${esc(item.impressora.nome || "Impressora")}</strong><b>LIVRE</b></header><p>Pronta para iniciar</p><span class="mobilePrinterLink">Ver fábrica <i data-lucide="chevron-right"></i></span></div></article>`;
         const progresso = CentralOperacoes.calcularProgresso(item.lote);
         const previsao = CentralOperacoes.previsaoLote(item.lote);
-        return `<article class="mobilePrinterCard" onclick="CentralOperacoes.abrirRota('producao')" onkeydown="CentralOperacoes.ativarRotaComTeclado(event,'producao')" role="button" tabindex="0"><span class="mobilePrinterImage"><img src="${esc(imagem)}" alt="" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><i data-lucide="printer" hidden></i></span><div><header><strong>${esc(item.impressora.nome || item.lote.impressoraNome || "Impressora")}</strong><b>${item.lote.status === "pausada" ? "PAUSADA" : "IMPRIMINDO"}</b></header><p>${esc(item.ordem?.produtoNome || item.operacao?.produtoNome || item.operacao?.nome || "Produção em andamento")}</p>${progresso === null ? `<small>Progresso indisponível</small>` : `<div class="mobilePrinterProgress"><i><span data-progress-bar="${esc(item.lote.id)}" style="width:${Math.round(progresso)}%"></span></i><strong data-progress-value="${esc(item.lote.id)}">${Math.round(progresso)}%</strong></div>`}<small data-forecast="${esc(item.lote.id)}">${esc(previsao.texto)}</small></div></article>`;
+        return `<article class="mobilePrinterCard" onclick="CentralOperacoes.abrirRota('producao')" onkeydown="CentralOperacoes.ativarRotaComTeclado(event,'producao')" role="button" tabindex="0"><span class="mobilePrinterImage"><img src="${esc(imagem)}" alt="" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><i data-lucide="printer" hidden></i></span><div><header><strong>${esc(item.impressora.nome || item.lote.impressoraNome || "Impressora")}</strong><b>${item.lote.status === "pausada" ? "PAUSADA" : "IMPRIMINDO"}</b></header><p>${esc(item.ordem?.produtoNome || item.operacao?.produtoNome || item.operacao?.nome || "Produção em andamento")}</p>${progresso === null ? `<small>Progresso indisponível</small>` : `<div class="mobilePrinterProgress"><i><span data-progress-bar="${esc(item.lote.id)}" style="width:${Math.round(progresso)}%"></span></i><strong data-progress-value="${esc(item.lote.id)}">${Math.round(progresso)}%</strong></div>`}<footer><small data-forecast="${esc(item.lote.id)}">${esc(previsao.texto)}</small><span class="mobilePrinterLink">Ver fábrica <i data-lucide="chevron-right"></i></span></footer></div></article>`;
     }
 
     function MobileProduction(contexto) {
         const impressoras = obterImpressorasMobile(contexto);
         const imprimindo = impressoras.filter(item => item.tipo === "ativa" && item.lote.status === "em_execucao").length;
         const livres = impressoras.filter(item => item.tipo === "livre").length;
-        return `<section class="mobileOpsPanel mobileProductionNow"><header><div><span><i data-lucide="printer"></i> PRODUÇÃO AGORA</span><p><b>${imprimindo} imprimindo</b><i>•</i><strong>${livres} livre${livres === 1 ? "" : "s"}</strong></p></div><button type="button" onclick="CentralOperacoes.abrirRota('producao')">Ver fábrica <i data-lucide="arrow-right"></i></button></header>${impressoras.length ? `<div class="mobilePrintersRow">${impressoras.slice(0, 2).map(MobilePrinterCard).join("")}</div>` : `<div class="mobileProductionEmpty"><i data-lucide="printer"></i><span><strong>Nenhuma impressora ativa</strong><small>Cadastre uma máquina para começar.</small></span><button onclick="CentralOperacoes.abrirRota('impressoras')">Configurar</button></div>`}</section>`;
+        return `<section class="mobileOpsPanel mobileProductionNow"><header><div><span><i data-lucide="printer"></i> PRODUÇÃO AGORA</span><p><b>${imprimindo} imprimindo</b><i>•</i><strong>${livres} livre${livres === 1 ? "" : "s"}</strong></p></div></header>${impressoras.length ? `<div class="mobilePrintersRow">${impressoras.slice(0, 1).map(MobilePrinterCard).join("")}</div>` : `<div class="mobileProductionEmpty"><i data-lucide="printer"></i><span><strong>Nenhuma impressora cadastrada</strong><small>Configure uma máquina para acompanhar a produção.</small></span><button onclick="CentralOperacoesMobile.configurarImpressoras()">Configurar</button></div>`}</section>`;
     }
 
     function MobileDaySummary(contexto) {
         const prontos = contexto.dados.pedidos.filter(pedido => pedido.statusPedido === "pronto").length;
         const alertas = contexto.prioridades.filter(item => item.pontuacao >= 80).length;
         const itens = [
-            ["clock-3", contexto.resumo.pedidosAtrasados.length, "Atrasados", "danger", "pedidos"],
-            ["circle-dollar-sign", moeda(contexto.resumo.receberHoje), "A receber hoje", "success", "financeiro"],
-            ["hourglass", alertas, "Alertas", "warning", "home"],
-            ["circle-check", prontos, "Prontos", "purple", "pedidos"]
+            ["clock-3", contexto.resumo.pedidosAtrasados.length, "Atrasados", "danger", "atrasados"],
+            ["circle-dollar-sign", moeda(contexto.resumo.receberHoje), "A receber hoje", "success", "receber"],
+            ["hourglass", alertas, "Alertas", "warning", "alertas"],
+            ["circle-check", prontos, prontos === 1 ? "Pedido pronto" : "Pedidos prontos", "purple", "prontos"]
         ];
-        return `<section class="mobileOpsPanel mobileDaySummary"><header><span><i data-lucide="chart-no-axes-column-increasing"></i> RESUMO DO DIA</span></header><div>${itens.map(item => `<button class="tone-${item[3]}" onclick="CentralOperacoes.abrirRota('${item[4]}')"><i data-lucide="${item[0]}"></i><span><strong>${esc(item[1])}</strong><small>${item[2]}</small></span></button>`).join("")}</div></section>`;
+        return `<section class="mobileOpsPanel mobileDaySummary"><header><span><i data-lucide="chart-no-axes-column-increasing"></i> RESUMO DO DIA</span></header><div>${itens.map(item => `<button class="tone-${item[3]}" onclick="CentralOperacoesMobile.abrirResumo('${item[4]}')" aria-label="${esc(item[2])}: ${esc(item[1])}"><span class="mobileSummaryIcon"><i data-lucide="${item[0]}"></i></span><span><strong>${esc(item[1])}</strong><small>${item[2]}</small></span><i data-lucide="chevron-right"></i></button>`).join("")}</div></section>`;
     }
 
-    function MobileQuickActions() {
-        const itens = [
-            ["circle-plus", "Novo pedido", "pedido", "purple"],
-            ["package-plus", "Produzir estoque", "estoque", "green"],
-            ["badge-dollar-sign", "Receber pagamento", "receber", "blue"],
-            ["store", "Consignado", "consignado", "orange"]
-        ];
-        return `<section class="mobileOpsPanel mobileQuickActions"><header><span><i data-lucide="zap"></i> AÇÕES RÁPIDAS</span></header><div>${itens.map(item => `<button class="tone-${item[3]}" onclick="CentralOperacoesMobile.acaoRapida('${item[2]}')"><i data-lucide="${item[0]}"></i><strong>${item[1]}</strong></button>`).join("")}</div></section>`;
+    function getMobileOperationsData() {
+        const dados = CentralOperacoes._lerDados();
+        const todasPrioridades = CentralOperacoes.calcularPrioridades(dados);
+        const resumo = CentralOperacoes._calcularResumo(dados, todasPrioridades);
+        const contexto = { dados, resumo, totalPrioridades:todasPrioridades.length, prioridades:todasPrioridades.slice(0, 5) };
+        const impressoras = obterImpressorasMobile(contexto);
+        contexto.producaoResumo = {
+            imprimindo: impressoras.filter(item => item.tipo === "ativa" && item.lote.status === "em_execucao").length,
+            livres: impressoras.filter(item => item.tipo === "livre").length,
+            destaque: impressoras[0] || null
+        };
+        contexto.impressorasDestaque = impressoras.slice(0, 1);
+        contexto.resumoDia = { atrasados:resumo.pedidosAtrasados.length, receberHoje:resumo.receberHoje, alertas:todasPrioridades.filter(item => item.pontuacao >= 80).length, prontos:dados.pedidos.filter(item => item.statusPedido === "pronto").length };
+        return contexto;
     }
 
     function renderMobile() {
         const content = document.getElementById("content");
         if (!content) return;
-        const dados = CentralOperacoes._lerDados();
-        const prioridades = CentralOperacoes.calcularPrioridades(dados);
-        const contexto = { dados, prioridades };
-        contexto.resumo = CentralOperacoes._calcularResumo(dados, prioridades);
-        contextoMobile = contexto;
-        content.innerHTML = `<main class="mobileOperations">${MobileGreeting(contexto)}${MobileNow(contexto)}${MobileProduction(contexto)}${MobileDaySummary(contexto)}${MobileQuickActions()}</main>`;
-        window.lucide?.createIcons?.();
+        try {
+            const contexto = getMobileOperationsData();
+            contextoMobile = contexto;
+            content.innerHTML = `<main class="mobileOperations">${MobileGreeting(contexto)}${MobileNow(contexto)}${MobileProduction(contexto)}${MobileDaySummary(contexto)}</main>`;
+            window.lucide?.createIcons?.();
+        } catch (erro) {
+            console.error("[PrimeDocs] Central de Operações mobile:", erro);
+            content.innerHTML = `<main class="mobileOperations"><section class="mobileOperationsError"><i data-lucide="triangle-alert"></i><h1>Não foi possível carregar as operações.</h1><button type="button" onclick="CentralOperacoesMobile.renderMobile()">Atualizar</button></section></main>`;
+            window.lucide?.createIcons?.();
+        }
     }
 
     function render() {
@@ -149,18 +171,31 @@
             const indice = Math.round(carrossel.scrollLeft / (carrossel.clientWidth * .9));
             document.querySelectorAll("[data-mobile-dot]").forEach(dot => dot.classList.toggle("active", Number(dot.dataset.mobileDot) === indice));
         },
-        acaoRapida(tipo) {
-            if (tipo === "pedido") {
-                CentralOperacoes.abrirRota("pedidos");
-                return setTimeout(() => window.abrirModalPedido?.(), 0);
-            }
-            if (tipo === "estoque") {
-                CentralOperacoes.abrirRota("producao");
-                return setTimeout(() => window.abrirProducaoEstoque?.(), 0);
-            }
-            CentralOperacoes.abrirRota(tipo === "receber" ? "financeiro" : "consignado");
+        abrirMenuPrioridade(indice) {
+            const item = contextoMobile?.prioridades[indice];
+            if (!item || !window.Modal) return;
+            Modal.abrir("Ação operacional", `<div class="compactActionMenu"><button onclick="Modal.fechar();CentralOperacoesMobile.abrirPrioridade(${indice})"><i data-lucide="arrow-up-right"></i><span><strong>${esc(acaoPrioridade(item, contextoMobile.dados))}</strong><small>${esc(item.titulo)}</small></span></button></div>`);
+            window.lucide?.createIcons?.();
         },
-        componentes: { MobileGreeting, MobileNow, MobilePriorityCard, MobileProduction, MobilePrinterCard, MobileDaySummary, MobileQuickActions },
+        abrirResumo(tipo) {
+            if (tipo === "alertas") return window.abrirCentralNotificacoes?.();
+            if (tipo === "atrasados") {
+                try { filtrosPedidos = { status:"", pagamento:"", cliente:"", periodo:"", atraso:true, producao:false, prontos:false }; } catch (_) {}
+                return CentralOperacoes.abrirRota("pedidos");
+            }
+            if (tipo === "prontos") {
+                try { filtrosPedidos = { status:"", pagamento:"", cliente:"", periodo:"", atraso:false, producao:false, prontos:true }; } catch (_) {}
+                return CentralOperacoes.abrirRota("pedidos");
+            }
+            try { filtrosFinanceiro = { termo:"", status:"", origem:"", cliente:"", periodo:"hoje", inicio:"", fim:"" }; } catch (_) {}
+            return CentralOperacoes.abrirRota("financeiro");
+        },
+        configurarImpressoras() {
+            window.destacarImpressorasConfiguracoes = true;
+            CentralOperacoes.abrirRota("configuracoes");
+        },
+        componentes: { MobileOperationsPage:renderMobile, MobileOperationsGreeting:MobileGreeting, MobilePriorityCarousel:MobileNow, MobilePriorityCard, MobileProductionSummary:MobileProduction, MobilePrinterSummaryCard:MobilePrinterCard, MobileDailySummaryGrid:MobileDaySummary, MobileOperationsEmptyState:MobileNow },
+        getMobileOperationsData,
         _obterImpressoras: obterImpressorasMobile,
         _isMobile: isMobile
     };
@@ -176,4 +211,16 @@
             if (mobile !== ultimoModoMobile && document.querySelector(".operationsCenter,.mobileOperations")) render();
         }, 120);
     }, { passive:true });
+
+    function atualizarAposDados() {
+        clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(() => {
+            if (isMobile() && document.querySelector(".mobileOperations")) renderMobile();
+        }, 240);
+    }
+    window.addEventListener("primedocs:sync-status", evento => {
+        if (["sincronizado", "erro"].includes(evento.detail?.estado)) atualizarAposDados();
+    });
+    window.addEventListener("online", atualizarAposDados);
+    window.addEventListener("storage", atualizarAposDados);
 })();

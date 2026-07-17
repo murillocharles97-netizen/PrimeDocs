@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <title>Teste visual — Operações Mobile</title>
+    <script>if(new URLSearchParams(location.search).get('theme')==='dark')document.documentElement.dataset.theme='dark';</script>
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/design-system.css">
+    <link rel="stylesheet" href="../../css/operations-mobile.css">
+</head>
+<body>
+<div id="app" style="display:block">
+    <header class="appHeader">
+        <button class="headerIconButton menuTrigger" aria-label="Abrir menu"><i data-lucide="menu"></i></button>
+        <div class="headerBrand"><div class="brandMark"><i data-lucide="box"></i></div><div><h1>PrimeLine 3D</h1><span>Bom dia · 17 de jul.</span></div></div>
+        <div class="headerActions"><button class="headerGlobalSearch" aria-label="Buscar"><i data-lucide="search"></i><span>Buscar</span></button><button class="globalSyncStatus isSynced" aria-label="Sincronizado"><i data-lucide="refresh-cw"></i><span>Sincronizado</span></button><button class="headerIconButton" aria-label="Notificações"><i data-lucide="bell"></i></button><button class="themeToggle" aria-label="Tema"><i data-lucide="moon"></i></button></div>
+    </header>
+    <main id="content"></main>
+    <nav class="bottomNavigation"><button class="isActive"><span><i data-lucide="house"></i></span><small>Início</small></button><button><span><i data-lucide="package"></i></span><small>Pedidos</small></button><button><span><i data-lucide="factory"></i></span><small>Produção</small></button><button><span><i data-lucide="package-open"></i></span><small>Estoque</small></button><button><span><i data-lucide="ellipsis"></i></span><small>Mais</small></button></nav>
+</div>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+window.Utils={moeda:v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})};
+window.PrimeFirebase={auth:{currentUser:{displayName:'Murillo Charles'}}}; window.Modal={abrir(){},fechar(){}}; window.navegar=()=>{};
+const fixtureData={agora:new Date(),pedidos:[{id:'p1',statusPedido:'pronto',itens:[{quantidade:1}],valorPendente:50}],financeiro:[{id:'f1',valorRestante:50}],impressoras:[{id:'i1',nome:'A1 Mini 001',modelo:'A1 Mini',status:'ocupada'},{id:'i2',nome:'A1 Mini 002',modelo:'A1 Mini',status:'livre'}],lotes:[{id:'l1',impressoraId:'i1',status:'em_execucao'}],ordens:[{id:'o1',produtoNome:'Taça da Copa'}],operacoes:[]};
+const fixturePriorities=[{id:'p-ready',entidadeTipo:'pedido',entidadeId:'p1',titulo:'Pedido de João Adidas aguarda entrega',descricao:'Entrega atrasada há 7 dias',prioridade:'critica',pontuacao:100,acaoPrincipal:'Entregar',rota:'pedidos',icone:'package-check',badge:'Atrasado'},{id:'f-pay',entidadeTipo:'financeiro',entidadeId:'f1',titulo:'Receber pagamento de Nadine',descricao:'Vencimento hoje',prioridade:'media',pontuacao:90,acaoPrincipal:'Receber',rota:'financeiro',icone:'hand-coins',badge:'Hoje'},{id:'fil',titulo:'Filamento crítico',descricao:'PETG amarelo sem estoque',prioridade:'alta',pontuacao:85,acaoPrincipal:'Resolver',rota:'filamentos',icone:'spool',badge:'Crítico'}];
+window.CentralOperacoes={render(){document.getElementById('content').innerHTML='<main class="operationsCenter">Desktop preservado</main>'},_lerDados:()=>fixtureData,calcularPrioridades:()=>fixturePriorities,_calcularResumo:()=>({pedidosAtrasados:[{}],receberHoje:50,totalAtencao:3}),getPrinterImage:()=>"../../assets/printers/a1-mini.svg",calcularProgresso:()=>65,previsaoLote:()=>({texto:'2h 15m restantes'}),abrirRota(){},ativarRotaComTeclado(){}};
+</script>
+<script src="../../js/operations-mobile.js"></script>
+<script>CentralOperacoesMobile.render();lucide.createIcons();</script>
+</body>
+</html>

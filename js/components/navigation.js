@@ -15,7 +15,7 @@ const DRAWER_PRIMEDOCS = [
 
 const BOTTOM_NAV_PRIMEDOCS = [
     ["home", "house", "Início"],
-    ["produtos", "boxes", "Produtos"],
+    ["pedidos", "package", "Pedidos"],
     ["producao", "factory", "Produção"],
     ["filamentos", "package-open", "Estoque"]
 ];

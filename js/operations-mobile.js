@@ -9,6 +9,7 @@
     let ultimoModoMobile = null;
     let resizeTimer = null;
     let refreshTimer = null;
+    let ultimoFingerprintDados = "";
 
     const esc = valor => String(valor ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
     const num = valor => Number(valor) || 0;
@@ -134,6 +135,23 @@
         return contexto;
     }
 
+    function obterFingerprintDados() {
+        const metodos = [
+            "listarPedidos", "listarLancamentosFinanceiros", "listarFilamentos",
+            "listarImpressoras", "listarLotesExecucao", "listarOperacoesProducao",
+            "listarOrdensProducao", "listarClientes", "listarLojas",
+            "listarEstoquesLojas", "listarConferencias"
+        ];
+        return JSON.stringify(metodos.map(nome => {
+            try {
+                const metodo = window.Storage?.[nome];
+                return typeof metodo === "function" ? metodo.call(window.Storage) : [];
+            } catch (_) {
+                return [];
+            }
+        }));
+    }
+
     function renderMobile() {
         const content = document.getElementById("content");
         if (!content) return;
@@ -141,6 +159,7 @@
             const contexto = getMobileOperationsData();
             contextoMobile = contexto;
             content.innerHTML = `<main class="mobileOperations">${MobileGreeting(contexto)}${MobileNow(contexto)}${MobileProduction(contexto)}${MobileDaySummary(contexto)}</main>`;
+            ultimoFingerprintDados = obterFingerprintDados();
             window.lucide?.createIcons?.();
         } catch (erro) {
             console.error("[PrimeDocs] Central de Operações mobile:", erro);
@@ -213,13 +232,16 @@
     }, { passive:true });
 
     function atualizarAposDados() {
+        const fingerprint = obterFingerprintDados();
+        if (fingerprint === ultimoFingerprintDados) return;
         clearTimeout(refreshTimer);
         refreshTimer = setTimeout(() => {
-            if (isMobile() && document.querySelector(".mobileOperations")) renderMobile();
+            if (!isMobile() || !document.querySelector(".mobileOperations")) return;
+            if (obterFingerprintDados() !== ultimoFingerprintDados) renderMobile();
         }, 240);
     }
     window.addEventListener("primedocs:sync-status", evento => {
-        if (["sincronizado", "erro"].includes(evento.detail?.estado)) atualizarAposDados();
+        if (evento.detail?.estado === "sincronizado") atualizarAposDados();
     });
     window.addEventListener("online", atualizarAposDados);
     window.addEventListener("storage", atualizarAposDados);

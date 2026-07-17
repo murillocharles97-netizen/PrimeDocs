@@ -3,7 +3,8 @@ const STATUS_FINANCEIRO = {pendente:"Pendente",parcial:"Parcial",pago:"Pago",atr
 
 const Financeiro = {
     sincronizar() {
-        const existentes = new Map(Storage.listarLancamentosFinanceiros().map(item => [String(item.id), item]));
+        const atuais = Storage.listarLancamentosFinanceiros();
+        const existentes = new Map(atuais.map(item => [String(item.id), item]));
         const agora = new Date().toISOString();
         const ativos = new Set();
 
@@ -52,7 +53,7 @@ const Financeiro = {
             if (!ativos.has(id) && ["pedido","consignado"].includes(item.origem) && item.status !== "pago") item.status = "cancelado";
         });
         const lista = [...existentes.values()].map(item=>this.normalizar(item));
-        Storage.salvarLancamentosFinanceiros(lista);
+        if (JSON.stringify(atuais) !== JSON.stringify(lista)) Storage.salvarLancamentosFinanceiros(lista);
         return lista.sort((a,b)=>timestampFinanceiro(a.vencimento)-timestampFinanceiro(b.vencimento));
     },
 

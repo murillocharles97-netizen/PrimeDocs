@@ -86,7 +86,7 @@ teste("23. movimento reduzido e foco visível são respeitados",()=>ok(css.inclu
 teste("24. camada mobile não escreve em Storage nem Firebase",()=>ok(!/Storage\.(salvar|excluir)|Firestore|setDoc|addDoc/.test(js)));
 teste("25. arquivos carregam depois da Central e antes do app",()=>ok(index.indexOf("central-operacoes.js")<index.indexOf("operations-mobile.js")&&index.indexOf("operations-mobile.js")<index.indexOf("js/app.js")));
 teste("26. desktop original não foi alterado pela camada mobile",()=>ok(desktopJs.includes("operationsCenter")&&desktopCss.includes("operationsCompactStrip")));
-teste("27. PWA offline contém a nova experiência",()=>ok(sw.includes("primedocs-v53")&&sw.includes("operations-mobile.css")&&sw.includes("operations-mobile.js")));
+teste("27. PWA offline contém a nova experiência",()=>ok(sw.includes("primedocs-v54")&&sw.includes("operations-mobile.css")&&sw.includes("operations-mobile.js")));
 teste("28. CSS mobile não possui seletor desktop fora do breakpoint principal",()=>ok(!css.includes(".operationsCenter")&&!css.includes(".operationsCompactStrip")));
 teste("29. contexto mobile limita o carrossel a cinco prioridades",()=>ok(js.includes("prioridades:todasPrioridades.slice(0, 5)")));
 teste("30. estado vazio de prioridades é útil",()=>{const original=CentralOperacoes.calcularPrioridades;CentralOperacoes.calcularPrioridades=()=>[];CentralOperacoesMobile.renderMobile();ok(content.innerHTML.includes("Tudo em ordem agora")&&content.innerHTML.includes("Nenhuma ação urgente"));CentralOperacoes.calcularPrioridades=original;CentralOperacoesMobile.renderMobile();});
@@ -96,7 +96,7 @@ teste("33. resumo do dia é grid 2x2 sem carrossel",()=>ok(css.includes("grid-te
 teste("34. barra inferior usa Início, Pedidos, Produção, Estoque e Mais",()=>ok(bottomNavigationSource.includes('["pedidos", "package", "Pedidos"]')&&navigation.includes("Abrir mais opções")&&!bottomNavigationSource.includes('["produtos", "boxes", "Produtos"]')));
 teste("35. barra inferior e conteúdo respeitam safe-area",()=>ok(css.includes("calc(110px + env(safe-area-inset-bottom))")&&designCss.includes("env(safe-area-inset-bottom)")));
 teste("36. status de sincronização fica somente com ícone no mobile",()=>ok(designCss.includes(".globalSyncStatus span { display: none !important; }")));
-teste("37. atualização após sincronização é debounced",()=>ok(js.includes('primedocs:sync-status')&&js.includes("atualizarAposDados")&&js.includes("240")));
+teste("37. atualização após sincronização é debounced e só ocorre com dados alterados",()=>ok(js.includes('primedocs:sync-status')&&js.includes("atualizarAposDados")&&js.includes("ultimoFingerprintDados")&&js.includes('evento.detail?.estado === "sincronizado"')&&!js.includes('["sincronizado", "erro"]')));
 teste("38. componentes mobile estão separados e reutilizáveis",()=>ok(["MobileOperationsPage","MobileOperationsGreeting","MobilePriorityCarousel","MobileProductionSummary","MobileDailySummaryGrid"].every(nome=>js.includes(nome))));
 
 if(!process.exitCode)console.log(`\n${aprovados} verificações da Central de Operações Mobile aprovadas.`);

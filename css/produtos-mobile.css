@@ -1,11 +1,13 @@
 @media (max-width: 767px) {
     body:has(.mobileProductsPage) #app { padding-bottom: calc(118px + env(safe-area-inset-bottom)); }
-    .mobileProductsPage { --mp-purple:#6d4aff; --mp-border:rgba(98,90,140,.14); display:grid; gap:18px; width:100%; max-width:100%; padding:4px 0 18px; overflow:hidden; }
-    .mobileProductsHeader { display:flex; align-items:center; gap:12px; padding:4px 2px 0; }
-    .mobileProductsHeader > span { width:46px; height:46px; display:grid; place-items:center; color:var(--mp-purple); border-radius:15px; background:rgba(109,74,255,.1); }
-    .mobileProductsHeader svg { width:24px; height:24px; }
-    .mobileProductsHeader h1 { margin:0; font-size:28px; line-height:1.05; letter-spacing:-.035em; }
-    .mobileProductsHeader p { margin:5px 0 0; color:var(--text-secondary); font-size:13px; }
+    .mobileProductsPage { --mp-purple:#6d4aff; --mp-border:rgba(98,90,140,.14); --card-bg:var(--card,#fff); display:grid; gap:18px; width:100%; max-width:100%; padding:4px 0 18px; overflow:hidden; }
+    .mobileProductsHeader { display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:14px; margin:0; padding:5px 2px 0; border-radius:0; background:transparent; box-shadow:none; text-align:left; }
+    .mobileProductsHeader h1 { margin:0; color:var(--text-primary,var(--text)); font-size:30px; line-height:1.05; letter-spacing:-.04em; }
+    .mobileProductsHeader p { margin:7px 0 0; color:var(--text-secondary); font-size:14px; }
+    .mobileProductsHeader p strong { color:var(--mp-purple); }
+    .mobileProductsHeader > button { min-height:46px; display:flex; align-items:center; gap:8px; padding:0 16px; border:1px solid rgba(109,74,255,.22); border-radius:17px; color:var(--mp-purple); background:var(--card-bg,#fff); font-weight:800; box-shadow:0 5px 18px rgba(54,42,112,.04); }
+    .mobileProductsHeader > button svg { width:18px; }
+    .mobileProductsHeader > button b { min-width:19px; height:19px; display:grid; place-items:center; border-radius:99px; color:#fff; background:var(--mp-purple); font-size:10px; }
 
     .mobileProductSearch { min-height:54px; display:flex; align-items:center; gap:11px; padding:0 14px; border:1px solid var(--mp-border); border-radius:17px; background:var(--card-bg,#fff); box-shadow:0 6px 22px rgba(34,30,70,.045); }
     .mobileProductSearch > svg { flex:0 0 21px; color:var(--text-secondary); }
@@ -14,28 +16,37 @@
     .mobileProductSearch button.isVisible { display:grid; }
     .mobileProductSearch button svg { width:17px; }
 
-    .mobileProductSectionTitle,.mobileProductListHead { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:0 2px; margin-bottom:-9px; }
-    .mobileProductSectionTitle strong { font-size:15px; }
-    .mobileProductSectionTitle button { border:0; color:var(--mp-purple); background:none; font-weight:700; font-size:12px; }
+    .mobileProductListHead { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:0 2px; margin-bottom:-9px; }
     .mobileProductCollections,.mobileProductQuickFilters { display:flex; gap:9px; padding:1px 2px 5px; overflow-x:auto; scrollbar-width:none; scroll-snap-type:x proximity; }
     .mobileProductCollections::-webkit-scrollbar,.mobileProductQuickFilters::-webkit-scrollbar { display:none; }
-    .mobileProductCollections button { min-width:92px; max-width:120px; min-height:78px; display:grid; grid-template-columns:34px 1fr; grid-template-rows:auto auto; align-items:center; gap:2px 8px; padding:10px; scroll-snap-align:start; border:1px solid var(--mp-border); border-radius:16px; color:var(--text-primary); background:var(--card-bg,#fff); text-align:left; box-shadow:0 4px 18px rgba(34,30,70,.035); transition:.18s ease; }
-    .mobileProductCollections button > span { grid-row:1 / 3; width:34px; height:34px; display:grid; place-items:center; border-radius:11px; color:var(--collection); background:color-mix(in srgb,var(--collection) 12%,transparent); }
-    .mobileProductCollections button svg { width:18px; }
-    .mobileProductCollections button strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; }
-    .mobileProductCollections button small { color:var(--text-secondary); font-size:11px; }
-    .mobileProductCollections button.isActive { border-color:color-mix(in srgb,var(--collection) 55%,transparent); background:color-mix(in srgb,var(--collection) 8%,var(--card-bg,#fff)); box-shadow:0 7px 20px color-mix(in srgb,var(--collection) 12%,transparent); }
+    .mobileProductCollections button { min-width:104px; min-height:88px; display:grid; grid-template-columns:32px minmax(0,1fr); grid-template-rows:1fr 1fr; align-items:center; gap:1px 7px; padding:12px; scroll-snap-align:start; border:1px solid var(--mp-border); border-radius:20px; color:var(--text-primary); background:var(--card-bg,#fff); text-align:left; box-shadow:0 5px 18px rgba(34,30,70,.04); transition:.18s ease; }
+    .mobileProductCollections button > span { grid-row:1 / 3; width:32px; height:32px; display:grid; place-items:center; border-radius:10px; color:var(--collection); background:color-mix(in srgb,var(--collection) 11%,transparent); }
+    .mobileProductCollections button svg { width:19px; }
+    .mobileProductCollections button strong { align-self:end; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; }
+    .mobileProductCollections button small { align-self:start; color:var(--text-secondary); font-size:11px; }
+    .mobileProductCollections button.isActive { color:#fff; border-color:transparent; background:linear-gradient(145deg,#7652ff,#5b32eb); box-shadow:0 10px 24px rgba(109,74,255,.28); }
+    .mobileProductCollections button.isActive > span { color:#fff; background:rgba(255,255,255,.13); }
+    .mobileProductCollections button.isActive small { color:rgba(255,255,255,.82); }
+    .mobileProductCollections .mobileCollectionMore { min-width:76px; grid-template-columns:1fr; justify-items:center; text-align:center; }
+    .mobileProductCollections .mobileCollectionMore > span { grid-row:auto; }
+    .mobileProductCollections .mobileCollectionMore strong { align-self:center; }
 
-    .mobileProductQuickFilters { margin-top:-6px; }
+    .mobileProductQuickFilters { margin-top:-5px; }
     .mobileProductQuickFilters button { min-height:38px; display:flex; align-items:center; gap:7px; flex:0 0 auto; padding:0 13px; border:1px solid var(--mp-border); border-radius:999px; color:var(--text-secondary); background:var(--card-bg,#fff); font-size:12px; font-weight:700; }
     .mobileProductQuickFilters button b { min-width:19px; height:19px; display:grid; place-items:center; padding:0 5px; border-radius:999px; background:rgba(109,74,255,.09); color:var(--mp-purple); font-size:10px; }
     .mobileProductQuickFilters button.isActive { color:#fff; border-color:var(--mp-purple); background:linear-gradient(135deg,#7552ff,#5e35ee); box-shadow:0 7px 16px rgba(109,74,255,.22); }
     .mobileProductQuickFilters button.isActive b { color:#5935e8; background:#fff; }
-    .mobileProductQuickFilters svg { width:15px; }
+    .mobileProductQuickFilters svg { width:17px; color:#ff9f0a; }
+    .mobileProductQuickFilters button:nth-child(2) svg { color:#f2b300; }
+    .mobileProductQuickFilters button:nth-child(3) svg { color:#ff7a00; }
+    .mobileProductQuickFilters button:nth-child(4) svg { color:#ef476f; }
+    .mobileProductQuickFilters button:nth-child(5) svg { color:#4a7cff; }
+    .mobileProductQuickFilters button.isActive svg { color:#fff; }
 
     .mobileProductListHead { margin-top:-5px; margin-bottom:-6px; color:var(--text-secondary); font-size:12px; }
     .mobileProductListHead strong { color:var(--text-primary); }
-    .mobileProductListHead button { max-width:52%; display:flex; align-items:center; gap:6px; border:0; color:var(--mp-purple); background:none; font-size:12px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mobileProductListHead button { max-width:64%; display:flex; align-items:center; gap:6px; border:0; color:var(--mp-purple); background:none; font-size:12px; font-weight:800; white-space:nowrap; overflow:hidden; }
+    .mobileProductListHead button span { overflow:hidden; text-overflow:ellipsis; }
     .mobileProductListHead button svg { width:15px; flex:0 0 15px; }
     .mobileProductsList { display:grid; gap:13px; }
     .mobileProductSwipe { position:relative; overflow:hidden; border-radius:20px; background:linear-gradient(90deg,#12a46d 0 50%,#6d4aff 50%); touch-action:pan-y; }
@@ -43,38 +54,44 @@
     .swipeEdit { inset:0 0 0 auto; }
     .mobileProductSwipe.showProduce .swipeProduce,.mobileProductSwipe.showEdit .swipeEdit { opacity:1; }
     .swipeAction svg { width:21px; }
-    .mobileProductCard { position:relative; z-index:1; display:grid; gap:13px; padding:14px; border:1px solid var(--mp-border); border-radius:20px; background:var(--card-bg,#fff); box-shadow:0 7px 24px rgba(34,30,70,.055); transition:transform .16s ease,box-shadow .18s ease; }
-    .mobileProductCard > header { display:grid; grid-template-columns:62px minmax(0,1fr) 32px; align-items:start; gap:11px; }
-    .mobileProductImage { width:62px; height:62px; position:relative; display:grid; place-items:center; overflow:hidden; border-radius:16px; background:linear-gradient(145deg,rgba(109,74,255,.14),rgba(34,211,238,.08)); color:var(--mp-purple); }
+    .mobileProductCard { position:relative; z-index:1; display:grid; overflow:hidden; border:1px solid var(--mp-border); border-radius:22px; background:var(--card-bg,#fff); box-shadow:0 8px 28px rgba(34,30,70,.06); transition:transform .16s ease,box-shadow .18s ease; }
+    .mobileProductCardMain { display:grid; grid-template-columns:96px minmax(0,1fr) auto; gap:12px; padding:14px; }
+    .mobileProductImage { width:96px; aspect-ratio:1; position:relative; display:grid; place-items:center; overflow:visible; border-radius:17px; background:linear-gradient(145deg,rgba(109,74,255,.14),rgba(34,211,238,.08)); color:var(--mp-purple); }
     .mobileProductImage img { width:100%; height:100%; object-fit:cover; }
-    .mobileProductImage span { display:grid; place-items:center; }
+    .mobileProductImage img,.mobileProductImage > span { border-radius:17px; }
+    .mobileProductImage > span { width:100%; height:100%; display:grid; place-items:center; overflow:hidden; }
     .mobileProductImage svg { width:27px; height:27px; }
     .mobileProductIdentity { min-width:0; }
-    .mobileProductIdentity > div { display:flex; align-items:flex-start; gap:7px; }
-    .mobileProductIdentity h3 { min-width:0; margin:1px 0 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:16px; letter-spacing:-.015em; }
-    .mobileProductIdentity p { margin:4px 0 7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-secondary); font-size:11px; }
-    .mobileProductFavorite { width:25px; height:25px; flex:0 0 25px; display:grid; place-items:center; margin:-3px 0 0; border:0; color:#a9afbc; background:transparent; }
-    .mobileProductFavorite svg { width:17px; }
-    .mobileProductFavorite.isActive { color:#ffb300; fill:#ffb300; }
+    .mobileProductIdentity h3 { min-width:0; margin:2px 0 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:17px; letter-spacing:-.025em; }
+    .mobileProductIdentity p { margin:5px 0 8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-secondary); font-size:11px; }
+    .mobileProductIdentity p b { padding:0 5px; color:#a5aabd; }
+    .mobileProductFavorite { position:absolute; left:-8px; top:-8px; z-index:3; width:38px; height:38px; display:grid; place-items:center; border:0; border-radius:50%; color:#a9afbc; background:var(--card-bg,#fff); box-shadow:0 5px 14px rgba(33,28,68,.12); }
+    .mobileProductFavorite svg { width:20px; }
+    .mobileProductFavorite.isActive { color:#6d4aff; fill:#6d4aff; }
     .mobileProductFavorite.isActive svg { fill:currentColor; }
-    .mobileProductMore { width:32px; height:32px; display:grid; place-items:center; padding:0; border:0; border-radius:10px; color:var(--text-secondary); background:var(--surface-secondary,rgba(109,74,255,.06)); }
+    .mobileProductValues { display:flex; align-items:center; gap:11px; margin-top:10px; white-space:nowrap; }
+    .mobileProductValues strong { color:var(--mp-purple); font-size:16px; }
+    .mobileProductValues span { color:#159447; font-size:12px; font-weight:800; }
+    .mobileProductValues span.negative { color:#e23d55; }
+    .mobileProductCardActions { display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between; gap:9px; }
+    .mobileProductMore { width:40px; height:40px; display:grid; place-items:center; padding:0; border:0; border-radius:12px; color:var(--text-secondary); background:var(--surface-secondary,rgba(109,74,255,.06)); }
     .mobileProductMore svg { width:18px; }
+    .mobileProductProduce { min-height:44px; display:flex; align-items:center; gap:6px; padding:0 12px; border:1px solid rgba(109,74,255,.22); border-radius:14px; color:var(--mp-purple); background:transparent; font-size:12px; font-weight:800; }
+    .mobileProductProduce svg { width:16px; }
     .mobileProductStatus { width:max-content; max-width:100%; display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:999px; color:#64748b; background:#f1f5f9; font-size:10px; font-weight:800; }
     .mobileProductStatus svg { width:12px; height:12px; }
-    .mobileProductStatus.success { color:#078857; background:#e8f8f1; }.mobileProductStatus.warning { color:#c46b00; background:#fff3df; }.mobileProductStatus.danger { color:#df3750; background:#ffedf0; }.mobileProductStatus.production { color:#6040e9; background:#f0ecff; cursor:pointer; }
-    .mobileProductFacts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
-    .mobileProductFacts > div { min-width:0; display:grid; gap:3px; padding:9px; border-radius:12px; background:var(--surface-secondary,#f7f7fc); }
-    .mobileProductFacts span { color:var(--text-secondary); font-size:9px; text-transform:uppercase; letter-spacing:.06em; }
-    .mobileProductFacts strong { overflow:hidden; text-overflow:ellipsis; color:var(--text-primary); font-size:12px; white-space:nowrap; }
-    .mobileProductFacts strong.negative { color:#e23d55; }
-    .mobileProductMeta { display:flex; gap:11px; padding:0 2px; overflow:hidden; color:var(--text-secondary); font-size:10px; }
-    .mobileProductMeta span { min-width:0; display:flex; align-items:center; gap:4px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-    .mobileProductMeta svg { width:13px; flex:0 0 13px; }
-    .mobileProductCard > footer { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-    .mobileProductCard > footer button,.mobileProductExpanded > button { min-height:42px; display:flex; justify-content:center; align-items:center; gap:7px; border:1px solid rgba(109,74,255,.2); border-radius:12px; color:var(--mp-purple); background:rgba(109,74,255,.055); font-size:12px; font-weight:800; }
-    .mobileProductCard > footer button.primary { color:#fff; border-color:transparent; background:linear-gradient(135deg,#7652ff,#5e35ed); }
-    .mobileProductCard > footer svg,.mobileProductExpanded > button svg { width:16px; }
+    .mobileProductStatus.success { color:#078857; background:#e8f8f1; }.mobileProductStatus.warning { color:#c46b00; background:#fff3df; }.mobileProductStatus.danger { color:#df3750; background:#ffedf0; }.mobileProductStatus.production { color:#2563eb; background:#eaf2ff; cursor:pointer; }
+    .mobileProductMetrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); padding:12px 7px; border-top:1px solid var(--mp-border); }
+    .mobileProductMetrics > div { min-width:0; display:flex; justify-content:center; align-items:center; gap:7px; padding:0 6px; border-right:1px solid var(--mp-border); }
+    .mobileProductMetrics > div:last-child { border-right:0; }
+    .mobileProductMetrics svg { width:19px; flex:0 0 19px; color:var(--text-primary); }
+    .mobileProductMetrics span { min-width:0; display:grid; gap:2px; }
+    .mobileProductMetrics strong,.mobileProductMetrics small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mobileProductMetrics strong { font-size:11px; }.mobileProductMetrics small { color:var(--text-secondary); font-size:9px; }
+    .mobileProductExpanded > button { min-height:42px; display:flex; justify-content:center; align-items:center; gap:7px; border:1px solid rgba(109,74,255,.2); border-radius:12px; color:var(--mp-purple); background:rgba(109,74,255,.055); font-size:12px; font-weight:800; }
+    .mobileProductExpanded > button svg { width:16px; }
     .mobileProductExpanded { display:grid; gap:12px; padding-top:13px; border-top:1px solid var(--mp-border); animation:productExpand .18s ease; }
+    .mobileProductExpanded { padding:14px; }
     .mobileProductExpanded > p { margin:0; color:var(--text-secondary); font-size:12px; line-height:1.5; }
     .mobileProductExpanded dl { display:grid; grid-template-columns:1fr 1fr; gap:1px; margin:0; overflow:hidden; border:1px solid var(--mp-border); border-radius:13px; background:var(--mp-border); }
     .mobileProductExpanded dl div { min-width:0; display:grid; gap:3px; padding:9px; background:var(--card-bg,#fff); }
@@ -90,6 +107,8 @@
     .mobileAllCollections,.mobileSortOptions { display:grid; gap:7px; }.mobileAllCollections button,.mobileSortOptions button { min-height:49px; display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--mp-border); border-radius:13px; color:var(--text-primary); background:var(--card-bg,#fff); text-align:left; }.mobileAllCollections button > span { width:34px; height:34px; display:grid; place-items:center; border-radius:10px; color:var(--collection); background:color-mix(in srgb,var(--collection) 12%,transparent); }.mobileAllCollections svg,.mobileSortOptions svg { width:17px; }.mobileSortOptions button.isActive { color:var(--mp-purple); border-color:rgba(109,74,255,.35); background:rgba(109,74,255,.07); font-weight:800; }
     .mobileSheetPrimary { width:100%; min-height:48px; }
     .mobileAdvancedFilters { display:grid; gap:13px; }.mobileAdvancedFilters label { display:grid; gap:6px; }.mobileAdvancedFilters label > span { color:var(--text-secondary); font-size:11px; font-weight:700; }.mobileAdvancedFilters input,.mobileAdvancedFilters select { width:100%; min-height:46px; border:1px solid var(--mp-border); border-radius:12px; background:var(--card-bg,#fff); color:var(--text-primary); }.mobileFilterRange { display:grid; grid-template-columns:1fr 1fr; gap:10px; }.mobileSheetActions { display:grid; grid-template-columns:1fr 1.5fr; gap:9px; margin-top:5px; }.mobileSheetActions button { min-height:46px; border:1px solid rgba(109,74,255,.25); border-radius:12px; color:var(--mp-purple); background:transparent; font-weight:800; }.mobileSheetActions button.primary { color:#fff; border-color:transparent; background:var(--mp-purple); }
+    .mobileMoveCollection { display:grid; gap:8px; }.mobileMoveCollection > p { margin:0 0 5px; color:var(--text-secondary); font-size:13px; }.mobileMoveCollection > button { min-height:50px; display:grid; grid-template-columns:38px 1fr 20px; align-items:center; gap:10px; padding:7px 11px; border:1px solid var(--mp-border); border-radius:14px; color:var(--text-primary); background:var(--card-bg,#fff); text-align:left; }.mobileMoveCollection > button > span { width:36px; height:36px; display:grid; place-items:center; border-radius:11px; color:var(--collection); background:color-mix(in srgb,var(--collection) 12%,transparent); }.mobileMoveCollection > button.isActive { color:var(--mp-purple); border-color:rgba(109,74,255,.34); background:rgba(109,74,255,.06); }.mobileMoveCollection svg { width:17px; }
+    .mobileProductsSkeleton { display:grid; gap:13px; }.mobileProductsSkeleton span { height:190px; border-radius:22px; background:linear-gradient(90deg,rgba(109,74,255,.05),rgba(109,74,255,.12),rgba(109,74,255,.05)); background-size:220% 100%; animation:mobileProductsShimmer 1.2s linear infinite; }
 
     #bottomNavigation.isProductsMode { grid-template-columns:repeat(5,1fr); padding-bottom:max(8px,env(safe-area-inset-bottom)); }
     #bottomNavigation .mobileBottomCreateProduct { position:relative; transform:translateY(-15px); }
@@ -100,11 +119,14 @@
     body.dark-mode .mobileProductsPage { --mp-border:rgba(174,161,255,.13); }
     body.dark-mode .mobileProductStatus.success { color:#50d69e; background:rgba(16,185,129,.13); }body.dark-mode .mobileProductStatus.warning { color:#ffbe55; background:rgba(245,158,11,.12); }body.dark-mode .mobileProductStatus.danger { color:#ff7287; background:rgba(244,63,94,.12); }body.dark-mode .mobileProductStatus.production { color:#ac96ff; background:rgba(109,74,255,.18); }
     body.dark-mode .mobileProductImage { background:linear-gradient(145deg,rgba(139,92,246,.22),rgba(34,211,238,.07)); }
+    body.dark-mode .mobileProductFavorite { background:var(--card-bg,#11162e); }
+    body.dark-mode .mobileProductsHeader > button,.dark-mode .mobileProductProduce { background:rgba(139,92,246,.06); }
 
     @keyframes productExpand { from { opacity:0; transform:translateY(-5px); } to { opacity:1; transform:none; } }
     @keyframes mobileSheetIn { from { transform:translateY(20px); opacity:.6; } to { transform:none; opacity:1; } }
+    @keyframes mobileProductsShimmer { to { background-position:-220% 0; } }
     @media (max-width:360px) {
-        .mobileProductsPage { gap:15px; }.mobileProductsHeader h1 { font-size:25px; }.mobileProductCollections button { min-width:86px; }.mobileProductCard { padding:12px; }.mobileProductCard > header { grid-template-columns:54px minmax(0,1fr) 30px; gap:9px; }.mobileProductImage { width:54px; height:54px; }.mobileProductFacts > div { padding:8px 6px; }.mobileProductFacts strong { font-size:11px; }.mobileProductMeta span:nth-child(3) { display:none; }
+        .mobileProductsPage { gap:15px; }.mobileProductsHeader h1 { font-size:26px; }.mobileProductsHeader > button { min-height:44px; padding:0 12px; }.mobileProductCollections button { min-width:90px; }.mobileProductCardMain { grid-template-columns:72px minmax(0,1fr) auto; gap:8px; padding:11px; }.mobileProductImage { width:72px; height:72px; }.mobileProductIdentity h3 { font-size:14px; }.mobileProductIdentity p { font-size:9px; }.mobileProductStatus { padding:3px 6px; font-size:8px; }.mobileProductValues { gap:7px; margin-top:7px; flex-wrap:wrap; }.mobileProductValues strong { font-size:13px; }.mobileProductValues span { font-size:9px; }.mobileProductProduce { min-height:44px; padding:0 7px; font-size:9px; }.mobileProductMore { width:40px; height:40px; }.mobileProductMetrics { padding:10px 3px; }.mobileProductMetrics > div { gap:3px; padding:0 2px; }.mobileProductMetrics svg { width:15px; flex-basis:15px; }.mobileProductMetrics strong { font-size:9px; }.mobileProductMetrics small { font-size:7px; }
     }
     @media (prefers-reduced-motion:reduce) { .mobileProductsPage * { scroll-behavior:auto!important; animation:none!important; transition:none!important; } }
 }

@@ -90,6 +90,7 @@
     function obterLista() {
         contexto = construirContexto();
         let lista = contexto.produtos.map(p => normalizarProduto(p, contexto));
+        if (estado.filtro !== "arquivados") lista = lista.filter(p => p.ativo !== false && !p.arquivado);
         if (estado.colecaoId !== "todos") lista = lista.filter(p => chave(p.colecaoId) === estado.colecaoId);
         const termo = normalizarTexto(estado.busca.trim());
         if (termo) lista = lista.filter(p => normalizarTexto([p.nome, p.codigo, p.colecao?.nome, p.categoria, p.material, p.cor, p.tags?.join?.(" "), p.descricao].join(" ")).includes(termo));
@@ -132,17 +133,18 @@
         };
     }
 
-    function CollectionStrip() {
+    function CollectionsCarousel() {
         const totais = new Map();
-        contexto.produtos.forEach(p => totais.set(chave(p.colecaoId), (totais.get(chave(p.colecaoId)) || 0) + 1));
-        const botoes = [{ id: "todos", nome: "Todos", icone: "layout-grid", cor: "#6D4AFF", total: contexto.produtos.length }, ...contexto.colecoes.map(c => ({ ...c, total: totais.get(chave(c.id)) || 0 }))];
-        return `<div class="mobileProductSectionTitle"><strong>Coleções</strong><button onclick="ProdutosMobile.abrirColecoes()">Ver todas</button></div><div class="mobileProductCollections" aria-label="Filtrar por coleção">${botoes.map(c => `<button class="${estado.colecaoId === chave(c.id) ? "isActive" : ""}" style="--collection:${esc(c.cor || "#6D4AFF")}" onclick="ProdutosMobile.colecao('${esc(c.id)}')"><span><i data-lucide="${esc(c.icone || "boxes")}"></i></span><strong>${esc(c.nome)}</strong><small>${c.total}</small></button>`).join("")}</div>`;
+        contexto.produtos.filter(p => p.ativo !== false && !p.arquivado).forEach(p => totais.set(chave(p.colecaoId), (totais.get(chave(p.colecaoId)) || 0) + 1));
+        const principais = contexto.colecoes.filter(c => normalizarTexto(c.nome) !== "todos").slice(0, 4).map(c => ({ ...c, total: totais.get(chave(c.id)) || 0 }));
+        const botoes = [{ id: "todos", nome: "Todos", icone: "layout-grid", cor: "#6D4AFF", total: contexto.produtos.filter(p => p.ativo !== false && !p.arquivado).length }, ...principais];
+        return `<div class="mobileProductCollections" aria-label="Filtrar por coleção">${botoes.map(c => `<button class="${estado.colecaoId === chave(c.id) ? "isActive" : ""}" style="--collection:${esc(c.cor || "#6D4AFF")}" onclick="ProdutosMobile.colecao('${esc(c.id)}')"><span><i data-lucide="${esc(c.icone || "boxes")}"></i></span><strong>${esc(c.nome)}</strong><small>${c.total}</small></button>`).join("")}<button class="mobileCollectionMore" onclick="ProdutosMobile.abrirColecoes()"><span><i data-lucide="ellipsis"></i></span><strong>Mais</strong><small>${Math.max(0, contexto.colecoes.length - principais.length) || ""}</small></button></div>`;
     }
 
-    function QuickFilters(listaTotal) {
+    function ProductFilterChips(listaTotal) {
         const counts = contagens(listaTotal);
-        const chips = [["todos", "Todos"], ["vendidos", "Mais vendidos"], ["favoritos", "Favoritos"], ["baixo", "Estoque baixo"], ["sem_estoque", "Sem estoque"], ["produzindo", "Produzindo"], ["arquivados", "Arquivados"]];
-        return `<div class="mobileProductQuickFilters">${chips.map(([id, label]) => `<button class="${estado.filtro === id ? "isActive" : ""}" onclick="ProdutosMobile.filtro('${id}')">${label}<b>${counts[id]}</b></button>`).join("")}<button class="${filtrosAtivos() ? "isActive" : ""}" onclick="ProdutosMobile.abrirFiltros()"><i data-lucide="sliders-horizontal"></i> Filtros${filtrosAtivos() ? `<b>${filtrosAtivos()}</b>` : ""}</button></div>`;
+        const chips = [["vendidos", "Mais vendidos", "flame"], ["favoritos", "Favoritos", "star"], ["baixo", "Estoque baixo", "triangle-alert"], ["sem_estoque", "Sem estoque", "package-x"], ["produzindo", "Produzindo", "factory"], ["arquivados", "Arquivados", "archive"]];
+        return `<div class="mobileProductQuickFilters">${chips.map(([id, label, icone]) => `<button class="${estado.filtro === id ? "isActive" : ""}" onclick="ProdutosMobile.filtro('${id}')"><i data-lucide="${icone}"></i>${label}<b>${counts[id]}</b></button>`).join("")}</div>`;
     }
 
     function statusProduto(p) {
@@ -153,19 +155,33 @@
     }
 
     function ProductImage(p) {
-        const imagem = p.imagem || p.foto || p.image || p.thumbnail || "";
-        return `<div class="mobileProductImage">${imagem ? `<img src="${esc(imagem)}" alt="" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>` : "<span>"}<i data-lucide="box"></i></span></div>`;
+        const imagem = p.imagem || p.foto || p.imagemUrl || p.image || p.thumbnail || "";
+        return `<div class="mobileProductImage">${imagem ? `<img src="${esc(imagem)}" alt="${esc(p.nome || "Produto")}" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>` : "<span>"}<i data-lucide="box"></i></span><button class="mobileProductFavorite ${p.favorito ? "isActive" : ""}" onclick="event.stopPropagation();ProdutosMobile.favorito('${esc(p.id)}')" aria-label="${p.favorito ? "Remover dos favoritos" : "Favoritar produto"}"><i data-lucide="star"></i></button></div>`;
     }
 
-    function ProductCard(p) {
+    function MobileProductCard(p) {
         const [status, classe, icone] = statusProduto(p), aberto = estado.expandido === chave(p.id);
         return `<div class="mobileProductSwipe" data-product-swipe="${esc(p.id)}"><div class="swipeAction swipeProduce"><i data-lucide="factory"></i><span>Produzir</span></div><div class="swipeAction swipeEdit"><i data-lucide="pencil"></i><span>Editar</span></div><article class="mobileProductCard ${aberto ? "isExpanded" : ""}" onclick="ProdutosMobile.expandir('${esc(p.id)}')">
-            <header>${ProductImage(p)}<div class="mobileProductIdentity"><div><h3>${esc(p.nome || "Produto sem nome")}</h3><button class="mobileProductFavorite ${p.favorito ? "isActive" : ""}" onclick="event.stopPropagation();ProdutosMobile.favorito('${esc(p.id)}')" aria-label="Favoritar produto"><i data-lucide="star"></i></button></div><p>${esc(p.codigo || "Sem SKU")} · ${esc(p.colecao?.nome || "Geral")}</p><span class="mobileProductStatus ${classe}" onclick="${p.producao ? `event.stopPropagation();ProdutosMobile.verProducao('${esc(p.id)}')` : ""}"><i data-lucide="${icone}"></i>${esc(status)}</span></div><button class="mobileProductMore" onclick="event.stopPropagation();ProdutosMobile.menu('${esc(p.id)}')" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></header>
-            <section class="mobileProductFacts"><div><span>Venda</span><strong>${Utils.moeda(p.preco)}</strong></div><div><span>Lucro</span><strong class="${p.lucro < 0 ? "negative" : ""}">${Utils.moeda(p.lucro)}</strong></div><div><span>Estoque</span><strong>${p.qtdEstoque} un.</strong></div></section>
-            <div class="mobileProductMeta"><span><i data-lucide="timer"></i>${formatarTempo(p.tempoMin)}</span><span><i data-lucide="weight"></i>${num(p.peso).toFixed(num(p.peso) % 1 ? 1 : 0)} g</span><span><i data-lucide="spool"></i>${esc(p.material || "Material não informado")}</span></div>
-            <footer><button onclick="event.stopPropagation();ProdutosMobile.produzir('${esc(p.id)}')"><i data-lucide="factory"></i> Produzir</button><button class="primary" onclick="event.stopPropagation();ProdutosMobile.expandir('${esc(p.id)}')">${aberto ? "Recolher" : "Abrir"}<i data-lucide="chevron-${aberto ? "up" : "down"}"></i></button></footer>
+            <div class="mobileProductCardMain">${ProductImage(p)}<div class="mobileProductIdentity"><h3>${esc(p.nome || "Produto sem nome")}</h3><p>${esc(p.codigo || "Sem SKU")} <b>•</b> ${esc(p.colecao?.nome || "Geral")}</p><span class="mobileProductStatus ${classe}" onclick="${p.producao ? `event.stopPropagation();ProdutosMobile.verProducao('${esc(p.id)}')` : ""}"><i data-lucide="${icone}"></i>${esc(status)}</span><div class="mobileProductValues"><strong>${Utils.moeda(p.preco)}</strong><span class="${p.lucro < 0 ? "negative" : ""}">Lucro ${Utils.moeda(p.lucro)}</span></div></div><div class="mobileProductCardActions"><button class="mobileProductMore" onclick="event.stopPropagation();ProdutosMobile.menu('${esc(p.id)}')" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button><button class="mobileProductProduce" onclick="event.stopPropagation();ProdutosMobile.produzir('${esc(p.id)}')"><i data-lucide="circle-play"></i> Produzir</button></div></div>
+            <footer class="mobileProductMetrics"><div><i data-lucide="box"></i><span><strong>${p.qtdEstoque} un.</strong><small>Estoque</small></span></div><div><i data-lucide="clock-3"></i><span><strong>${formatarTempo(p.tempoMin)}</strong><small>Impressão</small></span></div><div><i data-lucide="weight"></i><span><strong>${num(p.peso).toFixed(num(p.peso) % 1 ? 1 : 0)}g</strong><small>Filamento</small></span></div><div><i data-lucide="circle-dollar-sign"></i><span><strong>${Utils.moeda(p.custo)}</strong><small>Custo</small></span></div></footer>
             ${aberto ? ExpandedProduct(p) : ""}
         </article></div>`;
+    }
+
+    function MobileProductsHeader(total) {
+        return `<header class="mobileProductsHeader"><div><h1>Produtos</h1><p><strong>${total}</strong> produto${total === 1 ? "" : "s"} cadastrado${total === 1 ? "" : "s"}</p></div><button onclick="ProdutosMobile.abrirFiltros()"><i data-lucide="list-filter"></i> Filtrar${filtrosAtivos() ? `<b>${filtrosAtivos()}</b>` : ""}</button></header>`;
+    }
+
+    function MobileProductsSearch() {
+        return `<label class="mobileProductSearch"><i data-lucide="search"></i><input id="mobileProductSearch" value="${esc(estado.busca)}" placeholder="Buscar por nome, SKU ou coleção" autocomplete="off" oninput="ProdutosMobile.buscar(this.value)"><button class="${estado.busca ? "isVisible" : ""}" onclick="ProdutosMobile.buscar('');document.getElementById('mobileProductSearch')?.focus()" type="button" aria-label="Limpar busca"><i data-lucide="x"></i></button></label>`;
+    }
+
+    function ProductSorting(total) {
+        return `<div class="mobileProductListHead"><span><strong>${total}</strong> produto${total === 1 ? "" : "s"}</span><button onclick="ProdutosMobile.abrirOrdenacao()"><i data-lucide="arrow-up-down"></i><span>Ordenar: ${rotuloOrdem()}</span><i data-lucide="chevron-down"></i></button></div>`;
+    }
+
+    function MobileProductsSkeleton() {
+        return `<div class="mobileProductsSkeleton" aria-label="Carregando produtos">${Array.from({ length: 3 }, () => `<span></span>`).join("")}</div>`;
     }
 
     function ExpandedProduct(p) {
@@ -188,11 +204,9 @@
         const lista = obterLista();
         const todos = contexto.produtos.map(p => normalizarProduto(p, contexto));
         const visiveis = lista.slice(0, estado.pagina * estado.porPagina);
-        app.innerHTML = `<main class="mobileProductsPage"><header class="mobileProductsHeader"><span><i data-lucide="boxes"></i></span><div><h1>Produtos</h1><p>Gerencie seu catálogo e sua produção.</p></div></header>
-            <label class="mobileProductSearch"><i data-lucide="search"></i><input id="mobileProductSearch" value="${esc(estado.busca)}" placeholder="Buscar por nome, SKU ou coleção" autocomplete="off" oninput="ProdutosMobile.buscar(this.value)"><button class="${estado.busca ? "isVisible" : ""}" onclick="ProdutosMobile.buscar('');document.getElementById('mobileProductSearch')?.focus()" type="button" aria-label="Limpar busca"><i data-lucide="x"></i></button></label>
-            ${CollectionStrip()}${QuickFilters(todos)}
-            <div class="mobileProductListHead"><span><strong>${lista.length}</strong> produto${lista.length === 1 ? "" : "s"}</span><button onclick="ProdutosMobile.abrirOrdenacao()"><i data-lucide="arrow-up-down"></i>${rotuloOrdem()}</button></div>
-            <section id="listaProdutos" class="mobileProductsList">${visiveis.length ? visiveis.map(ProductCard).join("") : EmptyState()}</section>
+        app.innerHTML = `<main class="mobileProductsPage">${MobileProductsHeader(contagens(todos).todos)}
+            ${MobileProductsSearch()}${CollectionsCarousel()}${ProductFilterChips(todos)}${ProductSorting(lista.length)}
+            <section id="listaProdutos" class="mobileProductsList">${visiveis.length ? visiveis.map(MobileProductCard).join("") : EmptyState()}</section>
             ${visiveis.length < lista.length ? `<button class="mobileProductsLoadMore" onclick="ProdutosMobile.mais()">Carregar mais <span>${lista.length - visiveis.length}</span></button>` : ""}
         </main>`;
         requestAnimationFrame(() => { if (restaurarScroll) window.scrollTo({ top: estado.scroll, behavior: "instant" }); ativarSwipes(); });
@@ -227,7 +241,7 @@
         render: renderMobile,
         buscar(valor) { estado.busca = valor; estado.pagina = 1; clearTimeout(buscaTimer); buscaTimer = setTimeout(() => renderMobile(false), 220); },
         colecao(id) { estado.colecaoId = chave(id); estado.pagina = 1; estado.scroll = 0; renderMobile(false); },
-        filtro(id) { estado.filtro = id; estado.pagina = 1; renderMobile(false); },
+        filtro(id) { estado.filtro = estado.filtro === id ? "todos" : id; estado.pagina = 1; renderMobile(false); },
         mais() { estado.pagina++; estado.scroll = window.scrollY; renderMobile(); },
         expandir(id) { estado.scroll = window.scrollY; estado.expandido = estado.expandido === chave(id) ? "" : chave(id); renderMobile(); },
         favorito(id) { const p = Storage.buscarProdutoPorId(id); if (!p) return Toast.show("Produto não encontrado.", "error"); p.favorito = !Boolean(p.favorito); p.atualizadoEm = new Date().toISOString(); Storage.salvarProduto(p); estado.scroll = window.scrollY; renderMobile(); },
@@ -235,7 +249,11 @@
         produzir(id) { estado.scroll = window.scrollY; abrirProducaoEstoque(); requestAnimationFrame(() => { const select = document.getElementById("produtoEstoqueProducao"); if (select) { select.value = id; atualizarPreviaProducaoEstoque(); } }); },
         verProducao(id) { sessionStorage.setItem("primedocs:producao:produto", id); navegar("producao", { produtoId: id }); },
         limpar() { estado.colecaoId = "todos"; estado.filtro = "todos"; estado.busca = ""; estado.avancado = { categoria: "", material: "", cor: "", ativo: "todos", precoMin: "", precoMax: "" }; estado.pagina = 1; renderMobile(false); },
-        menu(id) { const p = Storage.buscarProdutoPorId(id); if (!p) return; abrirSheet(p.nome, `<div class="compactActionMenu"><button onclick="Modal.fechar();ProdutosMobile.produzir('${esc(id)}')"><i data-lucide="factory"></i><span><strong>Produzir</strong><small>Criar produção para estoque</small></span></button><button onclick="Modal.fechar();ProdutosMobile.editar('${esc(id)}')"><i data-lucide="pencil"></i><span><strong>Editar</strong><small>Alterar cadastro e receita</small></span></button><button onclick="Modal.fechar();abrirDetalhesProduto('${esc(id)}')"><i data-lucide="eye"></i><span><strong>Ver detalhes</strong><small>Abrir perfil completo</small></span></button><button onclick="Modal.fechar();ProdutosMobile.favorito('${esc(id)}')"><i data-lucide="star"></i><span><strong>${p.favorito ? "Remover favorito" : "Favoritar"}</strong><small>Atualizar destaque do catálogo</small></span></button><button class="danger" onclick="Modal.fechar();pedirExclusaoProduto('${esc(id)}')"><i data-lucide="trash-2"></i><span><strong>Excluir</strong><small>Remover produto do catálogo</small></span></button></div>`); },
+        menu(id) { const p = Storage.buscarProdutoPorId(id); if (!p) return; abrirSheet(p.nome, `<div class="compactActionMenu"><button onclick="Modal.fechar();abrirDetalhesProduto('${esc(id)}')"><i data-lucide="eye"></i><span><strong>Abrir</strong><small>Ver perfil completo</small></span></button><button onclick="Modal.fechar();ProdutosMobile.editar('${esc(id)}')"><i data-lucide="pencil"></i><span><strong>Editar</strong><small>Alterar cadastro e receita</small></span></button><button onclick="Modal.fechar();ProdutosMobile.produzir('${esc(id)}')"><i data-lucide="factory"></i><span><strong>Produzir</strong><small>Criar produção para estoque</small></span></button><button onclick="Modal.fechar();ProdutosMobile.duplicar('${esc(id)}')"><i data-lucide="copy"></i><span><strong>Duplicar</strong><small>Criar uma cópia editável</small></span></button><button onclick="Modal.fechar();ProdutosMobile.abrirMoverColecao('${esc(id)}')"><i data-lucide="folder-input"></i><span><strong>Mover coleção</strong><small>Organizar em outra coleção</small></span></button><button onclick="Modal.fechar();ProdutosMobile.favorito('${esc(id)}')"><i data-lucide="star"></i><span><strong>${p.favorito ? "Remover favorito" : "Favorito"}</strong><small>Atualizar destaque do catálogo</small></span></button><button onclick="Modal.fechar();ProdutosMobile.arquivar('${esc(id)}')"><i data-lucide="archive"></i><span><strong>${p.arquivado ? "Desarquivar" : "Arquivar"}</strong><small>${p.arquivado ? "Devolver ao catálogo" : "Ocultar sem excluir"}</small></span></button><button class="danger" onclick="Modal.fechar();pedirExclusaoProduto('${esc(id)}')"><i data-lucide="trash-2"></i><span><strong>Excluir</strong><small>Remover produto do catálogo</small></span></button></div>`); },
+        duplicar(id) { const original = Storage.buscarProdutoPorId(id); if (!original) return Toast.show("Produto não encontrado.", "error"); const agora = new Date().toISOString(); const copia = { ...original, id: `prod-${Date.now()}`, nome: `${original.nome || "Produto"} (cópia)`, codigo: original.codigo ? `${original.codigo}-COPIA` : "", favorito: false, arquivado: false, ativo: true, criadoEm: agora, atualizadoEm: agora }; Storage.salvarProduto(copia); estado.scroll = window.scrollY; renderMobile(); Toast.show("Produto duplicado com sucesso.", "success"); },
+        abrirMoverColecao(id) { const p = Storage.buscarProdutoPorId(id); if (!p) return; abrirSheet("Mover coleção", `<div class="mobileMoveCollection"><p>Escolha a nova coleção de <strong>${esc(p.nome)}</strong>.</p>${contexto.colecoes.map(c => `<button class="${chave(p.colecaoId) === chave(c.id) ? "isActive" : ""}" onclick="ProdutosMobile.moverColecao('${esc(id)}','${esc(c.id)}')"><span style="--collection:${esc(c.cor || "#6D4AFF")}"><i data-lucide="${esc(c.icone || "boxes")}"></i></span><strong>${esc(c.nome)}</strong>${chave(p.colecaoId) === chave(c.id) ? '<i data-lucide="check"></i>' : '<i data-lucide="chevron-right"></i>'}</button>`).join("")}</div>`); },
+        moverColecao(id, colecaoId) { const p = Storage.buscarProdutoPorId(id), colecao = Storage.buscarColecaoProdutoPorId?.(colecaoId) || contexto.colecoesPorId.get(chave(colecaoId)); if (!p || !colecao) return Toast.show("Não foi possível mover o produto.", "error"); p.colecaoId = colecaoId; p.atualizadoEm = new Date().toISOString(); Storage.salvarProduto(p); Modal.fechar(); renderMobile(false); Toast.show(`Produto movido para ${colecao.nome}.`, "success"); },
+        arquivar(id) { const p = Storage.buscarProdutoPorId(id); if (!p) return; p.arquivado = !Boolean(p.arquivado); p.atualizadoEm = new Date().toISOString(); Storage.salvarProduto(p); renderMobile(false); Toast.show(p.arquivado ? "Produto arquivado." : "Produto desarquivado.", "success"); },
         abrirColecoes() { abrirSheet("Coleções", `<label class="mobileSheetSearch"><i data-lucide="search"></i><input placeholder="Buscar coleção" oninput="ProdutosMobile.filtrarColecoes(this.value)"></label><div id="mobileAllCollections" class="mobileAllCollections">${contexto.colecoes.map(c => `<button data-collection-name="${esc(normalizarTexto(c.nome))}" onclick="Modal.fechar();ProdutosMobile.colecao('${esc(c.id)}')"><span style="--collection:${esc(c.cor || "#6D4AFF")}"><i data-lucide="${esc(c.icone || "boxes")}"></i></span><strong>${esc(c.nome)}</strong><i data-lucide="chevron-right"></i></button>`).join("")}</div><button class="btn mobileSheetPrimary" onclick="Modal.fechar();abrirModalColecaoProduto()"><i data-lucide="folder-plus"></i> Nova coleção</button>`); },
         filtrarColecoes(valor) { const termo = normalizarTexto(valor); document.querySelectorAll("#mobileAllCollections [data-collection-name]").forEach(el => el.hidden = !el.dataset.collectionName.includes(termo)); },
         abrirOrdenacao() { const opcoes = [["nome_az", "Nome A–Z"], ["nome_za", "Nome Z–A"], ["vendidos", "Mais vendidos"], ["recentes", "Mais recentes"], ["antigos", "Mais antigos"], ["preco_maior", "Maior preço"], ["preco_menor", "Menor preço"], ["lucro_maior", "Maior lucro"], ["margem_maior", "Maior margem"], ["estoque_maior", "Maior estoque"], ["estoque_menor", "Menor estoque"], ["tempo_maior", "Maior tempo"], ["peso_maior", "Maior peso"], ["colecao", "Coleção"]]; abrirSheet("Ordenar produtos", `<div class="mobileSortOptions">${opcoes.map(([id, label]) => `<button class="${estado.ordem === id ? "isActive" : ""}" onclick="ProdutosMobile.ordenar('${id}')"><span>${label}</span>${estado.ordem === id ? '<i data-lucide="check"></i>' : ""}</button>`).join("")}</div>`); },

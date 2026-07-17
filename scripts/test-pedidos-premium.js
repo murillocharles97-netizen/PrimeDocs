@@ -75,7 +75,7 @@ teste("21. tema escuro possui tratamento próprio",()=>ok(css.includes("body.dar
 teste("22. movimentos reduzidos são respeitados",()=>ok(css.includes("prefers-reduced-motion")));
 teste("23. CSS e JS estão carregados no índice",()=>ok(index.includes("css/pedidos-premium.css")&&index.includes("js/pedidos-premium.js")));
 teste("24. módulo carrega depois das páginas de pedidos e produção",()=>ok(index.indexOf("js/pedidos-premium.js")>index.indexOf("pages/producao.js")));
-teste("25. service worker usa cache novo e inclui a tela",()=>ok(sw.includes('primedocs-v49')&&sw.includes("pedidos-premium.css")&&sw.includes("pedidos-premium.js")));
+teste("25. service worker usa cache novo e inclui a tela",()=>ok(sw.includes('primedocs-v50')&&sw.includes("pedidos-premium.css")&&sw.includes("pedidos-premium.js")));
 teste("26. resumo de pagos aplica filtro de pagamento real",()=>{PedidosPremium.abrirResumo("pagos");ok(nodes.ordersPremiumWorkspace.innerHTML.includes("João Adidas")&&!nodes.ordersPremiumWorkspace.innerHTML.includes("Pedro Mesquita"))});
 
 console.log(`\n${passou} verificações da tela Pedidos concluídas.`);

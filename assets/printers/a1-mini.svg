@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 112" role="img" aria-label="Ilustração de impressora 3D compacta">
+  <defs><linearGradient id="a" x1="0" x2="1"><stop stop-color="#6d4aff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
+  <path d="M18 94h61l7 9H10z" fill="#182134"/><path d="M24 17h8v67h-8z" fill="#d7dce7"/><path d="M26 13h52v8H26z" fill="#eef1f6"/>
+  <path d="M66 17h8v66h-8z" fill="#b8c0ce"/><path d="M32 35h36v5H32z" fill="#6c778b"/><path d="M43 37h14v18H43z" fill="#263147"/>
+  <path d="M39 52h22l-4 9H43z" fill="url(#a)"/><path d="M29 78h47v8H29z" fill="#48546a"/><path d="M34 76h37L58 59H47z" fill="#22d3ee" opacity=".62"/>
+  <rect x="16" y="84" width="65" height="12" rx="3" fill="#273247"/><circle cx="23" cy="90" r="2.3" fill="#22d3ee"/>
+</svg>

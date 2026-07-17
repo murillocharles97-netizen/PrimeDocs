@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 112" role="img" aria-label="Ilustração de impressora 3D aberta">
+  <defs><linearGradient id="b" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#6d4aff"/></linearGradient></defs>
+  <path d="M10 99h76l-5-10H15z" fill="#151e31"/><path d="M17 12h9v75h-9zm55 0h9v75h-9z" fill="#cbd2df"/>
+  <path d="M13 8h72v10H13z" fill="#e8ecf3"/><path d="M25 29h48v6H25z" fill="#687489"/><path d="M42 31h15v23H42z" fill="#252f43"/>
+  <path d="M38 50h23l-4 10H42z" fill="url(#b)"/><path d="M27 80h47v8H27z" fill="#465267"/><path d="M32 78h37L56 57H45z" fill="#8b5cf6" opacity=".7"/>
+  <rect x="12" y="87" width="74" height="12" rx="3" fill="#273247"/><circle cx="76" cy="93" r="2.4" fill="#22d3ee"/>
+</svg>

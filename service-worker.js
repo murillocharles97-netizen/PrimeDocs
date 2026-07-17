@@ -1,4 +1,4 @@
-const CACHE_VERSION = "primedocs-v45";
+const CACHE_VERSION = "primedocs-v47";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -12,6 +12,8 @@ const APP_SHELL = [
     "./assets/icon-maskable-512.png",
     "./css/style.css",
     "./css/design-system.css",
+    "./css/operations-center.css",
+    "./css/dashboard-premium.css",
     "./js/app.js",
     "./js/pdf.js",
     "./js/router.js",
@@ -22,6 +24,8 @@ const APP_SHELL = [
     "./js/calculadoraCustos.js",
     "./js/filamentos-integracao.js",
     "./js/producao.js",
+    "./js/central-operacoes.js",
+    "./js/dashboard-premium.js",
     "./js/firebase.js",
     "./js/backup.js",
     "./js/sync.js",
@@ -53,7 +57,11 @@ const APP_SHELL = [
     "./pages/impressoras.js",
     "./pages/clientes.js",
     "./pages/relatorios.js",
-    "./pages/financeiro.js"
+    "./pages/financeiro.js",
+    "./assets/printers/generic-printer.svg",
+    "./assets/printers/a1-mini.svg",
+    "./assets/printers/a1.svg",
+    "./assets/printers/enclosed-printer.svg"
 ];
 
 const EXTERNAL_RESOURCES = [

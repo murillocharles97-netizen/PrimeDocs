@@ -69,6 +69,7 @@ function renderConfiguracoes() {
             </section>
 
             ${renderCardDashboardConfiguracoes()}
+            ${renderCardImpressorasConfiguracoes()}
             ${renderCardCRMConfiguracoes()}
             ${renderCardCustosConfiguracoes()}
             ${renderCardBackupConfiguracoes()}
@@ -76,6 +77,12 @@ function renderConfiguracoes() {
     `;
 
     lucide.createIcons();
+}
+
+function renderCardImpressorasConfiguracoes() {
+    const impressoras = (Storage.listarImpressoras?.() || []).filter(impressora => impressora.ativa !== false);
+    const operando = impressoras.filter(impressora => ["imprimindo", "ocupada", "pausada"].includes(String(impressora.status || "").toLowerCase())).length;
+    return `<section class="settingsCard settingsPrinters"><div class="settingsCardHeader"><div class="settingsCardIcon"><i data-lucide="printer"></i></div><div><span>FÁBRICA</span><h3>Impressoras</h3><p>Cadastre máquinas, capacidade, manutenção e disponibilidade.</p></div><button class="btn settingsHeaderAction" type="button" onclick="navegar('impressoras')"><i data-lucide="settings-2"></i> Gerenciar</button></div><div class="settingsPrinterSummary"><div><strong>${impressoras.length}</strong><span>Ativas</span></div><div><strong>${operando}</strong><span>Operando</span></div><div><strong>${Math.max(0, impressoras.length - operando)}</strong><span>Disponíveis</span></div></div><button class="btnSecondary settingsPrinterAction" type="button" onclick="navegar('impressoras')"><i data-lucide="arrow-right"></i> Abrir gerenciamento de impressoras</button></section>`;
 }
 
 function renderCardCRMConfiguracoes(){const c=Storage.carregarConfiguracoes().crm||{};return `<section class="settingsCard settingsCrm"><div class="settingsCardHeader"><div class="settingsCardIcon"><i data-lucide="contact-round"></i></div><div><span>RELACIONAMENTO</span><h3>CRM</h3><p>Critérios usados para destacar clientes inativos, em risco e VIP.</p></div></div><div class="costSettingsGrid"><label class="inputGroup"><span>Dias para cliente inativo</span><input id="crmDiasInativo" type="number" min="1" value="${Number(c.diasClienteInativo||120)}"></label><label class="inputGroup"><span>Dias para cliente em risco</span><input id="crmDiasRisco" type="number" min="1" value="${Number(c.diasClienteRisco||60)}"></label><label class="inputGroup"><span>Valor mínimo para VIP</span><input id="crmValorVip" type="number" min="0" step="0.01" value="${Number(c.valorMinimoVip||2000)}"></label><label class="inputGroup"><span>Pedidos mínimos para VIP</span><input id="crmPedidosVip" type="number" min="1" value="${Number(c.pedidosMinimoVip||8)}"></label><label class="inputGroup"><span>Lembrete padrão de retorno (dias)</span><input id="crmLembreteDias" type="number" min="1" value="${Number(c.lembreteRetornoDias||3)}"></label></div><button class="btn settingsSaveButton" onclick="salvarConfigCRM()"><i data-lucide="save"></i> Salvar critérios do CRM</button></section>`;}

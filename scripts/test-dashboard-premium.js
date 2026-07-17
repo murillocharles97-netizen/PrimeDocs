@@ -55,9 +55,9 @@ const sw=fs.readFileSync(path.join(__dirname,"..","service-worker.js"),"utf8");
 const index=fs.readFileSync(path.join(__dirname,"..","index.html"),"utf8");
 
 teste("1. nova camada substitui o renderizador executivo",()=>ok(renderDashboardExecutivo===DashboardPremium.render));
-teste("2. cabeçalho executivo renderizado",()=>ok(markup.includes("DASHBOARD EXECUTIVO")&&markup.includes("Visão geral")));
-teste("2b. hero usa nome formatado e ações reais",()=>ok(markup.includes("Bom dia, Murillo")&&markup.includes("Ações pendentes")&&markup.includes(">1<")));
-teste("3. banner de insight dinâmico",()=>ok(markup.includes("dashboardInsight")&&markup.includes("Faturamento cresceu")));
+teste("2. cabeçalho executivo único e compacto",()=>ok(markup.includes("executiveDashboardHeader")&&markup.includes("Visão geral")&&!markup.includes("DASHBOARD EXECUTIVO")));
+teste("2b. saudação e card isolado de ações foram removidos",()=>ok(!markup.includes("premiumExecutiveHero")&&!markup.includes("Bom dia, Murillo")&&!markup.includes("VISÃO DO PERÍODO")));
+teste("3. insight de crescimento está integrado ao cabeçalho",()=>ok(!markup.includes("dashboardInsight")&&markup.includes("executiveHeaderInsight positive")&&markup.includes("Faturamento cresceu")));
 teste("4. somente quatro KPIs principais",()=>ok((markup.match(/class="executiveKpi /g)||[]).length===4));
 teste("5. faturamento e lucro no gráfico principal",()=>ok(markup.includes("Faturamento e lucro")&&markup.includes("revenueLine")&&markup.includes("profitLine")));
 teste("6. quatro faixas de gráfico disponíveis",()=>ok(["7 dias","30 dias","6 meses","12 meses"].every(v=>markup.includes(v))));
@@ -83,5 +83,18 @@ teste("25. impressão preparada",()=>ok(css.includes("@media print")));
 teste("26. novos arquivos entram no cache offline",()=>ok(sw.includes("dashboard-premium.css")&&sw.includes("dashboard-premium.js")));
 teste("27. ordem de carregamento preserva app por último",()=>ok(index.indexOf("dashboard-premium.js")>index.indexOf("pages/dashboard.js")&&index.indexOf("dashboard-premium.js")<index.indexOf("js/app.js")));
 teste("28. página antiga de cálculos permanece intacta",()=>ok(!fs.readFileSync(path.join(__dirname,"..","pages","dashboard.js"),"utf8").includes("premiumDashboard")));
+
+const contextoBase=DashboardPremium._montarContexto();
+const cabecalho=alteracoes=>DashboardPremium._cabecalho({...contextoBase,...alteracoes,financeiro:{...contextoBase.financeiro,...(alteracoes.financeiro||{})}});
+teste("29. comparação positiva usa número calculado",()=>ok(cabecalho({atual:{...contextoBase.atual,faturamento:1200},previo:{...contextoBase.previo,faturamento:800}}).includes("cresceu <strong>50%</strong>")));
+teste("30. comparação negativa usa tom e texto corretos",()=>{const h=cabecalho({atual:{...contextoBase.atual,faturamento:400},previo:{...contextoBase.previo,faturamento:800}});ok(h.includes("executiveHeaderInsight negative")&&h.includes("recuou <strong>50%</strong>"))});
+teste("31. comparação indisponível não inventa percentual",()=>{const h=cabecalho({atual:{...contextoBase.atual,faturamento:1000},previo:{...contextoBase.previo,faturamento:0},financeiro:{atrasados:0},acoesPendentes:0});ok(!h.includes("Faturamento cresceu")&&h.includes("Dados atualizados para o período selecionado."))});
+teste("32. ausência de ações pendentes remove somente esse insight",()=>{const h=cabecalho({acoesPendentes:0});ok(!h.includes("ações pendentes")&&h.includes("Faturamento cresceu"))});
+teste("33. ausência de atraso remove somente o alerta financeiro",()=>{const h=cabecalho({financeiro:{atrasados:0}});ok(!h.includes("em atraso")&&h.includes("ação pendente"))});
+teste("34. insights possuem destinos operacionais",()=>{const h=cabecalho({});ok(h.includes("rolarParaGrafico()")&&h.includes("abrirFinanceiroAtrasado()")&&h.includes("abrirRota('home')"))});
+teste("35. exportação mobile usa menu compacto",()=>ok(markup.includes("exportMobileIcon")&&css.includes("grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) 44px")));
+teste("36. cabeçalho respeita altura desktop solicitada",()=>ok(css.includes("min-height: 126px")&&css.includes("executiveDashboardHeader")));
+teste("37. breakpoints 320, 390, tablet e desktop permanecem cobertos",()=>ok(css.includes("max-width: 350px")&&css.includes("max-width: 430px")&&css.includes("max-width: 760px")&&css.includes("max-width: 1100px")));
+teste("38. versão visual e cache do PWA foram renovados",()=>ok(index.includes("dashboard-premium.css?v=2")&&index.includes("dashboard-premium.js?v=2")&&sw.includes("primedocs-v49")));
 
 if(!process.exitCode)console.log(`\n${passou} verificações do Dashboard Premium aprovadas.`);

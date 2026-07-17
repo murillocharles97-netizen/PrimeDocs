@@ -14,13 +14,6 @@
     const slug = valor => String(valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const total = (lista, campo) => (lista || []).reduce((soma, item) => soma + num(typeof campo === "function" ? campo(item) : item[campo]), 0);
 
-    function nomeUsuario() {
-        const usuario = window.PrimeFirebase?.auth?.currentUser;
-        const candidato = usuario?.displayName || usuario?.email?.split("@")[0] || "";
-        const primeiro = String(candidato).trim().split(/[\s._-]+/)[0].replace(/\d+$/g, "");
-        return primeiro ? primeiro.charAt(0).toLocaleUpperCase("pt-BR") + primeiro.slice(1).toLocaleLowerCase("pt-BR") : "";
-    }
-
     function montarContexto() {
         const intervalo = obterIntervaloDashboardExecutivo();
         const dados = aplicarFiltrosDadosDashboard(carregarDadosDashboardExecutivo());
@@ -39,28 +32,25 @@
         return { intervalo, dados, anterior, atual, previo, financeiro, pedidos, consignado, filamentos, rankings, graficos, metas, acoesPendentes, agora };
     }
 
-    function DashboardHeader(ctx) {
+    function ExecutiveDashboardHeader(ctx) {
         const periodo = ctx.agora.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-        return `<header class="premiumDashboardHeader"><div><span>DASHBOARD EXECUTIVO</span><h1>Dashboard</h1><p>Visão geral de ${esc(periodo.charAt(0).toLocaleUpperCase("pt-BR") + periodo.slice(1))}</p></div><div class="premiumDashboardActions"><button type="button" onclick="abrirFiltrosDashboardExecutivo()"><i data-lucide="calendar-days"></i><span>${esc(rotuloPeriodoDashboardExecutivo())}</span><i data-lucide="chevron-down"></i></button><button type="button" onclick="abrirFiltrosDashboardExecutivo()"><i data-lucide="sliders-horizontal"></i><span>Filtros</span></button><button class="is-primary" type="button" onclick="DashboardPremium.abrirExportacao()"><i data-lucide="download"></i><span>Exportar</span></button></div></header>${renderFiltrosAtivosDashboard()}`;
-    }
-
-    function ExecutiveHero(ctx) {
-        const hora = ctx.agora.getHours();
-        const cumprimento = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
-        const nome = nomeUsuario();
-        const data = ctx.agora.toLocaleDateString("pt-BR", { weekday:"long", day:"2-digit", month:"long" });
-        return `<section class="premiumExecutiveHero"><div><span>VISÃO DO PERÍODO</span><h2>${esc(cumprimento)}${nome ? `, ${esc(nome)}` : ""}! <i aria-hidden="true">👋</i></h2><p>Hoje é ${esc(data)} · ${esc(formatarPeriodoDashboard(ctx.intervalo))}</p></div><aside><span>Ações pendentes</span><strong>${ctx.acoesPendentes}</strong><button type="button" onclick="DashboardPremium.abrirRota('home')">Ver operações <i data-lucide="arrow-right"></i></button></aside></section>`;
-    }
-
-    function InsightBanner(ctx) {
+        const periodoFormatado = periodo.charAt(0).toLocaleUpperCase("pt-BR") + periodo.slice(1);
         const comparacao = calcularComparacaoDashboard(ctx.atual.faturamento, ctx.previo.faturamento);
-        const atraso = ctx.financeiro.atrasados;
-        const principal = comparacao.percentual !== 0
-            ? { icone: comparacao.percentual >= 0 ? "trending-up" : "trending-down", titulo: `Faturamento ${comparacao.percentual >= 0 ? "cresceu" : "recuou"} ${Math.abs(comparacao.percentual).toFixed(0)}%`, descricao: "em relação ao período anterior.", tom: comparacao.percentual >= 0 ? "positive" : "warning" }
-            : atraso > 0
-                ? { icone: "clock-alert", titulo: `Você tem ${moeda(atraso)} em atraso`, descricao: "para receber.", tom: "warning" }
-                : { icone: "sparkles", titulo: "Seus indicadores estão atualizados", descricao: "Acompanhe os destaques do período abaixo.", tom: "positive" };
-        return `<section class="dashboardInsight ${principal.tom}"><span><i data-lucide="${principal.icone}"></i></span><div><strong>${esc(principal.titulo)}</strong> <p>${esc(principal.descricao)}</p></div><button type="button" onclick="DashboardPremium.rolarParaDestaques()">Ver detalhes <i data-lucide="chevron-right"></i></button></section>`;
+        const comparacaoDisponivel = Number.isFinite(Number(ctx.previo.faturamento)) && Number(ctx.previo.faturamento) > 0;
+        const insights = [];
+
+        if (comparacaoDisponivel && comparacao.percentual !== 0) {
+            const positivo = comparacao.percentual > 0;
+            insights.push(`<button class="executiveHeaderInsight ${positivo ? "positive" : "negative"}" type="button" onclick="DashboardPremium.rolarParaGrafico()"><i data-lucide="${positivo ? "trending-up" : "trending-down"}"></i><span>Faturamento ${positivo ? "cresceu" : "recuou"} <strong>${Math.abs(comparacao.percentual).toFixed(0)}%</strong></span></button>`);
+        }
+        if (num(ctx.financeiro.atrasados) > 0) {
+            insights.push(`<button class="executiveHeaderInsight overdue" type="button" onclick="DashboardPremium.abrirFinanceiroAtrasado()"><i data-lucide="triangle-alert"></i><span><strong>${esc(moeda(ctx.financeiro.atrasados))}</strong> em atraso</span></button>`);
+        }
+        if (ctx.acoesPendentes > 0) {
+            insights.push(`<button class="executiveHeaderInsight pending" type="button" onclick="DashboardPremium.abrirRota('home')"><i data-lucide="list-checks"></i><span><strong>${ctx.acoesPendentes}</strong> ${ctx.acoesPendentes === 1 ? "ação pendente" : "ações pendentes"}</span><i data-lucide="arrow-right"></i></button>`);
+        }
+
+        return `<section class="executiveDashboardHeader"><div class="executiveDashboardIntro"><div><h1>Dashboard</h1><p>Visão geral de ${esc(periodoFormatado)}</p></div><div class="executiveHeaderInsights">${insights.join("") || `<span class="executiveHeaderCurrent"><i data-lucide="circle-check"></i> Dados atualizados para o período selecionado.</span>`}</div></div><div class="premiumDashboardActions"><button type="button" onclick="abrirFiltrosDashboardExecutivo()"><i data-lucide="calendar-days"></i><span>${esc(rotuloPeriodoDashboardExecutivo())}</span><i data-lucide="chevron-down"></i></button><button type="button" onclick="abrirFiltrosDashboardExecutivo()"><i data-lucide="sliders-horizontal"></i><span>Filtros</span></button><button class="is-primary executiveExportButton" type="button" onclick="DashboardPremium.abrirExportacao()" aria-label="Exportar Dashboard"><i class="exportDesktopIcon" data-lucide="download"></i><i class="exportMobileIcon" data-lucide="ellipsis"></i><span>Exportar</span></button></div></section>${renderFiltrosAtivosDashboard()}`;
     }
 
     function kpi(icone, titulo, valor, detalhe, cta, rota, tom = "purple") {
@@ -214,7 +204,7 @@
         const content = document.getElementById("content");
         if (!content) return;
         const ctx = montarContexto();
-        content.innerHTML = `<main class="premiumDashboard">${DashboardHeader(ctx)}${ExecutiveHero(ctx)}${InsightBanner(ctx)}${KpiGrid(ctx)}<section class="mainAnalyticsGrid">${MainChart(ctx)}${PeriodSummary(ctx)}</section>${SecondaryCharts(ctx)}${SmartCards(ctx)}${OperationsStrip(ctx)}${GoalsAndHighlights(ctx)}${Rankings(ctx)}${Indicators(ctx)}${ModuleCards(ctx)}</main>`;
+        content.innerHTML = `<main class="premiumDashboard">${ExecutiveDashboardHeader(ctx)}${KpiGrid(ctx)}<section class="mainAnalyticsGrid">${MainChart(ctx)}${PeriodSummary(ctx)}</section>${SecondaryCharts(ctx)}${SmartCards(ctx)}${OperationsStrip(ctx)}${GoalsAndHighlights(ctx)}${Rankings(ctx)}${Indicators(ctx)}${ModuleCards(ctx)}</main>`;
         window.__dashboardExecutivoAtual = { atual:ctx.atual, financeiro:ctx.financeiro, pedidos:ctx.pedidos, consignado:ctx.consignado, filamentos:ctx.filamentos, rankings:ctx.rankings, graficos:ctx.graficos, intervalo:ctx.intervalo, dados:ctx.dados };
         window.lucide?.createIcons?.();
         if (window.__primeDocsNavigationOptions?.abrirFiltros) {
@@ -238,7 +228,12 @@
     function abrirRota(rota) { if (typeof navegar === "function") navegar(rota); }
     function ativarRota(evento, rota) { if (["Enter", " "].includes(evento.key)) { evento.preventDefault(); abrirRota(rota); } }
     function rolarParaDestaques() { document.getElementById("dashboardDestaques")?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"center" }); }
+    function rolarParaGrafico() { document.querySelector(".revenueChart")?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"center" }); }
+    function abrirFinanceiroAtrasado() {
+        try { filtrosFinanceiro = { termo:"", status:"atrasado", origem:"", cliente:"", periodo:"", inicio:"", fim:"" }; } catch (_) {}
+        abrirRota("financeiro");
+    }
 
-    window.DashboardPremium = { render, selecionarFaixa, abrirExportacao, abrirRota, ativarRota, rolarParaDestaques, _montarContexto: montarContexto, _serieGrafico: serieGrafico };
+    window.DashboardPremium = { render, selecionarFaixa, abrirExportacao, abrirRota, ativarRota, rolarParaDestaques, rolarParaGrafico, abrirFinanceiroAtrasado, _montarContexto: montarContexto, _serieGrafico: serieGrafico, _cabecalho: ExecutiveDashboardHeader };
     window.renderDashboardExecutivo = render;
 })();

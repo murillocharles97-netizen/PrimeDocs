@@ -1,0 +1,56 @@
+const fs = require("fs");
+const path = require("path");
+const root = path.join(__dirname, "..");
+const js = fs.readFileSync(path.join(root, "js", "produtos-mobile.js"), "utf8");
+const css = fs.readFileSync(path.join(root, "css", "produtos-mobile.css"), "utf8");
+const desktop = fs.readFileSync(path.join(root, "pages", "produtos.js"), "utf8");
+const navigation = fs.readFileSync(path.join(root, "js", "components", "navigation.js"), "utf8");
+const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const sw = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
+
+let passed = 0;
+function test(name, run) { try { run(); passed++; console.log(`✓ ${name}`); } catch (error) { console.error(`✗ ${name}: ${error.message}`); process.exitCode = 1; } }
+function ok(value, message = "condição não atendida") { if (!value) throw new Error(message); }
+
+test("1. renderizador mobile é isolado por breakpoint", () => ok(js.includes('matchMedia("(max-width: 767px)")') && js.includes("return renderDesktop()")));
+test("2. desktop original não recebeu a composição mobile", () => ok(!desktop.includes("mobileProductsPage") && !desktop.includes("mobileProductQuickFilters")));
+test("3. cabeçalho é compacto e operacional", () => ok(js.includes("Gerencie seu catálogo e sua produção.") && !js.includes("productPageHeading")));
+test("4. busca possui o texto solicitado", () => ok(js.includes("Buscar por nome, SKU ou coleção")));
+test("5. busca cobre nome, SKU, coleção, categoria, material, tags e descrição", () => ok(["p.nome", "p.codigo", "p.colecao?.nome", "p.categoria", "p.material", "p.tags?.join", "p.descricao"].every(v => js.includes(v))));
+test("6. busca usa debounce e limpeza", () => ok(js.includes("buscaTimer") && js.includes("220") && js.includes("Limpar busca")));
+test("7. coleções são filtros horizontais", () => ok(js.includes("CollectionStrip") && css.includes(".mobileProductCollections") && css.includes("overflow-x:auto")));
+test("8. coleção Todos aparece primeiro", () => ok(js.includes('id: "todos", nome: "Todos"')));
+test("9. Ver todas abre seletor de coleções", () => ok(js.includes("abrirColecoes()") && js.includes("mobileAllCollections")));
+test("10. seletor permite buscar e criar coleção", () => ok(js.includes("filtrarColecoes") && js.includes("Nova coleção") && js.includes("abrirModalColecaoProduto")));
+test("11. filtros rápidos obrigatórios existem", () => ok(["Mais vendidos", "Favoritos", "Estoque baixo", "Sem estoque", "Produzindo", "Arquivados"].every(v => js.includes(v))));
+test("12. contagens dos filtros usam dados reais", () => ok(js.includes("function contagens") && js.includes("venda.quantidade") && js.includes("p.producao > 0")));
+test("13. filtros avançados incluem categoria, material, cor, situação e faixa de preço", () => ok(["mpfCategoria", "mpfMaterial", "mpfCor", "mpfAtivo", "mpfMin", "mpfMax"].every(v => js.includes(v))));
+test("14. ordenação possui as quatorze opções", () => ok((js.match(/\[\"(?:nome_az|nome_za|vendidos|recentes|antigos|preco_maior|preco_menor|lucro_maior|margem_maior|estoque_maior|estoque_menor|tempo_maior|peso_maior|colecao)\"/g) || []).length >= 14));
+test("15. card exibe nome, SKU, coleção, preço, lucro e estoque", () => ok(["p.nome", "p.codigo", "p.colecao?.nome", "Utils.moeda(p.preco)", "Utils.moeda(p.lucro)", "p.qtdEstoque"].every(v => js.includes(v))));
+test("16. card mostra tempo, peso e material", () => ok(js.includes("formatarTempo(p.tempoMin)") && js.includes("p.peso") && js.includes("p.material")));
+test("17. imagem tem fallback sem imagem quebrada", () => ok(js.includes("onerror=\"this.hidden=true") && js.includes('data-lucide="box"')));
+test("18. estoque baixo respeita configuração e campo do produto", () => ok(js.includes("produto.estoqueMinimo") && js.includes("configuracoes.estoqueMinimo")));
+test("19. produção ativa é agregada em uma leitura", () => ok(js.includes("listarOrdensProducao") && js.includes("producaoPorProduto")));
+test("20. indicador Produzindo abre Produção filtrada", () => ok(js.includes("verProducao") && js.includes("produtoId: id")));
+test("21. favorito salva no campo existente", () => ok(js.includes("p.favorito = !Boolean(p.favorito)") && js.includes("Storage.salvarProduto(p)")));
+test("22. card expande somente um item", () => ok(js.includes("estado.expandido === chave(id) ? \"\" : chave(id)")));
+test("23. expansão cobre custo, margem, estoque mínimo, produção e vendas", () => ok(["Custo", "Margem", "Estoque mínimo", "Em produção", "Última venda"].every(v => js.includes(v))));
+test("24. ação Produzir reutiliza produção para estoque", () => ok(js.includes("abrirProducaoEstoque()") && js.includes("atualizarPreviaProducaoEstoque()")));
+test("25. swipe direito produz e esquerdo edita", () => ok(js.includes("delta > 0 ? api.produzir(id) : api.editar(id)") && js.includes("Math.abs(delta) >= 72")));
+test("26. swipe oferece vibração tátil", () => ok(js.includes("navigator.vibrate?.(18)")));
+test("27. menu de ações preserva fluxos existentes", () => ok(["Produzir", "Editar", "Ver detalhes", "Favoritar", "Excluir"].every(v => js.includes(v))));
+test("28. paginação limita a trinta produtos", () => ok(js.includes("porPagina: 30") && js.includes("Carregar mais")));
+test("29. estado da tela preserva coleção, filtros e scroll", () => ok(js.includes("colecaoId") && js.includes("avancado") && js.includes("estado.scroll = window.scrollY") && js.includes("window.scrollTo")));
+test("30. rodapé contextual cria Novo produto", () => ok(navigation.includes("mobileBottomCreateProduct") && navigation.includes("Criar novo produto") && navigation.includes("abrirModalProduto()")));
+test("31. conteúdo reserva safe-area", () => ok(css.includes("env(safe-area-inset-bottom)") && css.includes("padding-bottom: calc(118px")));
+test("32. 320px e demais larguras mobile têm layout próprio", () => ok(css.includes("@media (max-width: 767px)") && css.includes("@media (max-width:360px)") && !css.includes("min-width:768px")));
+test("33. tema escuro e movimento reduzido são suportados", () => ok(css.includes("body.dark-mode") && css.includes("prefers-reduced-motion:reduce")));
+test("34. estados vazios de catálogo e filtro existem", () => ok(js.includes("Seu catálogo começa aqui") && js.includes("Nenhum produto encontrado")));
+test("35. arquivos carregam após Produtos e antes do app", () => ok(index.indexOf("pages/produtos.js") < index.indexOf("js/produtos-mobile.js") && index.indexOf("js/produtos-mobile.js") < index.indexOf("js/app.js")));
+test("36. CSS mobile está carregado", () => ok(index.includes("css/produtos-mobile.css?v=1")));
+test("37. PWA v57 inclui o catálogo mobile offline", () => ok(sw.includes("primedocs-v57") && sw.includes("css/produtos-mobile.css") && sw.includes("js/produtos-mobile.js")));
+test("38. layout evita rolagem horizontal da página", () => ok(css.includes("max-width:100%") && css.includes("overflow:hidden")));
+test("39. botões e cards possuem áreas de toque confortáveis", () => ok(css.includes("min-height:54px") && css.includes("min-height:42px") && css.includes("min-height:46px")));
+test("40. desktop mantém coleções e cards originais", () => ok(desktop.includes("productCollectionsGrid") && desktop.includes("productsGrid") && desktop.includes("criarCardProduto")));
+
+if (!process.exitCode) console.log(`\n${passed} verificações do catálogo Produtos Mobile aprovadas.`);

@@ -58,15 +58,19 @@ function renderNavegacaoInferiorPrimeDocs(paginaAtiva = "") {
 
     const modoPedido = paginaAtiva === "pedidos" && window.matchMedia?.("(max-width: 767px)").matches;
     const modoClientes = paginaAtiva === "clientes" && window.matchMedia?.("(max-width: 767px)").matches;
-    const modoCentral = modoPedido || modoClientes;
+    const modoProdutos = paginaAtiva === "produtos" && window.matchMedia?.("(max-width: 767px)").matches;
+    const modoCentral = modoPedido || modoClientes || modoProdutos;
     container.classList.toggle("isOrdersMode", modoPedido);
     container.classList.toggle("isClientsMode", modoClientes);
+    container.classList.toggle("isProductsMode", modoProdutos);
     const itens = modoCentral
         ? BOTTOM_NAV_PRIMEDOCS.filter(item => ["home", "pedidos", "producao"].includes(item[0]))
         : BOTTOM_NAV_PRIMEDOCS;
     const acaoCentral = modoClientes
         ? { classe: "mobileBottomCreateClient", rotulo: "Novo cliente", aria: "Criar novo cliente", acao: "abrirModalCliente()" }
-        : { classe: "mobileBottomCreateOrder", rotulo: "Novo pedido", aria: "Criar novo pedido", acao: "abrirModalPedido()" };
+        : modoProdutos
+            ? { classe: "mobileBottomCreateProduct", rotulo: "Novo produto", aria: "Criar novo produto", acao: "abrirModalProduto()" }
+            : { classe: "mobileBottomCreateOrder", rotulo: "Novo pedido", aria: "Criar novo pedido", acao: "abrirModalPedido()" };
 
     container.innerHTML = `
         ${itens.slice(0, modoCentral ? 2 : itens.length).map(([pagina, icone, titulo]) => `

@@ -95,6 +95,6 @@ teste("34. insights possuem destinos operacionais",()=>{const h=cabecalho({});ok
 teste("35. exportação mobile usa menu compacto",()=>ok(markup.includes("exportMobileIcon")&&css.includes("grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) 44px")));
 teste("36. cabeçalho respeita altura desktop solicitada",()=>ok(css.includes("min-height: 126px")&&css.includes("executiveDashboardHeader")));
 teste("37. breakpoints 320, 390, tablet e desktop permanecem cobertos",()=>ok(css.includes("max-width: 350px")&&css.includes("max-width: 430px")&&css.includes("max-width: 760px")&&css.includes("max-width: 1100px")));
-teste("38. versão visual e cache do PWA foram renovados",()=>ok(index.includes("dashboard-premium.css?v=2")&&index.includes("dashboard-premium.js?v=2")&&sw.includes("primedocs-v56")));
+teste("38. versão visual e cache do PWA foram renovados",()=>ok(index.includes("dashboard-premium.css?v=2")&&index.includes("dashboard-premium.js?v=2")&&sw.includes("primedocs-v57")));
 
 if(!process.exitCode)console.log(`\n${passou} verificações do Dashboard Premium aprovadas.`);

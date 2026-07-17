@@ -308,6 +308,8 @@
 
     const api = {
         render: renderPedidosPremium,
+        _criarContexto: criarContexto,
+        _renderDesktop: renderPedidosPremium,
         pesquisar(valor) { estado.busca = valor; renderWorkspace(); },
         definirFiltro(campo, valor) { estado[campo] = valor; if (campo === "status" && COLUNAS.some(c => c.id === valor)) estado.colunaMobile = valor; renderWorkspace(); },
         alterarVisualizacao(valor) { estado.visualizacao = valor; localStorage.setItem("primedocs_pedidos_visualizacao", valor); renderConteudo(++renderizacao); },

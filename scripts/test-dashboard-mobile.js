@@ -52,7 +52,7 @@ test("16. conteúdo respeita navegação e safe-area",()=>ok(css.includes("calc(
 test("17. tema escuro mobile é isolado",()=>ok(css.includes('html[data-theme="dark"] .mobilePerformanceCard')));
 test("18. redução de movimento é respeitada",()=>ok(css.includes("prefers-reduced-motion: reduce")));
 test("19. arquivos carregam depois do Dashboard desktop e antes do app",()=>ok(index.indexOf("dashboard-mobile.js")>index.indexOf("dashboard-premium.js")&&index.indexOf("dashboard-mobile.js")<index.indexOf("js/app.js")));
-test("20. PWA mantém Dashboard mobile offline",()=>ok(sw.includes("primedocs-v54")&&sw.includes("dashboard-mobile.css")&&sw.includes("dashboard-mobile.js")));
+test("20. PWA mantém Dashboard mobile offline",()=>ok(sw.includes("primedocs-v55")&&sw.includes("dashboard-mobile.css")&&sw.includes("dashboard-mobile.js")));
 test("21. CSS do desktop premium não foi modificado por esta camada",()=>ok(!css.includes(".premiumDashboard")&&!css.includes(".executiveDashboardHeader")));
 test("22. cards clicáveis têm área mínima de toque",()=>ok(css.includes(".mobileDashboard button { min-height: 44px; }")));
 test("23. estados loading, vazio e erro estão presentes",()=>ok(source.includes("renderSkeleton")&&source.includes("Não foi possível carregar o Dashboard")&&source.includes("Nenhuma venda em consignado")));

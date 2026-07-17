@@ -89,7 +89,7 @@ test("21. CSS é restrito ao breakpoint mobile", () => ok(css.trim().startsWith(
 test("22. tema escuro e movimento reduzido estão cobertos", () => ok(css.includes("body.dark-mode") && css.includes("prefers-reduced-motion: reduce")));
 test("23. desktop continua no renderizador aprovado", () => { mobile = false; renderPedidos(); ok(desktopRenders === 1 && desktopSource.includes("ordersKanban") && desktopCss.includes("ordersKpiGrid")); });
 test("24. arquivos carregam depois do desktop e antes do app", () => ok(index.indexOf("js/pedidos-premium.js") < index.indexOf("js/pedidos-mobile.js") && index.indexOf("js/pedidos-mobile.js") < index.indexOf("js/app.js")));
-test("25. PWA inclui a interface mobile offline", () => ok(sw.includes("primedocs-v57") && sw.includes("pedidos-mobile.css") && sw.includes("pedidos-mobile.js")));
+test("25. PWA inclui a interface mobile offline", () => ok(sw.includes("primedocs-v58") && sw.includes("pedidos-mobile.css") && sw.includes("pedidos-mobile.js")));
 test("26. navegação mobile é ativada pela página", () => ok(navigationMode === "pedidos"));
 test("27. desktop não recebe seletores da camada mobile", () => ok(!desktopCss.includes("ordersMobilePage") && !desktopSource.includes("mobileOrderSwipe")));
 

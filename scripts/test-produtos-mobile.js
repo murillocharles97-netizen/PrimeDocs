@@ -47,8 +47,8 @@ test("32. 320px e demais larguras mobile têm layout próprio", () => ok(css.inc
 test("33. tema escuro e movimento reduzido são suportados", () => ok(css.includes("body.dark-mode") && css.includes("prefers-reduced-motion:reduce")));
 test("34. estados vazios de catálogo e filtro existem", () => ok(js.includes("Seu catálogo começa aqui") && js.includes("Nenhum produto encontrado")));
 test("35. arquivos carregam após Produtos e antes do app", () => ok(index.indexOf("pages/produtos.js") < index.indexOf("js/produtos-mobile.js") && index.indexOf("js/produtos-mobile.js") < index.indexOf("js/app.js")));
-test("36. CSS e JavaScript mobile estão versionados", () => ok(index.includes("css/produtos-mobile.css?v=2") && index.includes("js/produtos-mobile.js?v=2")));
-test("37. PWA v58 inclui o catálogo mobile offline", () => ok(sw.includes("primedocs-v58") && sw.includes("css/produtos-mobile.css") && sw.includes("js/produtos-mobile.js")));
+test("36. CSS e JavaScript mobile estão versionados", () => ok(index.includes("css/produtos-mobile.css?v=3") && index.includes("js/produtos-mobile.js?v=3")));
+test("37. PWA v59 inclui o catálogo mobile offline", () => ok(sw.includes("primedocs-v59") && sw.includes("css/produtos-mobile.css") && sw.includes("js/produtos-mobile.js")));
 test("38. layout evita rolagem horizontal da página", () => ok(css.includes("max-width:100%") && css.includes("overflow:hidden")));
 test("39. botões e cards possuem áreas de toque confortáveis", () => ok(css.includes("min-height:54px") && css.includes("min-height:42px") && css.includes("min-height:46px")));
 test("40. desktop mantém coleções e cards originais", () => ok(desktop.includes("productCollectionsGrid") && desktop.includes("productsGrid") && desktop.includes("criarCardProduto")));
@@ -60,5 +60,9 @@ test("45. arquivados ficam ocultos por padrão", () => ok(js.includes('estado.fi
 test("46. coleção Todos não pode aparecer duplicada", () => ok(js.includes('normalizarTexto(c.nome) !== "todos"')));
 test("47. cabeçalho neutraliza estilos globais sem alterar o desktop", () => ok(css.includes("flex-direction:row") && css.includes("background:transparent") && css.includes("box-shadow:none")));
 test("48. superfícies herdam corretamente o tema escuro", () => ok(css.includes("--card-bg:var(--card,#fff)") && css.includes("body.dark-mode .mobileProductsPage")));
+test("49. aliases do refinamento preservam componentes existentes", () => ok(["mobile-collections-track", "mobile-collection-card", "mobile-product-card", "mobile-product-main", "mobile-product-price-row", "mobile-product-metrics", "mobile-product-produce"].every(v => js.includes(v) && css.includes(v))));
+test("50. cards priorizam legibilidade até 430px", () => ok(css.includes("@media (max-width:430px)") && css.includes('grid-template-areas:"produce more"') && css.includes("grid-column:1/-1")));
+test("51. métricas viram grade 2x2 em 360px", () => ok(css.includes("grid-template-columns:repeat(2,minmax(0,1fr))") && css.includes(".mobileProductMetrics > div:nth-child(n+3)")));
+test("52. textos importantes quebram por palavras sem compressão extrema", () => ok(css.includes("overflow-wrap:break-word") && css.includes("word-break:normal") && css.includes("white-space:normal")));
 
 if (!process.exitCode) console.log(`\n${passed} verificações do catálogo Produtos Mobile aprovadas.`);

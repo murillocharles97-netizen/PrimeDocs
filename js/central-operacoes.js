@@ -8,8 +8,9 @@
         pedidos: "pedidos",
         producao: "producao",
         financeiro: "financeiro",
-        estoque: "filamentos",
-        filamentos: "filamentos",
+        estoque: "estoque",
+        produtos: "estoque:produtos",
+        filamentos: "estoque:filamentos",
         consignado: "consignado",
         clientes: "clientes",
         impressoras: "impressoras"
@@ -226,7 +227,7 @@
             incluir({ tipo: "filamento_critico", entidadeTipo: "filamento", entidadeId: grupo.chave || `${grupo.material}-${grupo.cor}`, situacao: `baixo-${Math.round(peso)}`,
                 titulo: `${grupo.material || "Filamento"} ${grupo.cor || ""} ${peso <= 0 ? "está sem estoque" : "está abaixo do mínimo"}`.trim(),
                 descricao: peso <= 0 ? "Produções podem ser afetadas" : `${Math.round(peso)} g disponíveis`, pontuacao: peso <= 0 ? 80 : 60,
-                dataReferencia: dados.hoje, acaoPrincipal: "Ver filamentos", rota: "filamentos", icone: "spool", badge: peso <= 0 ? "Sem estoque" : "Estoque baixo"
+                dataReferencia: dados.hoje, acaoPrincipal: "Ver filamentos", rota: "estoque:filamentos", icone: "spool", badge: peso <= 0 ? "Sem estoque" : "Estoque baixo"
             });
         });
 
@@ -351,7 +352,7 @@
             ["clock-alert", contexto.resumo.pedidosAtrasados.length, "Atrasados", "Ver pedidos", "pedidos", "danger"],
             ["printer", contexto.resumo.lotesAtivos.length, "Em produção", "Ver produção", "producao", "production"],
             ["circle-dollar-sign", moeda(contexto.resumo.receberHoje), "A receber hoje", "Ver financeiro", "financeiro", "success"],
-            ["spool", contexto.resumo.estoqueCritico, "Alertas de estoque", "Ver estoque", "filamentos", "warning"]
+            ["spool", contexto.resumo.estoqueCritico, "Alertas de estoque", "Ver estoque", "estoque:filamentos", "warning"]
         ];
         return `<section class="operationsCompactStrip" aria-label="Resumo operacional">${itens.map(item => `<article class="summaryStripItem ${item[5]}"><span class="summaryStripIcon"><i data-lucide="${item[0]}"></i></span><div><strong>${html(item[1])}</strong><p>${html(item[2])}</p><button type="button" onclick="CentralOperacoes.abrirRota('${item[4]}')">${html(item[3])}</button></div></article>`).join("")}</section>`;
     }
@@ -428,7 +429,7 @@
     function ModuleSummaryGrid(contexto) {
         const atrasoFinanceiro = contexto.dados.financeiro.filter(i => i.status === "atrasado" && numero(i.valorRestante) > 0).reduce((t, i) => t + numero(i.valorRestante), 0);
         const visitas = contexto.dados.lojasVisitar.filter(i => i.dias >= 30).length;
-        return `<section class="operationsPanel moduleSummarySection"><header class="operationsSectionHeader"><div><span>RESUMO DOS MÓDULOS</span></div></header><div class="moduleSummaryGrid">${ModuleSummaryCard("circle-dollar-sign", "Financeiro", atrasoFinanceiro ? `${moeda(atrasoFinanceiro)} atrasados` : "Tudo em dia", "Ver financeiro", "financeiro", "finance")}${ModuleSummaryCard("printer", "Produção", contexto.resumo.lotesAtivos.length ? `${contexto.resumo.lotesAtivos.length} em andamento` : "Nenhuma em andamento", "Ver produção", "producao", "production")}${ModuleSummaryCard("store", "Consignado", visitas ? `${visitas} ${visitas === 1 ? "visita sugerida" : "visitas sugeridas"}` : "Nenhuma visita sugerida", "Ver consignado", "consignado", "consignment")}${ModuleSummaryCard("spool", "Estoque", contexto.resumo.estoqueCritico ? `${contexto.resumo.estoqueCritico} ${contexto.resumo.estoqueCritico === 1 ? "item crítico" : "itens críticos"}` : "Tudo em dia", "Ver estoque", "filamentos", "stock")}</div></section>`;
+        return `<section class="operationsPanel moduleSummarySection"><header class="operationsSectionHeader"><div><span>RESUMO DOS MÓDULOS</span></div></header><div class="moduleSummaryGrid">${ModuleSummaryCard("circle-dollar-sign", "Financeiro", atrasoFinanceiro ? `${moeda(atrasoFinanceiro)} atrasados` : "Tudo em dia", "Ver financeiro", "financeiro", "finance")}${ModuleSummaryCard("printer", "Produção", contexto.resumo.lotesAtivos.length ? `${contexto.resumo.lotesAtivos.length} em andamento` : "Nenhuma em andamento", "Ver produção", "producao", "production")}${ModuleSummaryCard("store", "Consignado", visitas ? `${visitas} ${visitas === 1 ? "visita sugerida" : "visitas sugeridas"}` : "Nenhuma visita sugerida", "Ver consignado", "consignado", "consignment")}${ModuleSummaryCard("spool", "Estoque", contexto.resumo.estoqueCritico ? `${contexto.resumo.estoqueCritico} ${contexto.resumo.estoqueCritico === 1 ? "item crítico" : "itens críticos"}` : "Tudo em dia", "Ver estoque", "estoque:filamentos", "stock")}</div></section>`;
     }
 
     function render() {
@@ -446,7 +447,9 @@
 
     function abrirRota(rota) {
         const destino = ROTAS[rota] || rota || "home";
-        if (typeof window.navegar === "function") navegar(destino);
+        if (typeof window.navegar !== "function") return;
+        if (String(destino).startsWith("estoque:")) return navegar("estoque", { section: String(destino).split(":")[1] });
+        navegar(destino);
     }
 
     function abrirPrioridade(id) {

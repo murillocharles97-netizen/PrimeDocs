@@ -2,6 +2,14 @@ const app = document.getElementById("content");
 
 function navegar(pagina, opcoes = {}){
 
+    const rotaSolicitada = String(pagina || "home").toLowerCase();
+    const aliasesEstoque = { produtos: "produtos", products: "produtos", filamentos: "filamentos", filaments: "filamentos", inventory: "" };
+    if (Object.prototype.hasOwnProperty.call(aliasesEstoque, rotaSolicitada)) {
+        opcoes = { ...opcoes, section: aliasesEstoque[rotaSolicitada] || opcoes.section };
+        pagina = "estoque";
+    }
+    window.InventoryPage?.leave?.(pagina);
+
     if (pagina !== "producao" && typeof producaoTimer !== "undefined") clearInterval(producaoTimer);
 
     fecharDrawerPrimeDocs();
@@ -23,8 +31,8 @@ function navegar(pagina, opcoes = {}){
             window.modoConsignadoInicial = "";
             break;
 
-        case "produtos":
-            renderProdutos();
+        case "estoque":
+            InventoryPage.render(opcoes?.section, { restaurarScroll: opcoes?.preservarScroll !== false, history: opcoes?.history || "replace" });
             break;
 
         case "lojas":
@@ -42,10 +50,6 @@ function navegar(pagina, opcoes = {}){
 
         case "orcamento":
             renderOrcamento();
-            break;
-
-        case "filamentos":
-            renderFilamentos();
             break;
 
         case "custos":
@@ -83,10 +87,12 @@ function navegar(pagina, opcoes = {}){
 
     }
 
+    window.rotaAtual = pagina;
+    window.paginaAtual = pagina;
     atualizarNavegacaoAtivaPrimeDocs(pagina);
     atualizarCabecalhoPrimeDocs();
     requestAnimationFrame(() => document.getElementById("content")?.classList.add("pageEntering"));
-    if (!opcoes?.preservarScroll) window.scrollTo({ top: 0, behavior: "auto" });
+    if (!opcoes?.preservarScroll && pagina !== "estoque") window.scrollTo({ top: 0, behavior: "auto" });
 
     if(window.lucide){
         lucide.createIcons();

@@ -8,6 +8,7 @@ const desktop = fs.readFileSync(path.join(root, "pages", "filamentos.js"), "utf8
 const navigation = fs.readFileSync(path.join(root, "js", "components", "navigation.js"), "utf8");
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const sw = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
+const inventory = fs.readFileSync(path.join(root, "js", "inventory.js"), "utf8");
 let passed = 0;
 function test(name, run) { try { run(); passed++; console.log(`✓ ${name}`); } catch (error) { console.error(`✗ ${name}: ${error.message}`); process.exitCode = 1; } }
 function ok(value, message = "condição não atendida") { if (!value) throw new Error(message); }
@@ -15,8 +16,8 @@ function ok(value, message = "condição não atendida") { if (!value) throw new
 test("1. experiência é exclusiva até 767px", () => ok(js.includes('matchMedia("(max-width: 767px)")') && css.startsWith("@media (max-width: 767px)")));
 test("2. desktop preserva o renderizador original", () => ok(js.includes("renderFilamentosDesktop") && js.includes("return renderFilamentosDesktop()") && !desktop.includes("mobileInventoryPage")));
 test("3. Estoque possui Produtos e Filamentos na mesma composição", () => ok(js.includes("InventoryTabs") && js.includes("Produtos") && js.includes("Filamentos") && js.includes("role=\"tab\"")));
-test("4. seção selecionada persiste localmente", () => ok(js.includes("primedocs_mobile_inventory_section") && js.includes("localStorage.setItem(STORAGE_SECTION")));
-test("5. troca de seção não recarrega o aplicativo", () => ok(js.includes("ProdutosMobile.render(false)") && js.includes("renderFilamentosMobile(false)") && !js.includes("location.reload")));
+test("4. seção selecionada persiste no controlador central", () => ok(inventory.includes("primedocs_inventory_active_section") && inventory.includes("localStorage.setItem(STORAGE_KEY")));
+test("5. troca de seção não recarrega o aplicativo", () => ok(js.includes("InventoryPage.setSection") && js.includes("renderSection(secao") && !js.includes("location.reload")));
 test("6. Produtos reutiliza o renderizador já aprovado", () => ok(products.includes("MobileInventory?.decorateProducts") && js.includes("decorateProducts")));
 test("7. cabeçalho de Estoque é compacto", () => ok(js.includes("Gerencie produtos e filamentos da sua produção.") && css.includes(".mobileInventoryHeading")));
 test("8. resumo contém quatro métricas reais", () => ok(["Disponível", "Baixo estoque", "Em uso", "Esgotados"].every(value => js.includes(value))));
@@ -44,7 +45,7 @@ test("29. swipe registra entrada e consumo sem excluir", () => ok(js.includes("s
 test("30. consumo manual valida saldo e usa regra canônica", () => ok(js.includes("O consumo não pode superar o peso atual") && js.includes("FilamentIntegration.corrigirPeso")));
 test("31. expansão mostra localizações separadas do status", () => ok(js.includes("Localizações") && js.includes("Sem rolo disponível") && css.includes(".mobileFilamentExpanded")));
 test("32. botão central é contextual", () => ok(navigation.includes("mobileBottomInventoryAction") && navigation.includes("Adicionar rolo") && navigation.includes("Novo produto") && navigation.includes("MobileInventory.novoItem()")));
-test("33. navegação inferior destaca Estoque", () => ok(navigation.includes("paginaInferiorAtiva") && navigation.includes('paginaAtiva === "produtos" ? "filamentos"')));
+test("33. navegação inferior destaca a rota única Estoque", () => ok(navigation.includes("paginaInferiorAtiva") && navigation.includes('["produtos", "filamentos", "inventory"]') && navigation.includes('data-bottom-page="${pagina}"')));
 test("34. conteúdo reserva safe-area inferior", () => ok(css.includes("calc(132px + env(safe-area-inset-bottom))")));
 test("35. estados vazios são acionáveis", () => ok(js.includes("Nenhum filamento cadastrado") && js.includes("Nenhum filamento encontrado") && js.includes("Adicionar rolo") && js.includes("Limpar filtros")));
 test("36. tema escuro não altera o desktop", () => ok(css.includes("body.dark-mode .mobileInventoryPage") && css.startsWith("@media (max-width: 767px)")));
@@ -53,9 +54,10 @@ test("38. 360px usa resumo e métricas 2x2", () => ok(css.includes("@media (max-
 test("39. acessibilidade inclui foco, reduced motion e aria", () => ok(css.includes("focus-visible") && css.includes("prefers-reduced-motion") && js.includes("aria-selected") && js.includes("aria-expanded")));
 test("40. agregação ocorre antes dos cards", () => ok(js.includes("function getMobileInventoryData") && js.includes("contexto.grupos = FilamentIntegration.agruparRolos")));
 test("41. arquivos carregam na ordem correta", () => ok(index.indexOf("pages/filamentos.js") < index.indexOf("js/estoque-mobile.js") && index.indexOf("js/estoque-mobile.js") < index.indexOf("js/app.js")));
-test("42. PWA v60 inclui a experiência offline", () => ok(sw.includes("primedocs-v60") && sw.includes("css/estoque-mobile.css") && sw.includes("js/estoque-mobile.js")));
+test("42. PWA v61 inclui a experiência central offline", () => ok(sw.includes("primedocs-v61") && sw.includes("css/estoque-mobile.css") && sw.includes("js/estoque-mobile.js") && sw.includes("js/inventory.js")));
 test("43. CSS e JS estão versionados", () => ok(index.includes("css/estoque-mobile.css?v=2") && index.includes("js/estoque-mobile.js?v=1")));
 test("44. desktop não recebeu seletores mobile", () => ok(!desktop.includes("mobileFilamentCard") && !desktop.includes("mobileInventoryTabs")));
 test("45. regra de negócio e Firebase não são redefinidos", () => ok(!js.includes("firebase.") && !js.includes("PrimeFirebase") && !js.includes("localStorage.setItem(\"primedocs_filamentos\"")));
+test("46. seção mobile delega ao controlador central", () => ok(js.includes("InventoryPage.setSection") && js.includes("renderSection(secao") && inventory.includes("window.InventoryPage")));
 
 if (!process.exitCode) console.log(`\n${passed} verificações da área Estoque Mobile aprovadas.`);

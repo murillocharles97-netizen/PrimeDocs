@@ -4,10 +4,9 @@ const DRAWER_PRIMEDOCS = [
     ["pedidos", "package", "Pedidos"],
     ["producao", "factory", "Produção"],
     ["clientes", "users", "Clientes"],
-    ["produtos", "boxes", "Produtos"],
+    ["estoque", "warehouse", "Estoque"],
     ["consignado", "store", "Consignado"],
     ["financeiro", "wallet-cards", "Financeiro"],
-    ["filamentos", "spool", "Filamentos"],
     ["custos", "calculator", "Custos"],
     ["orcamento", "file-text", "Orçamentos"],
     ["configuracoes", "settings", "Configurações"]
@@ -17,7 +16,7 @@ const BOTTOM_NAV_PRIMEDOCS = [
     ["home", "house", "Início"],
     ["pedidos", "package", "Pedidos"],
     ["producao", "factory", "Produção"],
-    ["filamentos", "package-open", "Estoque"]
+    ["estoque", "package-open", "Estoque"]
 ];
 
 function renderNavegacaoPrimeDocs() {
@@ -58,12 +57,11 @@ function renderNavegacaoInferiorPrimeDocs(paginaAtiva = "") {
 
     const modoPedido = paginaAtiva === "pedidos" && window.matchMedia?.("(max-width: 767px)").matches;
     const modoClientes = paginaAtiva === "clientes" && window.matchMedia?.("(max-width: 767px)").matches;
-    const modoProdutos = paginaAtiva === "produtos" && window.matchMedia?.("(max-width: 767px)").matches;
-    const modoEstoque = ["produtos", "filamentos"].includes(paginaAtiva) && window.matchMedia?.("(max-width: 767px)").matches;
-    const modoCentral = modoPedido || modoClientes || modoProdutos || modoEstoque;
+    const modoEstoque = paginaAtiva === "estoque" && window.matchMedia?.("(max-width: 767px)").matches;
+    const modoCentral = modoPedido || modoClientes || modoEstoque;
     container.classList.toggle("isOrdersMode", modoPedido);
     container.classList.toggle("isClientsMode", modoClientes);
-    container.classList.toggle("isProductsMode", modoProdutos);
+    container.classList.toggle("isProductsMode", modoEstoque && window.InventoryPage?.activeSection?.() === "produtos");
     container.classList.toggle("isInventoryMode", modoEstoque);
     const itens = modoEstoque
         ? BOTTOM_NAV_PRIMEDOCS
@@ -74,9 +72,7 @@ function renderNavegacaoInferiorPrimeDocs(paginaAtiva = "") {
         ? { classe: "mobileBottomCreateClient", rotulo: "Novo cliente", aria: "Criar novo cliente", acao: "abrirModalCliente()" }
         : modoEstoque
             ? { classe: "mobileBottomInventoryAction", rotulo: window.MobileInventory?.section?.() === "produtos" ? "Novo produto" : "Adicionar rolo", aria: window.MobileInventory?.section?.() === "produtos" ? "Criar novo produto" : "Adicionar rolo de filamento", acao: "MobileInventory.novoItem()" }
-            : modoProdutos
-                ? { classe: "mobileBottomCreateProduct", rotulo: "Novo produto", aria: "Criar novo produto", acao: "abrirModalProduto()" }
-                : { classe: "mobileBottomCreateOrder", rotulo: "Novo pedido", aria: "Criar novo pedido", acao: "abrirModalPedido()" };
+            : { classe: "mobileBottomCreateOrder", rotulo: "Novo pedido", aria: "Criar novo pedido", acao: "abrirModalPedido()" };
 
     container.innerHTML = `
         ${itens.slice(0, modoCentral ? 2 : itens.length).map(([pagina, icone, titulo]) => `
@@ -115,7 +111,7 @@ function alternarDrawerPrimeDocs() {
 
 function atualizarNavegacaoAtivaPrimeDocs(pagina) {
     const paginaAtiva = pagina === "conferencia" ? "consignado" : pagina === "relatorios" ? "dashboard" : pagina;
-    const paginaInferiorAtiva = window.matchMedia?.("(max-width: 767px)").matches && paginaAtiva === "produtos" ? "filamentos" : paginaAtiva;
+    const paginaInferiorAtiva = ["produtos", "filamentos", "inventory"].includes(paginaAtiva) ? "estoque" : paginaAtiva;
     renderNavegacaoInferiorPrimeDocs(paginaAtiva);
     document.querySelectorAll("[data-drawer-page]").forEach(item => {
         item.classList.toggle("isActive", item.dataset.drawerPage === paginaAtiva);

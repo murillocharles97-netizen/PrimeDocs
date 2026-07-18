@@ -1,0 +1,25 @@
+@media (min-width: 768px) {
+    .inventoryDesktopPage { display:grid; gap:18px; min-width:0; }
+    .inventoryDesktopHeader { padding:4px 2px 0; }
+    .inventoryDesktopHeader span { color:var(--primary,#6d4aff); font-size:11px; font-weight:900; letter-spacing:.1em; }
+    .inventoryDesktopHeader h1 { margin:5px 0 3px; color:var(--text-primary); font-size:30px; letter-spacing:-.035em; }
+    .inventoryDesktopHeader p { margin:0; color:var(--text-secondary); font-size:14px; }
+    .inventoryDesktopTabs { min-height:64px; display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:7px; border:1px solid var(--border-color); border-radius:19px; background:var(--card); box-shadow:var(--shadow-sm); }
+    .inventoryDesktopTabs button { min-height:48px; display:flex; align-items:center; justify-content:center; gap:9px; border:0; border-radius:14px; color:var(--text-secondary); background:transparent; font-weight:800; transition:background .18s ease,color .18s ease,box-shadow .18s ease; }
+    .inventoryDesktopTabs button:only-child { grid-column:1/-1; }
+    .inventoryDesktopTabs button svg { width:20px; }
+    .inventoryDesktopTabs button.isActive { color:#fff; background:linear-gradient(135deg,#754dff,#5d35ed); box-shadow:0 8px 20px rgba(99,63,239,.22); }
+    .inventorySectionContent { min-width:0; }
+    .inventorySectionContent .inventoryEmbeddedTitle { display:none!important; }
+    .inventorySectionContent > .productPageHeading { justify-content:flex-end; }
+    .inventorySectionContent > .productPageHeading > div:last-child { margin-left:auto; }
+    .inventorySectionContent > .filamentsPage .filamentPageHeading { justify-content:flex-end; }
+    .inventoryPermissionEmpty { min-height:420px; display:grid; place-items:center; align-content:center; gap:10px; padding:32px; border:1px dashed var(--border-color); border-radius:22px; color:var(--text-secondary); background:var(--card); text-align:center; }
+    .inventoryPermissionEmpty svg { width:44px; height:44px; color:var(--primary,#6d4aff); }
+    .inventoryPermissionEmpty h1,.inventoryPermissionEmpty p { margin:0; }
+    .inventoryPermissionEmpty strong { color:var(--text-primary); font-size:18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .inventoryDesktopTabs button { transition:none; }
+}

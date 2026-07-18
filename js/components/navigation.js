@@ -59,18 +59,24 @@ function renderNavegacaoInferiorPrimeDocs(paginaAtiva = "") {
     const modoPedido = paginaAtiva === "pedidos" && window.matchMedia?.("(max-width: 767px)").matches;
     const modoClientes = paginaAtiva === "clientes" && window.matchMedia?.("(max-width: 767px)").matches;
     const modoProdutos = paginaAtiva === "produtos" && window.matchMedia?.("(max-width: 767px)").matches;
-    const modoCentral = modoPedido || modoClientes || modoProdutos;
+    const modoEstoque = ["produtos", "filamentos"].includes(paginaAtiva) && window.matchMedia?.("(max-width: 767px)").matches;
+    const modoCentral = modoPedido || modoClientes || modoProdutos || modoEstoque;
     container.classList.toggle("isOrdersMode", modoPedido);
     container.classList.toggle("isClientsMode", modoClientes);
     container.classList.toggle("isProductsMode", modoProdutos);
-    const itens = modoCentral
-        ? BOTTOM_NAV_PRIMEDOCS.filter(item => ["home", "pedidos", "producao"].includes(item[0]))
-        : BOTTOM_NAV_PRIMEDOCS;
+    container.classList.toggle("isInventoryMode", modoEstoque);
+    const itens = modoEstoque
+        ? BOTTOM_NAV_PRIMEDOCS
+        : modoCentral
+            ? BOTTOM_NAV_PRIMEDOCS.filter(item => ["home", "pedidos", "producao"].includes(item[0]))
+            : BOTTOM_NAV_PRIMEDOCS;
     const acaoCentral = modoClientes
         ? { classe: "mobileBottomCreateClient", rotulo: "Novo cliente", aria: "Criar novo cliente", acao: "abrirModalCliente()" }
-        : modoProdutos
-            ? { classe: "mobileBottomCreateProduct", rotulo: "Novo produto", aria: "Criar novo produto", acao: "abrirModalProduto()" }
-            : { classe: "mobileBottomCreateOrder", rotulo: "Novo pedido", aria: "Criar novo pedido", acao: "abrirModalPedido()" };
+        : modoEstoque
+            ? { classe: "mobileBottomInventoryAction", rotulo: window.MobileInventory?.section?.() === "produtos" ? "Novo produto" : "Adicionar rolo", aria: window.MobileInventory?.section?.() === "produtos" ? "Criar novo produto" : "Adicionar rolo de filamento", acao: "MobileInventory.novoItem()" }
+            : modoProdutos
+                ? { classe: "mobileBottomCreateProduct", rotulo: "Novo produto", aria: "Criar novo produto", acao: "abrirModalProduto()" }
+                : { classe: "mobileBottomCreateOrder", rotulo: "Novo pedido", aria: "Criar novo pedido", acao: "abrirModalPedido()" };
 
     container.innerHTML = `
         ${itens.slice(0, modoCentral ? 2 : itens.length).map(([pagina, icone, titulo]) => `
@@ -80,10 +86,10 @@ function renderNavegacaoInferiorPrimeDocs(paginaAtiva = "") {
             </button>
         `).join("")}
         ${modoCentral ? `<button class="${acaoCentral.classe}" type="button" onclick="${acaoCentral.acao}" aria-label="${acaoCentral.aria}"><span><i data-lucide="plus"></i></span><small>${acaoCentral.rotulo}</small></button>${itens.slice(2).map(([pagina, icone, titulo]) => `<button type="button" data-bottom-page="${pagina}" onclick="navegar('${pagina}')" aria-label="${titulo}"><span><i data-lucide="${icone}"></i></span><small>${titulo}</small></button>`).join("")}` : ""}
-        <button type="button" data-bottom-page="mais" onclick="abrirDrawerPrimeDocs()" aria-label="Abrir mais opções">
+        ${modoEstoque ? "" : `<button type="button" data-bottom-page="mais" onclick="abrirDrawerPrimeDocs()" aria-label="Abrir mais opções">
             <span><i data-lucide="ellipsis"></i></span>
             <small>Mais</small>
-        </button>
+        </button>`}
     `;
 }
 
@@ -109,6 +115,7 @@ function alternarDrawerPrimeDocs() {
 
 function atualizarNavegacaoAtivaPrimeDocs(pagina) {
     const paginaAtiva = pagina === "conferencia" ? "consignado" : pagina === "relatorios" ? "dashboard" : pagina;
+    const paginaInferiorAtiva = window.matchMedia?.("(max-width: 767px)").matches && paginaAtiva === "produtos" ? "filamentos" : paginaAtiva;
     renderNavegacaoInferiorPrimeDocs(paginaAtiva);
     document.querySelectorAll("[data-drawer-page]").forEach(item => {
         item.classList.toggle("isActive", item.dataset.drawerPage === paginaAtiva);
@@ -116,7 +123,7 @@ function atualizarNavegacaoAtivaPrimeDocs(pagina) {
     const paginasPrincipais = BOTTOM_NAV_PRIMEDOCS.map(item => item[0]);
     document.querySelectorAll("[data-bottom-page]").forEach(item => {
         const destino = item.dataset.bottomPage;
-        const ativo = destino === paginaAtiva || (destino === "mais" && !paginasPrincipais.includes(paginaAtiva));
+        const ativo = destino === paginaInferiorAtiva || (destino === "mais" && !paginasPrincipais.includes(paginaAtiva));
         item.classList.toggle("isActive", ativo);
         if (ativo) item.setAttribute("aria-current", "page");
         else item.removeAttribute("aria-current");

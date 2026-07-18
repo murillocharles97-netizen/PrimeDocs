@@ -209,6 +209,7 @@
             <section id="listaProdutos" class="mobileProductsList">${visiveis.length ? visiveis.map(MobileProductCard).join("") : EmptyState()}</section>
             ${visiveis.length < lista.length ? `<button class="mobileProductsLoadMore" onclick="ProdutosMobile.mais()">Carregar mais <span>${lista.length - visiveis.length}</span></button>` : ""}
         </main>`;
+        window.MobileInventory?.decorateProducts?.();
         requestAnimationFrame(() => { if (restaurarScroll) window.scrollTo({ top: estado.scroll, behavior: "instant" }); ativarSwipes(); });
         lucide.createIcons();
     }

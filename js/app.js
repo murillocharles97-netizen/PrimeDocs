@@ -59,7 +59,8 @@ function renderizarERPPrimeDocs() {
     renderNavegacaoPrimeDocs();
     Financeiro.sincronizar();
     gerarNotificacoesOperacionais();
-    navegar("home");
+    const rotaInicial = window.InventoryPage?.initialNavigation?.();
+    navegar(rotaInicial?.pagina || "home", rotaInicial?.opcoes || {});
 
     console.log("[PrimeDocs] App renderizado");
 }

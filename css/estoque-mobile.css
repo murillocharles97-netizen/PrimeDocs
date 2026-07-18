@@ -9,6 +9,7 @@
 
     .mobileInventoryTabs { min-height:58px; display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; border:1px solid var(--mi-border); border-radius:21px; background:var(--surface-secondary,rgba(109,74,255,.045)); }
     .mobileInventoryTabs button { min-width:0; min-height:48px; display:flex; align-items:center; justify-content:center; gap:9px; border:0; border-radius:17px; color:var(--text-secondary); background:transparent; font-size:14px; font-weight:800; transition:background .18s ease,color .18s ease,box-shadow .18s ease,transform .18s ease; }
+    .mobileInventoryTabs button:only-child { grid-column:1/-1; }
     .mobileInventoryTabs button svg { width:19px; flex:0 0 19px; }
     .mobileInventoryTabs button.isActive { color:#fff; background:linear-gradient(135deg,#754dff,#5d35ed); box-shadow:0 10px 24px rgba(99,63,239,.26); }
     .mobileInventoryTabs button:active { transform:scale(.985); }

@@ -20,7 +20,7 @@ function renderProdutos() {
 function renderTelaProdutos() {
     if (colecaoProdutosAtiva) return renderProdutosDaColecao();
     const colecoes = Storage.listarColecoesProdutos().filter(item => item.ativo !== false).sort((a, b) => Number(a.ordem || 0) - Number(b.ordem || 0) || String(a.nome).localeCompare(String(b.nome), "pt-BR"));
-    app.innerHTML = `
+    const conteudo = `
         <button class="back" onclick="navegar('home')">
             <i data-lucide="arrow-left"></i>
             Voltar
@@ -29,6 +29,7 @@ function renderTelaProdutos() {
         <section class="collectionIntro"><div><span>COLEÇÕES</span><h3>Seu catálogo organizado</h3><p>Abra uma coleção para pesquisar, ordenar e gerenciar somente os produtos relacionados.</p></div><strong>${colecoes.length} ${colecoes.length === 1 ? "coleção" : "coleções"}</strong></section>
         <div class="productCollectionsGrid">${colecoes.map(criarCardColecaoProduto).join("")}</div>
     `;
+    if (!window.InventoryPage?.mountSectionContent?.("produtos", conteudo)) app.innerHTML = conteudo;
     lucide.createIcons();
 }
 
@@ -54,10 +55,11 @@ function voltarColecoesProdutos() { colecaoProdutosAtiva = null; renderTelaProdu
 function renderProdutosDaColecao() {
     const colecao = Storage.buscarColecaoProdutoPorId(colecaoProdutosAtiva);
     if (!colecao || colecao.ativo === false) { colecaoProdutosAtiva = null; return renderTelaProdutos(); }
-    app.innerHTML = `<button class="back" onclick="voltarColecoesProdutos()"><i data-lucide="arrow-left"></i> Coleções</button>
+    const conteudo = `<button class="back" onclick="voltarColecoesProdutos()"><i data-lucide="arrow-left"></i> Coleções</button>
         <div class="collectionDetailHeading"><div class="collectionIcon" style="--collection-color:${escaparProduto(colecao.cor)}"><i data-lucide="${escaparProduto(colecao.icone || "boxes")}"></i></div><div><span>COLEÇÃO</span><h2>${escaparProduto(colecao.nome)}</h2><p>${escaparProduto(colecao.descricao || "Gerencie os produtos desta coleção.")}</p></div><button class="btn" type="button" onclick="abrirModalProduto()"><i data-lucide="plus"></i> Novo produto</button></div>
         <section class="productToolbar collectionProductToolbar"><div class="productSearch"><i data-lucide="search"></i><input id="pesquisaProduto" placeholder="Pesquisar nesta coleção..." oninput="listarProdutos()"></div><select id="ordemProdutos" onchange="listarProdutos()" aria-label="Ordenar produtos"><option value="nome">Nome A–Z</option><option value="recentes">Mais recentes</option><option value="vendidos">Mais vendidos</option><option value="lucrativos">Mais lucrativos</option></select><button class="productFilterChip ${filtroFavoritosProdutos ? "isActive" : ""}" type="button" onclick="alternarFiltroProdutos('favoritos')"><i data-lucide="star"></i> Favoritos</button><button class="productFilterChip ${filtroSemEstoqueProdutos ? "isActive" : ""}" type="button" onclick="alternarFiltroProdutos('semEstoque')"><i data-lucide="package-x"></i> Sem estoque</button></section>
         <div id="resumoColecaoProdutos" class="collectionProductsSummary"></div><div id="listaProdutos" class="productsGrid"></div>`;
+    if (!window.InventoryPage?.mountSectionContent?.("produtos", conteudo)) app.innerHTML = conteudo;
     listarProdutos(); lucide.createIcons();
 }
 

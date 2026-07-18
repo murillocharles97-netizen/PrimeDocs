@@ -2,12 +2,12 @@
     "use strict";
 
     const media = window.matchMedia("(max-width: 767px)");
-    const STORAGE_SECTION = "primedocs_mobile_inventory_section";
+    const STORAGE_SECTION = "primedocs_inventory_active_section";
     const renderFilamentosDesktop = window.renderFilamentos;
     let buscaTimer = 0;
 
     const estado = {
-        secao: localStorage.getItem(STORAGE_SECTION) === "produtos" ? "produtos" : "filamentos",
+        secao: ["produtos", "filamentos"].includes(localStorage.getItem(STORAGE_SECTION)) ? localStorage.getItem(STORAGE_SECTION) : "produtos",
         busca: "",
         filtro: "todos",
         ordem: "nome_az",
@@ -29,9 +29,10 @@
     const peso = valor => typeof formatarPesoFilamento === "function" ? formatarPesoFilamento(valor) : `${Math.max(0, num(valor)).toFixed(0)} g`;
 
     function InventoryTabs(secao = estado.secao) {
+        const disponiveis = window.InventoryPage?.availableSections?.() || ["produtos", "filamentos"];
         return `<div class="mobileInventoryTabs" role="tablist" aria-label="Seção do estoque">
-            <button type="button" role="tab" aria-selected="${secao === "produtos"}" class="${secao === "produtos" ? "isActive" : ""}" onclick="MobileInventory.secao('produtos')"><i data-lucide="boxes"></i><span>Produtos</span></button>
-            <button type="button" role="tab" aria-selected="${secao === "filamentos"}" class="${secao === "filamentos" ? "isActive" : ""}" onclick="MobileInventory.secao('filamentos')"><i data-lucide="spool"></i><span>Filamentos</span></button>
+            ${disponiveis.includes("produtos") ? `<button type="button" role="tab" aria-selected="${secao === "produtos"}" class="${secao === "produtos" ? "isActive" : ""}" onclick="MobileInventory.secao('produtos')"><i data-lucide="boxes"></i><span>Produtos</span></button>` : ""}
+            ${disponiveis.includes("filamentos") ? `<button type="button" role="tab" aria-selected="${secao === "filamentos"}" class="${secao === "filamentos" ? "isActive" : ""}" onclick="MobileInventory.secao('filamentos')"><i data-lucide="spool"></i><span>Filamentos</span></button>` : ""}
         </div>`;
     }
 
@@ -283,9 +284,9 @@
 
     function atualizarNavegacao() {
         if (!media.matches) return;
-        if (typeof renderNavegacaoInferiorPrimeDocs === "function") renderNavegacaoInferiorPrimeDocs("filamentos");
+        if (typeof renderNavegacaoInferiorPrimeDocs === "function") renderNavegacaoInferiorPrimeDocs("estoque");
         document.querySelectorAll("[data-bottom-page]").forEach(botao => {
-            const ativo = botao.dataset.bottomPage === "filamentos";
+            const ativo = botao.dataset.bottomPage === "estoque";
             botao.classList.toggle("isActive", ativo);
             ativo ? botao.setAttribute("aria-current", "page") : botao.removeAttribute("aria-current");
         });
@@ -335,14 +336,22 @@
         section() { return estado.secao; },
         isActive(secao) { return media.matches && estado.secao === secao; },
         renderFilamentos: renderFilamentosMobile,
+        renderSection(secao, restaurarScroll = true) {
+            estado.secao = secao === "filamentos" ? "filamentos" : "produtos";
+            localStorage.setItem(STORAGE_SECTION, estado.secao);
+            if (estado.secao === "produtos") return ProdutosMobile.render(restaurarScroll);
+            return renderFilamentosMobile(restaurarScroll);
+        },
+        captureScroll() {
+            if (estado.secao === "produtos") ProdutosMobile.captureScroll?.();
+            else estado.scrollFilamentos = window.scrollY;
+        },
         getMobileInventoryData,
         tabs: InventoryTabs,
         secao(secao) {
-            estado.secao = secao === "produtos" ? "produtos" : "filamentos";
-            localStorage.setItem(STORAGE_SECTION, estado.secao);
-            window.scrollTo({ top: 0, behavior: "auto" });
-            if (estado.secao === "produtos") ProdutosMobile.render(false);
-            else renderFilamentosMobile(false);
+            if (window.InventoryPage?.setSection) return InventoryPage.setSection(secao);
+            api.captureScroll();
+            api.renderSection(secao, true);
         },
         decorateProducts() {
             if (!media.matches) return;
@@ -400,7 +409,6 @@
     window.getMobileInventoryData = getMobileInventoryData;
     window.renderFilamentos = function () {
         if (!media.matches) return renderFilamentosDesktop();
-        if (estado.secao === "produtos") return ProdutosMobile.render(false);
-        return renderFilamentosMobile();
+        return api.renderSection(estado.secao, true);
     };
 })();

@@ -240,6 +240,7 @@
 
     const api = {
         render: renderMobile,
+        captureScroll() { estado.scroll = window.scrollY; },
         buscar(valor) { estado.busca = valor; estado.pagina = 1; clearTimeout(buscaTimer); buscaTimer = setTimeout(() => renderMobile(false), 220); },
         colecao(id) { estado.colecaoId = chave(id); estado.pagina = 1; estado.scroll = 0; renderMobile(false); },
         filtro(id) { estado.filtro = estado.filtro === id ? "todos" : id; estado.pagina = 1; renderMobile(false); },
@@ -268,5 +269,5 @@
     window.renderProdutos = function () { if (!media.matches) return renderDesktop(); return renderMobile(); };
     window.renderTelaProdutos = function () { if (!media.matches) return renderTelaDesktop(); return renderMobile(); };
     window.listarProdutos = function () { if (!media.matches) return listarDesktop(); estado.scroll = window.scrollY; return renderMobile(); };
-    media.addEventListener?.("change", () => { if ((window.rotaAtual || window.paginaAtual) === "produtos") window.renderProdutos(); });
+    media.addEventListener?.("change", () => { if ((window.rotaAtual || window.paginaAtual) === "estoque" && window.InventoryPage?.activeSection?.() === "produtos") window.InventoryPage.render("produtos", { restaurarScroll: true, history: "replace" }); });
 })();

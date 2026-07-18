@@ -142,11 +142,11 @@
         const produto = ctx.rankings.produtos[0];
         const cliente = ctx.rankings.clientes[0];
         const loja = ctx.rankings.lojas[0];
-        return `<section class="smartCardsGrid">${smartCard("product", "trophy", "Produto campeão", produto, produto ? `${produto.quantidade} unidades` : "", produto ? moeda(produto.valor) : "", "Ver ranking", "produtos", produto ? imagemProduto(ctx, produto) : "")}${smartCard("client", "user-round", "Melhor cliente", cliente, cliente ? `${cliente.quantidade} pedidos` : "", cliente ? moeda(cliente.valor) : "", "Ver clientes", "clientes")}${smartCard("store", "store", "Melhor loja", loja, loja ? `${loja.quantidade} peças` : "", loja ? moeda(loja.valor) : "", "Ver lojas", "lojas")}</section>`;
+        return `<section class="smartCardsGrid">${smartCard("product", "trophy", "Produto campeão", produto, produto ? `${produto.quantidade} unidades` : "", produto ? moeda(produto.valor) : "", "Ver ranking", "estoque:produtos", produto ? imagemProduto(ctx, produto) : "")}${smartCard("client", "user-round", "Melhor cliente", cliente, cliente ? `${cliente.quantidade} pedidos` : "", cliente ? moeda(cliente.valor) : "", "Ver clientes", "clientes")}${smartCard("store", "store", "Melhor loja", loja, loja ? `${loja.quantidade} peças` : "", loja ? moeda(loja.valor) : "", "Ver lojas", "lojas")}</section>`;
     }
 
     function OperationsStrip(ctx) {
-        const itens = [["printer",ctx.pedidos.producao,"Pedidos em produção","Ver produção","producao","purple"],["archive",ctx.pedidos.impressorasOcupadas,"Impressoras ocupadas","Ver impressoras","impressoras","blue"],["spool",ctx.filamentos.criticos,"Filamentos críticos","Ver filamentos","filamentos","orange"],["gem",ctx.consignado.pecasEmLojas,"Peças em lojas","Ver consignado","consignado","green"]];
+        const itens = [["printer",ctx.pedidos.producao,"Pedidos em produção","Ver produção","producao","purple"],["archive",ctx.pedidos.impressorasOcupadas,"Impressoras ocupadas","Ver impressoras","impressoras","blue"],["spool",ctx.filamentos.criticos,"Filamentos críticos","Ver filamentos","estoque:filamentos","orange"],["gem",ctx.consignado.pecasEmLojas,"Peças em lojas","Ver consignado","consignado","green"]];
         return `<section class="premiumPanel operationsBusinessStrip"><header class="premiumPanelHeader"><div><h2>Produção e estoque</h2><p>Situação operacional atual</p></div></header><div>${itens.map(item => `<article class="${item[5]}" role="button" tabindex="0" onclick="DashboardPremium.abrirRota('${item[4]}')" onkeydown="DashboardPremium.ativarRota(event,'${item[4]}')"><span><i data-lucide="${item[0]}"></i></span><div><strong>${esc(item[1])}</strong><p>${esc(item[2])}</p><button tabindex="-1">${esc(item[3])} <i data-lucide="arrow-right"></i></button></div></article>`).join("")}</div></section>`;
     }
 
@@ -184,7 +184,7 @@
     }
 
     function Rankings(ctx) {
-        return `<section class="rankingsSection"><header><div><span>RANKINGS</span><h2>Melhores resultados</h2></div></header><div>${rankingCard("Top produtos","trophy",ctx.rankings.produtos,i=>`${i.quantidade} un. · ${moeda(i.valor)}`,"produtos")}${rankingCard("Top clientes","users",ctx.rankings.clientes,i=>`${i.quantidade} ped. · ${moeda(i.valor)}`,"clientes")}${rankingCard("Top lojas","store",ctx.rankings.lojas,i=>`${i.quantidade} peças · ${moeda(i.valor)}`,"lojas")}${rankingCard("Top categorias","shapes",ctx.rankings.categorias,i=>`${i.quantidade} un.`,"produtos")}</div></section>`;
+        return `<section class="rankingsSection"><header><div><span>RANKINGS</span><h2>Melhores resultados</h2></div></header><div>${rankingCard("Top produtos","trophy",ctx.rankings.produtos,i=>`${i.quantidade} un. · ${moeda(i.valor)}`,"estoque:produtos")}${rankingCard("Top clientes","users",ctx.rankings.clientes,i=>`${i.quantidade} ped. · ${moeda(i.valor)}`,"clientes")}${rankingCard("Top lojas","store",ctx.rankings.lojas,i=>`${i.quantidade} peças · ${moeda(i.valor)}`,"lojas")}${rankingCard("Top categorias","shapes",ctx.rankings.categorias,i=>`${i.quantidade} un.`,"estoque:produtos")}</div></section>`;
     }
 
     function Indicators(ctx) {
@@ -197,7 +197,7 @@
     }
 
     function ModuleCards(ctx) {
-        return `<section class="moduleCardsSection"><header><span>VISÃO POR MÓDULO</span><h2>Detalhamento rápido</h2></header><div>${moduleCard("wallet-cards","Financeiro",[["Receber hoje",moeda(ctx.financeiro.receberHoje)],["Receber no mês",moeda(ctx.financeiro.receberMes)],["Recebido no mês",moeda(ctx.financeiro.recebidoMes)],["Fluxo previsto",moeda(ctx.financeiro.fluxoPrevisto)]],"financeiro","green")}${moduleCard("store","Consignado",[["Valor em lojas",moeda(ctx.consignado.valorEmLojas)],["Peças",ctx.consignado.pecasEmLojas],["Conferências",ctx.consignado.conferencias],["Melhor loja",ctx.consignado.melhorLoja]],"consignado","orange")}${moduleCard("package","Pedidos",[["Criados",ctx.pedidos.criados],["Em produção",ctx.pedidos.producao],["Prontos",ctx.pedidos.prontos],["Entregues",ctx.pedidos.entregues]],"pedidos","purple")}${moduleCard("spool","Filamentos",[["Peso em estoque",`${compacto(ctx.filamentos.pesoTotal)} kg`],["Valor em estoque",moeda(ctx.filamentos.valorEstoque)],["Materiais",ctx.filamentos.materiais],["Críticos",ctx.filamentos.criticos]],"filamentos","blue")}</div></section>`;
+        return `<section class="moduleCardsSection"><header><span>VISÃO POR MÓDULO</span><h2>Detalhamento rápido</h2></header><div>${moduleCard("wallet-cards","Financeiro",[["Receber hoje",moeda(ctx.financeiro.receberHoje)],["Receber no mês",moeda(ctx.financeiro.receberMes)],["Recebido no mês",moeda(ctx.financeiro.recebidoMes)],["Fluxo previsto",moeda(ctx.financeiro.fluxoPrevisto)]],"financeiro","green")}${moduleCard("store","Consignado",[["Valor em lojas",moeda(ctx.consignado.valorEmLojas)],["Peças",ctx.consignado.pecasEmLojas],["Conferências",ctx.consignado.conferencias],["Melhor loja",ctx.consignado.melhorLoja]],"consignado","orange")}${moduleCard("package","Pedidos",[["Criados",ctx.pedidos.criados],["Em produção",ctx.pedidos.producao],["Prontos",ctx.pedidos.prontos],["Entregues",ctx.pedidos.entregues]],"pedidos","purple")}${moduleCard("spool","Filamentos",[["Peso em estoque",`${compacto(ctx.filamentos.pesoTotal)} kg`],["Valor em estoque",moeda(ctx.filamentos.valorEstoque)],["Materiais",ctx.filamentos.materiais],["Críticos",ctx.filamentos.criticos]],"estoque:filamentos","blue")}</div></section>`;
     }
 
     function render() {
@@ -225,7 +225,11 @@
         window.lucide?.createIcons?.();
     }
 
-    function abrirRota(rota) { if (typeof navegar === "function") navegar(rota); }
+    function abrirRota(rota) {
+        if (typeof navegar !== "function") return;
+        const [pagina, secao] = String(rota || "").split(":");
+        navegar(pagina, secao ? { section: secao } : {});
+    }
     function ativarRota(evento, rota) { if (["Enter", " "].includes(evento.key)) { evento.preventDefault(); abrirRota(rota); } }
     function rolarParaDestaques() { document.getElementById("dashboardDestaques")?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"center" }); }
     function rolarParaGrafico() { document.querySelector(".revenueChart")?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"center" }); }

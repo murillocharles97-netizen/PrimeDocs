@@ -62,7 +62,7 @@
             if (pedido?.statusPedido === "pronto") return "Entregar";
             if (["aprovado", "em_producao"].includes(pedido?.statusPedido)) return pedido.statusPedido === "aprovado" ? "Produzir" : "Ver produção";
         }
-        if (item.rota === "filamentos") return "Resolver";
+        if (["filamentos", "estoque:filamentos"].includes(item.rota)) return "Resolver";
         if (item.rota === "consignado") return "Conferir";
         return item.acaoPrincipal || "Abrir";
     }

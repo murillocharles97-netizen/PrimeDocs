@@ -158,6 +158,8 @@
     .mobileOrdersList { display: grid; gap: 12px; min-width: 0; }
     .mobileOrderSwipe {
         --swipe-tone: var(--orders-purple);
+        --swipe-action-tone: var(--orders-purple);
+        --swipe-progress: 0;
         position: relative;
         min-width: 0;
         border-radius: 19px;
@@ -171,9 +173,13 @@
     .mobileOrderSwipe.status-pronto { --swipe-tone: var(--orders-orange); }
     .mobileOrderSwipe.status-entregue { --swipe-tone: var(--orders-green); }
     .mobileOrderSwipe.status-cancelado { --swipe-tone: #94a3b8; }
+    .mobileOrderSwipe.progress-to-aprovacao { --swipe-action-tone: var(--orders-purple); }
+    .mobileOrderSwipe.progress-to-producao { --swipe-action-tone: var(--orders-blue); }
+    .mobileOrderSwipe.progress-to-pronto { --swipe-action-tone: var(--orders-green); }
     .mobileOrderSwipeAction { position: absolute; inset-block: 0; display: grid; place-content: center; justify-items: center; gap: 5px; width: 88px; color: var(--swipe-tone); font-size: 10px; font-weight: 850; }
     .mobileOrderSwipeAction svg { width: 22px; }
-    .mobileOrderSwipeAction.swipe-primary { left: 0; }
+    .mobileOrderSwipeAction.swipe-primary { left: 0; color: var(--swipe-action-tone); background: color-mix(in srgb, var(--swipe-action-tone) calc(7% + var(--swipe-progress) * 11%), transparent); }
+    .mobileOrderSwipeAction.swipe-primary svg { transform: scale(calc(.86 + var(--swipe-progress) * .18)); transition: transform .08s linear; }
     .mobileOrderSwipeAction.swipe-secondary { right: 0; color: var(--color-text-secondary, #64748b); }
     .mobileOrderCard {
         position: relative;
@@ -191,6 +197,33 @@
         cursor: pointer;
         will-change: transform;
     }
+    .mobileOrderSwipe.is-recently-moved .mobileOrderCard { animation: mobileOrderMoved 2s ease both; }
+
+    .mobileOrderUndoSnackbar {
+        position: fixed;
+        z-index: 2500;
+        left: max(14px, env(safe-area-inset-left));
+        right: max(14px, env(safe-area-inset-right));
+        bottom: calc(91px + env(safe-area-inset-bottom));
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        min-height: 54px;
+        padding: 11px 12px 11px 16px;
+        border: 1px solid color-mix(in srgb, var(--orders-purple, #6d4aff) 24%, transparent);
+        border-radius: 16px;
+        background: var(--color-text, #111827);
+        box-shadow: 0 18px 42px rgba(15, 23, 42, .24);
+        color: var(--color-surface, #fff);
+        font-size: 12px;
+        font-weight: 700;
+        opacity: 0;
+        transform: translateY(14px);
+        transition: opacity .18s ease, transform .18s ease;
+    }
+    .mobileOrderUndoSnackbar.is-visible { opacity: 1; transform: none; }
+    .mobileOrderUndoSnackbar button { min-height: 38px; padding: 0 11px; border: 0; border-radius: 10px; background: color-mix(in srgb, var(--orders-purple, #6d4aff) 22%, transparent); color: #c4b5fd; font-size: 10px; font-weight: 900; letter-spacing: .04em; }
     .mobileOrderAvatar { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 16px; background: color-mix(in srgb, var(--swipe-tone) 10%, transparent); color: var(--swipe-tone); font-size: 16px; font-weight: 850; }
     .mobileOrderMain { min-width: 0; }
     .mobileOrderMain > header { display: grid; grid-template-columns: minmax(0, 1fr) 34px; align-items: start; gap: 7px; background: transparent !important; box-shadow: none !important; }
@@ -274,8 +307,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .ordersMobilePage, .mobileOrderCard, .mobileOrderExpanded, .mobileOrderProgress > i b { animation: none !important; transition: none !important; }
+    .ordersMobilePage, .mobileOrderCard, .mobileOrderExpanded, .mobileOrderProgress > i b, .mobileOrderUndoSnackbar, .mobileOrderSwipeAction svg { animation: none !important; transition: none !important; }
 }
 
 @keyframes mobileOrdersIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes mobileOrderExpand { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes mobileOrderMoved { 0% { opacity: .35; transform: scale(.985); box-shadow: 0 0 0 0 color-mix(in srgb, var(--swipe-action-tone) 0%, transparent); } 18% { opacity: 1; transform: scale(1.008); box-shadow: 0 0 0 4px color-mix(in srgb, var(--swipe-action-tone) 18%, transparent); } 100% { opacity: 1; transform: none; box-shadow: 0 9px 25px rgba(15, 23, 42, .055); } }

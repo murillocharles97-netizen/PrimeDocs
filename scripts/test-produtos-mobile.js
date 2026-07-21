@@ -48,7 +48,7 @@ test("33. tema escuro e movimento reduzido são suportados", () => ok(css.includ
 test("34. estados vazios de catálogo e filtro existem", () => ok(js.includes("Seu catálogo começa aqui") && js.includes("Nenhum produto encontrado")));
 test("35. arquivos carregam após Produtos e antes do app", () => ok(index.indexOf("pages/produtos.js") < index.indexOf("js/produtos-mobile.js") && index.indexOf("js/produtos-mobile.js") < index.indexOf("js/app.js")));
 test("36. CSS e JavaScript mobile estão versionados", () => ok(index.includes("css/produtos-mobile.css?v=3") && index.includes("js/produtos-mobile.js?v=3")));
-test("37. PWA v61 inclui o catálogo mobile offline", () => ok(sw.includes("primedocs-v61") && sw.includes("css/produtos-mobile.css") && sw.includes("js/produtos-mobile.js")));
+test("37. PWA v62 inclui o catálogo mobile offline", () => ok(sw.includes("primedocs-v62") && sw.includes("css/produtos-mobile.css") && sw.includes("js/produtos-mobile.js")));
 test("38. layout evita rolagem horizontal da página", () => ok(css.includes("max-width:100%") && css.includes("overflow:hidden")));
 test("39. botões e cards possuem áreas de toque confortáveis", () => ok(css.includes("min-height:54px") && css.includes("min-height:42px") && css.includes("min-height:46px")));
 test("40. desktop mantém coleções e cards originais", () => ok(desktop.includes("productCollectionsGrid") && desktop.includes("productsGrid") && desktop.includes("criarCardProduto")));

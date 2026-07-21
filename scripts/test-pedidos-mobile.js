@@ -18,6 +18,9 @@ const content = { innerHTML: "" };
 const list = { innerHTML: "" };
 const count = { textContent: "" };
 const bodyClasses = new Set();
+let snackbar = null;
+let timerId = 0;
+const timers = new Map();
 
 const orders = [
     { id: "p1", clienteId: "c1", clienteNome: "Nadine", dataPedido: "2026-07-17", dataEntregaPrevista: "2026-07-16", statusPedido: "aguardando_aceite", coluna: "aguardando", prioridade: "atrasado", pagamento: "pendente", valorTotal: 120, valorPendente: 120, tipos: 1, pecas: 1, progresso: 0, minutosRestantes: 0, itens: [{ nome: "Taça", quantidade: 1, valorUnitario: 120 }], timeline: [], observacoes: "Entrega no balcão" },
@@ -31,14 +34,18 @@ global.window = global;
 global.matchMedia = () => ({ matches: mobile });
 global.localStorage = { getItem: () => null, setItem: () => {} };
 global.document = {
-    body: { classList: { add: name => bodyClasses.add(name), remove: name => bodyClasses.delete(name) } },
-    getElementById: id => ({ content, mobileOrdersList: list, mobileOrdersCount: count }[id] || null),
+    body: {
+        classList: { add: name => bodyClasses.add(name), remove: name => bodyClasses.delete(name) },
+        insertAdjacentHTML: (_position, html) => { snackbar = { html, classList: { add: () => {} }, remove: () => { snackbar = null; } }; }
+    },
+    getElementById: id => ({ content, mobileOrdersList: list, mobileOrdersCount: count, mobileOrderUndoSnackbar: snackbar }[id] || null),
     querySelector: () => null,
     querySelectorAll: () => []
 };
 global.addEventListener = () => {};
-global.setTimeout = callback => { callback(); return 1; };
-global.clearTimeout = () => {};
+global.requestAnimationFrame = callback => callback();
+global.setTimeout = (callback, delay = 0) => { const id = ++timerId; timers.set(id, { callback, delay }); return id; };
+global.clearTimeout = id => timers.delete(id);
 global.lucide = { createIcons: () => {} };
 global.Utils = { moeda: value => `R$ ${Number(value || 0).toFixed(2).replace(".", ",")}` };
 global.formatarDataBR = value => String(value || "");
@@ -46,12 +53,32 @@ global.formatarMinutosProducao = value => `${value} min`;
 global.renderNavegacaoInferiorPrimeDocs = page => { navigationMode = page; };
 global.atualizarNavegacaoAtivaPrimeDocs = () => {};
 global.Modal = { abrir: () => {}, fechar: () => {} };
-global.Storage = { listarLancamentosFinanceiros: () => [] };
+global.Storage = {
+    listarLancamentosFinanceiros: () => [],
+    buscarPedidoPorId: id => orders.find(pedido => String(pedido.id) === String(id)),
+    salvarPedido: pedido => {
+        const index = orders.findIndex(item => String(item.id) === String(pedido.id));
+        if (index >= 0) orders[index] = pedido;
+        else orders.push(pedido);
+        return pedido;
+    }
+};
 global.Financeiro = { sincronizar: () => [] };
+global.registrarEventoPedido = pedido => pedido;
+global.rotuloStatusPedido = status => status;
+global.gerarNotificacoesOperacionais = () => {};
+global.navigator = { vibrate: () => true };
 global.PedidosPremium = {
     render: () => { desktopRenders += 1; },
     _renderDesktop: () => { desktopRenders += 1; },
-    _criarContexto: () => ({ hoje: "2026-07-17", enriquecidos: orders, clientes: [{ id: "c1", nome: "Nadine" }, { id: "c2", nome: "Mercado Livre" }] }),
+    _criarContexto: () => ({
+        hoje: "2026-07-17",
+        enriquecidos: orders.map(pedido => ({
+            ...pedido,
+            coluna: pedido.statusPedido === "entregue" ? "entregue" : pedido.statusPedido === "pronto" ? "pronto" : pedido.statusPedido === "em_producao" ? "producao" : pedido.coluna
+        })),
+        clientes: [{ id: "c1", nome: "Nadine" }, { id: "c2", nome: "Mercado Livre" }]
+    }),
     abrirAcabamento: () => {}
 };
 
@@ -78,7 +105,7 @@ test("10. produção mostra barra de progresso real", () => ok(list.innerHTML.in
 test("11. ação principal muda por etapa", () => ok(PedidosMobile._acaoPrincipal(orders[0]).tipo === "aprovar" && PedidosMobile._acaoPrincipal(orders[1]).tipo === "producao" && PedidosMobile._acaoPrincipal(orders[2]).tipo === "entregar" && PedidosMobile._acaoPrincipal(orders[3]).tipo === "receber"));
 test("12. card expande sem abrir outra página", () => { PedidosMobile.alternarDetalhes({ target: { closest: () => null } }, "p1"); ok(list.innerHTML.includes("mobileOrderExpanded") && list.innerHTML.includes("PRODUTOS") && list.innerHTML.includes("HISTÓRICO RECENTE")); });
 test("13. expansão inclui cliente, tempo, arquivos, pagamento e observações", () => ok(["Cliente", "Tempo estimado", "Arquivos STL", "Pagamento", "Entrega no balcão"].every(text => list.innerHTML.includes(text))));
-test("14. swipe possui ação principal e menu secundário", () => ok(source.includes('pointerdown') && source.includes('pointermove') && source.includes('swipe-primary') && source.includes('swipe-secondary')));
+test("14. swipe possui progressão contextual e menu secundário", () => ok(source.includes('pointerdown') && source.includes('pointermove') && source.includes('acaoProgressao') && source.includes('swipe-primary') && source.includes('swipe-secondary')));
 test("15. filtro de Produção funciona", () => { PedidosMobile.definirStatus("producao"); ok(list.innerHTML.includes("Mercado Livre") && !list.innerHTML.includes("Nadine")); });
 test("16. busca encontra cliente em tempo real", () => { PedidosMobile.definirStatus("todos"); PedidosMobile.pesquisar("Pedro"); ok(list.innerHTML.includes("Pedro") && !list.innerHTML.includes("Mercado Livre")); });
 test("17. estado vazio é útil", () => { PedidosMobile.pesquisar("inexistente"); ok(list.innerHTML.includes("Nenhum pedido encontrado") && list.innerHTML.includes("Novo pedido")); PedidosMobile.pesquisar(""); });
@@ -89,8 +116,39 @@ test("21. CSS é restrito ao breakpoint mobile", () => ok(css.trim().startsWith(
 test("22. tema escuro e movimento reduzido estão cobertos", () => ok(css.includes("body.dark-mode") && css.includes("prefers-reduced-motion: reduce")));
 test("23. desktop continua no renderizador aprovado", () => { mobile = false; renderPedidos(); ok(desktopRenders === 1 && desktopSource.includes("ordersKanban") && desktopCss.includes("ordersKpiGrid")); });
 test("24. arquivos carregam depois do desktop e antes do app", () => ok(index.indexOf("js/pedidos-premium.js") < index.indexOf("js/pedidos-mobile.js") && index.indexOf("js/pedidos-mobile.js") < index.indexOf("js/app.js")));
-test("25. PWA inclui a interface mobile offline", () => ok(sw.includes("primedocs-v61") && sw.includes("pedidos-mobile.css") && sw.includes("pedidos-mobile.js")));
+test("25. PWA inclui a interface mobile offline", () => ok(sw.includes("primedocs-v62") && sw.includes("pedidos-mobile.css") && sw.includes("pedidos-mobile.js")));
 test("26. navegação mobile é ativada pela página", () => ok(navigationMode === "pedidos"));
 test("27. desktop não recebe seletores da camada mobile", () => ok(!desktopCss.includes("ordersMobilePage") && !desktopSource.includes("mobileOrderSwipe")));
+test("28. progressão cobre aprovação, produção e pronto sem ultrapassar entregue", () => {
+    ok(PedidosMobile._acaoProgressao(orders[0]).status === "aprovado");
+    ok(PedidosMobile._acaoProgressao(orders[1]).status === "pronto");
+    ok(PedidosMobile._acaoProgressao(orders[2]).status === "entregue");
+    ok(PedidosMobile._acaoProgressao(orders[3]) === null);
+});
+test("29. botão Ver produção continua independente do gesto", () => ok(PedidosMobile._acaoPrincipal(orders[1]).rotulo.includes("produ") && source.includes("PedidosMobile.executarPrimaria")));
+test("30. avançar persiste, troca de aba e mostra snackbar", () => {
+    mobile = true;
+    PedidosMobile.definirStatus("aprovacao");
+    ok(PedidosMobile.avancarStatus("p1") === true);
+    ok(orders[0].statusPedido === "aprovado");
+    ok(PedidosMobile._estado.status === "producao");
+    ok(snackbar?.html.includes("Pedido movido para Produção") && snackbar.html.includes("DESFAZER"));
+});
+test("31. desfazer restaura status e aba anteriores", () => {
+    ok(PedidosMobile.desfazerProgressao() === true);
+    ok(orders[0].statusPedido === "aguardando_aceite");
+    ok(PedidosMobile._estado.status === "aprovacao");
+    ok(snackbar === null);
+});
+test("32. interface inclui destaque, vibração, bloqueio e timeout de cinco segundos", () => ok(source.includes("is-recently-moved") && source.includes("vibrate?.(18)") && source.includes("pedidosEmTransicao") && source.includes("5000") && css.includes("mobileOrderMoved")));
+test("33. assets mobile receberam versão nova no HTML", () => ok(index.includes("pedidos-mobile.css?v=2") && index.includes("pedidos-mobile.js?v=2")));
+test("34. snackbar expira em cinco segundos e encerra a opção de desfazer", () => {
+    PedidosMobile.definirStatus("producao");
+    ok(PedidosMobile.avancarStatus("p2") === true);
+    const timer = [...timers.values()].find(item => item.delay === 5000);
+    ok(Boolean(timer));
+    timer.callback();
+    ok(snackbar === null && PedidosMobile.desfazerProgressao() === false);
+});
 
 if (!process.exitCode) console.log(`\n${passed} verificações da tela Pedidos Mobile aprovadas.`);

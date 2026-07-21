@@ -21,6 +21,10 @@
     let ultimoModoMobile = null;
     let resizeTimer = null;
     let ignorarCliqueAte = 0;
+    let transacaoPendente = null;
+    let snackbarTimer = null;
+    let destaqueTimer = null;
+    const pedidosEmTransicao = new Set();
 
     const esc = valor => String(valor ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
     const numero = valor => Number(valor) || 0;
@@ -33,8 +37,8 @@
 
     function pertenceStatus(pedido, status) {
         if (status === "todos") return pedido.statusPedido !== "cancelado";
-        if (status === "aprovacao") return pedido.coluna === "aguardando" && pedido.statusPedido !== "cancelado";
-        if (status === "producao") return ["producao", "acabamento"].includes(pedido.coluna);
+        if (status === "aprovacao") return pedido.coluna === "aguardando" && ["aguardando_orcamento", "aguardando_aceite"].includes(pedido.statusPedido);
+        if (status === "producao") return pedido.statusPedido === "aprovado" || ["producao", "acabamento"].includes(pedido.coluna);
         if (status === "pronto") return pedido.coluna === "pronto";
         if (status === "entregue") return pedido.coluna === "entregue";
         if (status === "cancelado") return pedido.statusPedido === "cancelado";
@@ -102,6 +106,19 @@
         if (pedido.coluna === "entregue" && pedido.pagamento !== "pago") return { tipo: "receber", rotulo: "Receber", icone: "hand-coins" };
         if (pedido.statusPedido === "cancelado") return { tipo: "reativar", rotulo: "Reativar", icone: "rotate-ccw" };
         return { tipo: "detalhes", rotulo: "Ver detalhes", icone: "eye" };
+    }
+
+    function acaoProgressao(pedido) {
+        if (["aguardando_orcamento", "aguardando_aceite"].includes(pedido.statusPedido)) {
+            return { status: "aprovado", aba: "producao", rotulo: "Aprovar pedido", destino: "Produção", icone: "circle-check", tom: "aprovacao" };
+        }
+        if (["producao", "acabamento"].includes(pedido.coluna) || pedido.statusPedido === "em_producao") {
+            return { status: "pronto", aba: "pronto", rotulo: "Marcar como pronto", destino: "Pronto", icone: "package-check", tom: "producao" };
+        }
+        if (pedido.coluna === "pronto" || pedido.statusPedido === "pronto") {
+            return { status: "entregue", aba: "entregue", rotulo: "Marcar como entregue", destino: "Entregue", icone: "truck", tom: "pronto" };
+        }
+        return null;
     }
 
     function renderResumo() {
@@ -173,10 +190,11 @@
         const [status, statusClasse] = statusVisual(pedido);
         const [pagamento, pagamentoClasse] = pagamentoVisual(pedido);
         const acao = acaoPrincipal(pedido);
+        const progressao = acaoProgressao(pedido);
         const progresso = Math.min(100, Math.max(0, numero(pedido.progresso)));
         const expandido = estado.expandidos.has(chave(pedido.id));
-        return `<div class="mobileOrderSwipe priority-${esc(pedido.prioridade)} status-${statusClasse}" data-mobile-order-swipe="${esc(pedido.id)}">
-            <div class="mobileOrderSwipeAction swipe-primary"><i data-lucide="${acao.icone}"></i><span>${esc(acao.rotulo)}</span></div>
+        return `<div class="mobileOrderSwipe priority-${esc(pedido.prioridade)} status-${statusClasse} ${progressao ? `progress-to-${progressao.tom}` : "no-progress-action"}" data-mobile-order-swipe="${esc(pedido.id)}" data-has-progress-action="${Boolean(progressao)}">
+            ${progressao ? `<div class="mobileOrderSwipeAction swipe-primary"><i data-lucide="${progressao.icone}"></i><span>${esc(progressao.rotulo)}</span></div>` : ""}
             <div class="mobileOrderSwipeAction swipe-secondary"><i data-lucide="ellipsis"></i><span>Mais</span></div>
             <article class="mobileOrderCard ${expandido ? "isExpanded" : ""}" data-mobile-order-card="${esc(pedido.id)}" onclick="PedidosMobile.alternarDetalhes(event,'${esc(pedido.id)}')">
                 <span class="mobileOrderAvatar">${esc(iniciais(pedido.clienteNome))}</span>
@@ -261,16 +279,121 @@
         renderLista();
     }
 
+    function clonarPedido(pedido) {
+        if (typeof structuredClone === "function") return structuredClone(pedido);
+        return JSON.parse(JSON.stringify(pedido));
+    }
+
+    function removerSnackbar() {
+        clearTimeout(snackbarTimer);
+        snackbarTimer = null;
+        document.getElementById("mobileOrderUndoSnackbar")?.remove();
+    }
+
+    function exibirSnackbar(mensagem) {
+        removerSnackbar();
+        if (!document.body?.insertAdjacentHTML) return;
+        document.body.insertAdjacentHTML("beforeend", `<aside class="mobileOrderUndoSnackbar" id="mobileOrderUndoSnackbar" role="status" aria-live="polite"><span>${esc(mensagem)}</span><button type="button" onclick="PedidosMobile.desfazerProgressao()">DESFAZER</button></aside>`);
+        (window.requestAnimationFrame || (callback => setTimeout(callback, 0)))(() => document.getElementById("mobileOrderUndoSnackbar")?.classList.add("is-visible"));
+        snackbarTimer = setTimeout(() => {
+            transacaoPendente = null;
+            removerSnackbar();
+        }, 5000);
+    }
+
+    function destacarPedido(id) {
+        clearTimeout(destaqueTimer);
+        (window.requestAnimationFrame || (callback => setTimeout(callback, 0)))(() => {
+            const seletorId = window.CSS?.escape ? window.CSS.escape(String(id)) : String(id).replace(/["\\]/g, "\\$&");
+            const card = document.querySelector(`[data-mobile-order-swipe="${seletorId}"]`);
+            if (!card) return;
+            card.classList.add("is-recently-moved");
+            destaqueTimer = setTimeout(() => card.classList.remove("is-recently-moved"), 2000);
+        });
+    }
+
+    function atualizarAposProgressao(id, aba) {
+        estado.status = aba;
+        estado.expandidos.delete(chave(id));
+        renderMobile();
+        destacarPedido(id);
+    }
+
+    function registrarMudancaRapida(pedido, statusAnterior, statusNovo) {
+        pedido.statusPedido = statusNovo;
+        pedido.atualizadoEm = new Date().toISOString();
+        if (typeof registrarEventoPedido === "function") {
+            const tipo = statusNovo === "entregue" ? "pedido_entregue" : statusNovo === "pronto" ? "pedido_pronto" : statusNovo === "aprovado" ? "orcamento_aprovado" : "status_alterado";
+            const titulo = typeof rotuloStatusPedido === "function" ? rotuloStatusPedido(statusNovo) : statusNovo;
+            const anterior = typeof rotuloStatusPedido === "function" ? rotuloStatusPedido(statusAnterior) : statusAnterior;
+            registrarEventoPedido(pedido, tipo, titulo, `Status alterado de ${anterior} para ${titulo}.`);
+        }
+        Storage.salvarPedido(pedido);
+        Financeiro?.sincronizar?.();
+        if (typeof gerarNotificacoesOperacionais === "function") gerarNotificacoesOperacionais();
+    }
+
+    function avancarStatus(id) {
+        const key = chave(id);
+        if (pedidosEmTransicao.has(key)) return false;
+        const enriquecido = obterPedido(id);
+        const progressao = acaoProgressao(enriquecido || {});
+        const atual = Storage.buscarPedidoPorId?.(id);
+        if (!progressao || !atual || atual.statusPedido === progressao.status) return false;
+
+        pedidosEmTransicao.add(key);
+        try {
+            removerSnackbar();
+            const anterior = clonarPedido(atual);
+            const abaAnterior = estado.status;
+            const atualizado = clonarPedido(atual);
+            registrarMudancaRapida(atualizado, anterior.statusPedido, progressao.status);
+            transacaoPendente = { id, anterior, abaAnterior, destino: progressao.destino };
+            window.navigator?.vibrate?.(18);
+            atualizarAposProgressao(id, progressao.aba);
+            exibirSnackbar(`Pedido movido para ${progressao.destino}.`);
+            return true;
+        } catch (erro) {
+            console.error("Erro ao avançar pedido pelo gesto", erro);
+            Toast?.show?.(erro?.message || "Não foi possível atualizar o pedido.");
+            return false;
+        } finally {
+            setTimeout(() => pedidosEmTransicao.delete(key), 450);
+        }
+    }
+
+    function desfazerProgressao() {
+        if (!transacaoPendente) return false;
+        const transacao = transacaoPendente;
+        transacaoPendente = null;
+        removerSnackbar();
+        try {
+            Storage.salvarPedido(clonarPedido(transacao.anterior));
+            Financeiro?.sincronizar?.();
+            if (typeof gerarNotificacoesOperacionais === "function") gerarNotificacoesOperacionais();
+            estado.status = transacao.abaAnterior;
+            renderMobile();
+            destacarPedido(transacao.id);
+            return true;
+        } catch (erro) {
+            console.error("Erro ao desfazer avanço do pedido", erro);
+            Toast?.show?.(erro?.message || "Não foi possível desfazer a alteração.");
+            return false;
+        }
+    }
+
     function ativarGestos() {
         document.querySelectorAll("[data-mobile-order-swipe]").forEach(wrapper => {
             if (wrapper.dataset.gestureReady) return;
             wrapper.dataset.gestureReady = "true";
             const card = wrapper.querySelector(".mobileOrderCard");
+            const permiteAvanco = wrapper.dataset.hasProgressAction === "true";
             let inicioX = 0, inicioY = 0, deltaX = 0, horizontal = false;
             const resetar = () => {
                 card.style.transition = "transform .2s ease";
                 card.style.transform = "";
                 wrapper.removeAttribute("data-swipe-direction");
+                wrapper.style.removeProperty("--swipe-progress");
             };
             wrapper.addEventListener("pointerdown", evento => {
                 if (evento.target.closest("button,select,input,a")) return;
@@ -285,9 +408,10 @@
                 if (!horizontal && Math.abs(x) > 9 && Math.abs(x) > Math.abs(y)) horizontal = true;
                 if (!horizontal) return;
                 evento.preventDefault();
-                deltaX = Math.max(-96, Math.min(96, x));
+                deltaX = Math.max(-96, Math.min(permiteAvanco ? 96 : 18, x));
                 card.style.transform = `translateX(${deltaX}px)`;
                 wrapper.dataset.swipeDirection = deltaX > 0 ? "right" : "left";
+                wrapper.style.setProperty("--swipe-progress", String(Math.min(1, Math.abs(deltaX) / 68)));
             });
             const finalizar = () => {
                 if (!inicioX) return;
@@ -298,7 +422,7 @@
                 resetar();
                 if (executar) {
                     const id = wrapper.dataset.mobileOrderSwipe;
-                    direita ? api.executarPrimaria(id) : abrirMenuPedido(id);
+                    direita ? api.avancarStatus(id) : abrirMenuPedido(id);
                 }
                 deltaX = 0;
             };
@@ -320,6 +444,8 @@
             renderLista();
         },
         executarPrimaria(id) { const pedido = obterPedido(id); executarAcao(pedido, acaoPrincipal(pedido || {})); },
+        avancarStatus,
+        desfazerProgressao,
         abrirFiltros() {
             Modal.abrir("Filtros de pedidos", `<div class="mobileOrderFilterSheet">
                 <label class="inputGroup"><span>Pagamento</span><select id="mobileOrderPayment"><option value="">Todos</option><option value="pendente" ${estado.pagamento === "pendente" ? "selected" : ""}>Pendente</option><option value="parcial" ${estado.pagamento === "parcial" ? "selected" : ""}>Parcial</option><option value="pago" ${estado.pagamento === "pago" ? "selected" : ""}>Pago</option></select></label>
@@ -336,7 +462,8 @@
         limparFiltrosExtras() { estado.pagamento = ""; estado.prioridade = ""; estado.ordenacao = "prazo"; Modal.fechar(); renderLista(); },
         _estado: estado,
         _filtrar: filtrarPedidos,
-        _acaoPrincipal: acaoPrincipal
+        _acaoPrincipal: acaoPrincipal,
+        _acaoProgressao: acaoProgressao
     };
 
     window.PedidosMobile = api;

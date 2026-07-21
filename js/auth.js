@@ -68,7 +68,7 @@ const PrimeAuth = (() => {
         tela.innerHTML = `
             <section class="authShell">
                 <div class="authBrandPanel">
-                    <div class="brandMark brandMarkLarge"><i data-lucide="box"></i></div>
+                    <div class="brandMark brandMarkLarge"><img class="brandSymbol" src="assets/brand-symbol-white.svg" alt=""></div>
                     <span>PRIMEDOCS CLOUD</span>
                     <h1>Gestão 3D com login e sincronização online.</h1>
                     <p>Entre para carregar seu workspace e manter LocalStorage como cache offline.</p>

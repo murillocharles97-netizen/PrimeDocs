@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-hidden="true">
+  <defs>
+    <linearGradient id="adaptive-gradient" x1="64" y1="48" x2="460" y2="472" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9B72FF"/>
+      <stop offset=".5" stop-color="#6D5DFD"/>
+      <stop offset=".84" stop-color="#5634D7"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#adaptive-gradient)"/>
+</svg>

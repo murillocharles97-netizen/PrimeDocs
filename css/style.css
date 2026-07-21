@@ -2622,6 +2622,24 @@ body{
     filter:drop-shadow(0 4px 5px rgba(26,15,73,.35));
 }
 
+.brandMark .brandSymbol{
+    position:relative;
+    z-index:1;
+    display:block;
+    width:62%;
+    height:62%;
+    object-fit:contain;
+    background:transparent;
+    filter:drop-shadow(0 3px 4px rgba(26,15,73,.22));
+}
+
+.headerBrand .brandMark img.brandSymbol{
+    width:62%;
+    height:62%;
+    border-radius:0;
+    background:transparent;
+}
+
 .brandMarkLarge{
     width:76px;
     height:76px;
@@ -2633,6 +2651,8 @@ body{
     width:40px;
     height:40px;
 }
+
+.brandMarkLarge .brandSymbol{width:60%;height:60%}
 
 .brandMarkHero{
     width:54px;

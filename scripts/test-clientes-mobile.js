@@ -115,7 +115,7 @@ test("32. estados vazio, erro, cache offline e skeleton existem", () => ok(["Nen
 test("33. dados são normalizados em uma leitura por coleção", () => ok(source.includes("pedidosPorId") && source.includes("financeiroPorId") && source.includes("estoquePorLoja") && source.includes("limite: 30")));
 test("34. desktop continua no renderizador original", () => { mobile = false; renderClientes(); ok(desktopRenders === 1 && desktop.includes("clientGrid") && desktop.includes("crmCustomerCard")); });
 test("35. arquivos carregam depois do desktop e antes do app", () => ok(index.indexOf("pages/clientes.js") < index.indexOf("js/clientes-mobile.js") && index.indexOf("js/clientes-mobile.js") < index.indexOf("js/app.js")));
-test("36. PWA inclui CRM mobile offline", () => ok(sw.includes("primedocs-v61") && sw.includes("clientes-mobile.css") && sw.includes("clientes-mobile.js")));
+test("36. PWA inclui CRM mobile offline", () => ok(sw.includes("primedocs-v62") && sw.includes("clientes-mobile.css") && sw.includes("clientes-mobile.js")));
 test("37. navegação de Clientes mantém Mais como aba contextual", () => ok(navigationMode === "clientes" && navigation.includes('destino === "mais" && !paginasPrincipais.includes(paginaAtiva)')));
 test("38. CSS desktop não recebeu seletores mobile", () => ok(!desktop.includes("clientsMobilePage") && !desktop.includes("mobileClientSwipe")));
 

@@ -54,7 +54,7 @@ test("38. 360px usa resumo e métricas 2x2", () => ok(css.includes("@media (max-
 test("39. acessibilidade inclui foco, reduced motion e aria", () => ok(css.includes("focus-visible") && css.includes("prefers-reduced-motion") && js.includes("aria-selected") && js.includes("aria-expanded")));
 test("40. agregação ocorre antes dos cards", () => ok(js.includes("function getMobileInventoryData") && js.includes("contexto.grupos = FilamentIntegration.agruparRolos")));
 test("41. arquivos carregam na ordem correta", () => ok(index.indexOf("pages/filamentos.js") < index.indexOf("js/estoque-mobile.js") && index.indexOf("js/estoque-mobile.js") < index.indexOf("js/app.js")));
-test("42. PWA v62 inclui a experiência central offline", () => ok(sw.includes("primedocs-v62") && sw.includes("css/estoque-mobile.css") && sw.includes("js/estoque-mobile.js") && sw.includes("js/inventory.js")));
+test("42. PWA v63 inclui a experiência central offline", () => ok(sw.includes("primedocs-v63") && sw.includes("css/estoque-mobile.css") && sw.includes("js/estoque-mobile.js") && sw.includes("js/inventory.js")));
 test("43. CSS e JS estão versionados", () => ok(index.includes("css/estoque-mobile.css?v=2") && index.includes("js/estoque-mobile.js?v=1")));
 test("44. desktop não recebeu seletores mobile", () => ok(!desktop.includes("mobileFilamentCard") && !desktop.includes("mobileInventoryTabs")));
 test("45. regra de negócio e Firebase não são redefinidos", () => ok(!js.includes("firebase.") && !js.includes("PrimeFirebase") && !js.includes("localStorage.setItem(\"primedocs_filamentos\"")));

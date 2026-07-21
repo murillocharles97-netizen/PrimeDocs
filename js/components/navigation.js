@@ -25,7 +25,7 @@ function renderNavegacaoPrimeDocs() {
     if (!container) return;
     container.innerHTML = `
         <div class="drawerBrand">
-            <div class="brandMark"><i data-lucide="box"></i></div>
+            <div class="brandMark"><img class="brandSymbol" src="assets/brand-symbol-white.svg" alt=""></div>
             <div><strong>PrimeDocs</strong><span>ERP para impressão 3D</span></div>
             <button onclick="fecharDrawerPrimeDocs()" aria-label="Fechar menu"><i data-lucide="x"></i></button>
         </div>
@@ -136,7 +136,7 @@ function atualizarCabecalhoPrimeDocs() {
     const logo = document.getElementById("headerCompanyLogo");
     if (nome) nome.textContent = empresa?.nome || "PrimeLine 3D";
     if (contexto) contexto.textContent = `${saudacao} · ${agora.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}`;
-    if (logo) logo.innerHTML = empresa?.logo ? `<img src="${empresa.logo}" alt="">` : `<i data-lucide="box"></i>`;
+    if (logo) logo.innerHTML = empresa?.logo ? `<img src="${empresa.logo}" alt="">` : `<img class="brandSymbol" src="assets/brand-symbol-white.svg" alt="">`;
     atualizarSyncStatusGlobal();
 }
 

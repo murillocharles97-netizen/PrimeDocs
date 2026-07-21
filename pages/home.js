@@ -357,7 +357,7 @@ function renderDashboard() {
             <section class="dashboardHero">
                 <div class="dashboardBrand">
                     <div class="brandMark brandMarkHero" aria-hidden="true">
-                        <i data-lucide="box"></i>
+                        <img class="brandSymbol" src="assets/brand-symbol-white.svg" alt="">
                     </div>
                     <div>
                         <span>${saudacao}</span>

@@ -1,4 +1,4 @@
-const CACHE_VERSION = "primedocs-v62";
+const CACHE_VERSION = "primedocs-v63";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -7,9 +7,25 @@ const APP_SHELL = [
     "./index.html",
     "./manifest.json",
     "./assets/brand.svg",
+    "./assets/brand.svg?v=2",
+    "./assets/brand-symbol-white.svg",
+    "./assets/brand-symbol-black.svg",
+    "./assets/brand-symbol-purple.svg",
+    "./assets/adaptive-background.svg",
+    "./assets/favicon.ico",
+    "./assets/favicon.ico?v=2",
+    "./assets/favicon-32.png",
+    "./assets/favicon-32.png?v=2",
+    "./assets/apple-touch-icon.png",
+    "./assets/apple-touch-icon.png?v=2",
     "./assets/icon-192.png",
     "./assets/icon-512.png",
+    "./assets/icon-maskable-192.png",
     "./assets/icon-maskable-512.png",
+    "./assets/icon-adaptive-foreground.png",
+    "./assets/icon-adaptive-background.png",
+    "./assets/icon-monochrome-512.png",
+    "./assets/splash-icon-512.png",
     "./css/style.css",
     "./css/design-system.css",
     "./css/operations-center.css",

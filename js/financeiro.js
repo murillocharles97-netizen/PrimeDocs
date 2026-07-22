@@ -8,7 +8,7 @@ const Financeiro = {
         const agora = new Date().toISOString();
         const ativos = new Set();
 
-        Storage.listarPedidos().forEach(pedido => {
+        Storage.listarPedidos().filter(pedido => pedido.tipoPedido !== "estoque_interno").forEach(pedido => {
             const id = `fin-pedido-${pedido.id}`;
             ativos.add(id);
             const anterior = existentes.get(id) || {};

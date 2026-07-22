@@ -35,8 +35,9 @@ Storage.salvarProduto({
 });
 const ordem = Producao.criarOrdemParaEstoque("p-estoque", 3);
 assert.equal(ordem.origem, "estoque", "ordem identifica produção para estoque");
-assert.equal(ordem.pedidoId, null, "produção de estoque não cria vínculo com pedido");
-assert.equal(Storage.listarPedidos().length, 0, "produção de estoque não cria pedido");
+assert(ordem.pedidoId && ordem.itemPedidoId, "produção de estoque possui origem e item rastreáveis");
+assert.equal(Storage.buscarPedidoPorId(ordem.pedidoId).tipoPedido, "estoque_interno", "demanda interna de estoque não vira pedido comercial");
+assert.equal(Storage.buscarPedidoPorId(ordem.pedidoId).visivel, false, "demanda interna permanece invisível na operação comercial");
 assert.equal(Storage.listarLancamentosFinanceiros().length, 0, "produção de estoque não cria financeiro");
 const operacao = Storage.listarOperacoesProducao().find(item => item.ordemProducaoId === ordem.id);
 Producao.iniciarOperacaoManual(operacao.id);

@@ -214,6 +214,9 @@ function pedirExclusaoProduto(id) {
 
 function excluirProduto(id) {
     const produto = Storage.buscarProdutoPorId(id);
+    const pedidosVinculados = Storage.listarPedidos().filter(pedido => pedido.ativo !== false && !["entregue", "cancelado"].includes(pedido.statusPedido) && (pedido.itens || []).some(item => String(item.produtoId) === String(produto?.id ?? id)));
+    const producoesVinculadas = ERPIntegracao.ordensAtivas().filter(ordem => String(ordem.produtoId) === String(produto?.id ?? id));
+    if (pedidosVinculados.length || producoesVinculadas.length) return Toast.show("Este produto possui pedido ou produção ativa. Conclua ou cancele o fluxo antes de arquivá-lo.");
     Storage.excluirProduto(produto?.id ?? id);
     Modal.fechar();
     listarProdutos();

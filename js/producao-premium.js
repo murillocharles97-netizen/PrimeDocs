@@ -27,9 +27,11 @@
     function lerDados() {
         Producao.migrarDados();
         const impressoras = Storage.listarImpressoras().filter(item => item.ativa !== false);
-        const ordens = Storage.listarOrdensProducao().filter(item => item.ativo !== false && item.status !== "cancelada");
-        const operacoes = Storage.listarOperacoesProducao().filter(item => item.status !== "cancelada");
-        const lotes = Storage.listarLotesExecucao().filter(item => item.status !== "cancelado");
+        const ordens = ERPIntegracao.ordensAtivas();
+        const ordemIds = new Set(ordens.map(item => chave(item.id)));
+        const operacoes = Storage.listarOperacoesProducao().filter(item => item.status !== "cancelada" && ordemIds.has(chave(item.ordemProducaoId)));
+        const operacaoIds = new Set(operacoes.map(item => chave(item.id)));
+        const lotes = Storage.listarLotesExecucao().filter(item => item.status !== "cancelado" && operacaoIds.has(chave(item.operacaoId)));
         const pedidos = Storage.listarPedidos().filter(item => item.ativo !== false);
         const produtos = Storage.listarProdutos().filter(item => item.ativo !== false);
         const filamentos = Storage.listarFilamentos().filter(item => item.ativo !== false);

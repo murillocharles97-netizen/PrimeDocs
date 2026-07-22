@@ -57,6 +57,7 @@ function renderizarERPPrimeDocs() {
 
     Storage.migrarColecoesProdutos?.();
     renderNavegacaoPrimeDocs();
+    ERPIntegracao.inicializar();
     Financeiro.sincronizar();
     gerarNotificacoesOperacionais();
     const rotaInicial = window.InventoryPage?.initialNavigation?.();

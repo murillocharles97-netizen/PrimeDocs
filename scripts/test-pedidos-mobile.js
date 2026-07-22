@@ -64,6 +64,13 @@ global.Storage = {
     }
 };
 global.Financeiro = { sincronizar: () => [] };
+global.ERPIntegracao = { alterarStatusPedido: (id, status) => {
+    const pedido = Storage.buscarPedidoPorId(id);
+    pedido.statusPedido = status;
+    pedido.atualizadoEm = new Date().toISOString();
+    Storage.salvarPedido(pedido);
+    return pedido;
+} };
 global.registrarEventoPedido = pedido => pedido;
 global.rotuloStatusPedido = status => status;
 global.gerarNotificacoesOperacionais = () => {};
@@ -116,7 +123,7 @@ test("21. CSS é restrito ao breakpoint mobile", () => ok(css.trim().startsWith(
 test("22. tema escuro e movimento reduzido estão cobertos", () => ok(css.includes("body.dark-mode") && css.includes("prefers-reduced-motion: reduce")));
 test("23. desktop continua no renderizador aprovado", () => { mobile = false; renderPedidos(); ok(desktopRenders === 1 && desktopSource.includes("ordersKanban") && desktopCss.includes("ordersKpiGrid")); });
 test("24. arquivos carregam depois do desktop e antes do app", () => ok(index.indexOf("js/pedidos-premium.js") < index.indexOf("js/pedidos-mobile.js") && index.indexOf("js/pedidos-mobile.js") < index.indexOf("js/app.js")));
-test("25. PWA inclui a interface mobile offline", () => ok(sw.includes("primedocs-v64") && sw.includes("pedidos-mobile.css") && sw.includes("pedidos-mobile.js")));
+test("25. PWA inclui a interface mobile offline", () => ok(sw.includes("primedocs-v65") && sw.includes("pedidos-mobile.css") && sw.includes("pedidos-mobile.js")));
 test("26. navegação mobile é ativada pela página", () => ok(navigationMode === "pedidos"));
 test("27. desktop não recebe seletores da camada mobile", () => ok(!desktopCss.includes("ordersMobilePage") && !desktopSource.includes("mobileOrderSwipe")));
 test("28. progressão cobre aprovação, produção e pronto sem ultrapassar entregue", () => {

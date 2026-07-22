@@ -33,6 +33,7 @@ global.Producao = {
 };
 global.CentralOperacoes = { getPrinterImage: impressora => /mini/i.test(impressora.modelo || "") ? "assets/printers/a1-mini.svg" : "assets/printers/generic-printer.svg" };
 global.Storage = {};
+global.ERPIntegracao = { ordensAtivas: () => (Storage.listarOrdensProducao?.() || []).filter(item => item.ativo !== false && item.status !== "cancelada") };
 vm.runInThisContext(codigo);
 
 let aprovados = 0;
@@ -100,7 +101,7 @@ teste("25. movimento reduzido e foco visível são respeitados", () => ok(css.in
 teste("26. menu principal não expõe mais Impressoras", () => ok(!nav.match(/\["impressoras",\s*"printer"/)));
 teste("27. Configurações concentra o gerenciamento de impressoras", () => ok(config.includes("renderCardImpressorasConfiguracoes")&&config.includes("Abrir gerenciamento de impressoras")));
 teste("28. nova camada carrega depois da página e antes do app", () => ok(index.indexOf("pages/producao.js") < index.indexOf("producao-premium.js") && index.indexOf("producao-premium.js") < index.indexOf("js/app.js")));
-teste("29. PWA offline inclui CSS, JS e imagens locais", () => ok(sw.includes("primedocs-v64")&&sw.includes("producao-premium.css")&&sw.includes("producao-premium.js")&&sw.includes("a1-mini.svg")));
+teste("29. PWA offline inclui CSS, JS e imagens locais", () => ok(sw.includes("primedocs-v65")&&sw.includes("producao-premium.css")&&sw.includes("producao-premium.js")&&sw.includes("a1-mini.svg")));
 teste("30. regras existentes de alocação, pausa, conclusão e estoque permanecem", () => ok(["alocarOperacao","pausarLote","retomarLote","concluirLote","reservarFilamentosParaLote","baixarEstoqueAoConcluir"].every(nome => negocio.includes(nome)) || (negocio.includes("alocar")&&negocio.includes("pausar")&&negocio.includes("concluir"))));
 teste("31. fluxos de pedido e estoque continuam disponíveis", () => ok(paginaLegada.includes("abrirProducaoEstoque")&&paginaLegada.includes("confirmarProducaoEstoque")&&paginaLegada.includes("abrirNovaProducao")));
 teste("32. tela renderizada integra fábrica, fila, pós-produção e alertas", () => ok(codigo.includes("FactoryOverview(contextoAtual")&&codigo.includes("ProductionQueue(fila)")&&codigo.includes("PostProductionPanel(contextoAtual)")&&codigo.includes("ProductionAlertSection(alertas)")));

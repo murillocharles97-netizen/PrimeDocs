@@ -320,8 +320,7 @@
     }
 
     function registrarMudancaRapida(pedido, statusAnterior, statusNovo) {
-        pedido.statusPedido = statusNovo;
-        pedido.atualizadoEm = new Date().toISOString();
+        pedido = ERPIntegracao.alterarStatusPedido(pedido.id, statusNovo);
         if (typeof registrarEventoPedido === "function") {
             const tipo = statusNovo === "entregue" ? "pedido_entregue" : statusNovo === "pronto" ? "pedido_pronto" : statusNovo === "aprovado" ? "orcamento_aprovado" : "status_alterado";
             const titulo = typeof rotuloStatusPedido === "function" ? rotuloStatusPedido(statusNovo) : statusNovo;
@@ -329,8 +328,7 @@
             registrarEventoPedido(pedido, tipo, titulo, `Status alterado de ${anterior} para ${titulo}.`);
         }
         Storage.salvarPedido(pedido);
-        Financeiro?.sincronizar?.();
-        if (typeof gerarNotificacoesOperacionais === "function") gerarNotificacoesOperacionais();
+        return pedido;
     }
 
     function avancarStatus(id) {

@@ -223,12 +223,19 @@ const Producao = (() => {
             return {
                 id: ordemId,
                 pedidoId: pedido.id,
+                orderId: pedido.id,
                 itemPedidoId: grupo.item.id,
+                orderItemId: grupo.item.id,
                 clienteId: pedido.clienteId || null,
                 clienteNome: pedido.clienteNome || "",
                 produtoId: grupo.produto?.id || grupo.item.produtoId || null,
                 produtoNome: grupo.item.nome,
                 quantidade: Math.max(1, Number(grupo.item.quantidade) || 1),
+                produzido: 0,
+                restante: Math.max(1, Number(grupo.item.quantidade) || 1),
+                filamentoReservadoGramas: 0,
+                tempoPrevistoMinutos: operacoes.reduce((total, item) => total + Number(item.tempoPrevistoMinutos || 0), 0),
+                tempoRealMinutos: 0,
                 status: "aguardando",
                 progresso: 0,
                 prioridade: "normal",
@@ -262,13 +269,15 @@ const Producao = (() => {
         if (!receita.length) throw new Error("Este produto ainda não possui uma receita de produção.");
         const agora = new Date().toISOString();
         const ordemId = id("ord-estoque");
+        const pedidoId = id("ped-estoque");
+        const itemPedidoId = id("item-estoque");
         const mapaIds = new Map(receita.map(op => [String(op.id), id("oper-prod")]));
         receita.forEach(op => mapaIds.set(String(op.nome).toLocaleLowerCase("pt-BR"), mapaIds.get(String(op.id))));
         const operacoes = receita.map((op, indice) => {
             const dependencias = (op.dependencias || []).map(dep => mapaIds.get(String(dep)) || mapaIds.get(String(dep).toLocaleLowerCase("pt-BR"))).filter(Boolean);
             const multiplicador = quantidadeProdutos;
             return {
-                id: mapaIds.get(String(op.id)), ordemProducaoId: ordemId, pedidoId: null, itemPedidoId: null,
+                id: mapaIds.get(String(op.id)), ordemProducaoId: ordemId, pedidoId, itemPedidoId,
                 produtoId: produto.id, produtoNome: produto.nome, nome: op.nome, tipo: op.tipo, ordem: indice,
                 quantidade: multiplicador * Math.max(1, Number(op.quantidadePorProduto) || 1),
                 status: dependencias.length ? "aguardando_dependencia" : "aguardando",
@@ -288,10 +297,19 @@ const Producao = (() => {
             };
         });
         operacoes.forEach(Storage.salvarOperacaoProducao.bind(Storage));
+        Storage.salvarPedido({
+            id: pedidoId, tipoPedido: "estoque_interno", visivel: false, ativo: false,
+            clienteId: null, clienteNome: "Estoque interno", statusPedido: "em_producao", statusPagamento: "pago",
+            dataPedido: agora.slice(0, 10), dataEntregaPrevista: "", valorTotal: 0, valorPago: 0, valorPendente: 0,
+            itens: [{ id: itemPedidoId, produtoId: produto.id, nome: produto.nome, quantidade: quantidadeProdutos, valorUnitario: 0, valorTotal: 0, interno: true }],
+            criadoEm: agora, atualizadoEm: agora
+        });
         const ordem = {
-            id: ordemId, origem: "estoque", pedidoId: null, itemPedidoId: null, clienteId: null,
+            id: ordemId, origem: "estoque", pedidoId, orderId: pedidoId, itemPedidoId, orderItemId: itemPedidoId, clienteId: null,
             clienteNome: "Estoque interno", produtoId: produto.id, produtoNome: produto.nome,
-            quantidade: quantidadeProdutos, status: "aguardando", progresso: 0, prioridade: "normal", prazo: "",
+            quantidade: quantidadeProdutos, produzido: 0, restante: quantidadeProdutos, filamentoReservadoGramas: 0,
+            tempoPrevistoMinutos: operacoes.reduce((total, item) => total + Number(item.tempoPrevistoMinutos || 0), 0), tempoRealMinutos: 0,
+            status: "aguardando", progresso: 0, prioridade: "normal", prazo: "",
             operacoes, estoqueAtualizadoEm: null, ativo: true, criadoEm: agora, atualizadoEm: agora,
             iniciadoEm: null, concluidoEm: null
         };
@@ -554,13 +572,24 @@ const Producao = (() => {
         }
         salvarOperacaoCompleta(operacao);
 
-        const operacoes = Storage.listarOperacoesProducao().filter(item => String(item.ordemProducaoId) === String(ordem.id));
+        const operacoes = Storage.listarOperacoesProducao().filter(item => String(item.ordemProducaoId) === String(ordem.id) && item.status !== "cancelada");
         operacoes.filter(item => item.status === "aguardando_dependencia" && dependenciasConcluidas(item)).forEach(item => { item.status = "aguardando"; salvarOperacaoCompleta(item); });
         const concluidas = operacoes.filter(item => item.status === "concluida").length;
         ordem.progresso = operacoes.length ? Math.round(concluidas / operacoes.length * 100) : 0;
         if (operacoes.length && concluidas === operacoes.length) { ordem.status = "concluida"; ordem.concluidoEm = new Date().toISOString(); } else if (operacoes.some(item => item.status === "em_execucao")) ordem.status = "em_producao"; else if (operacoes.some(item => item.status === "aguardando_dependencia")) ordem.status = "aguardando_montagem";
         ordem.operacoes = operacoes;
         ordem.atualizadoEm = new Date().toISOString();
+        const operacaoIds = new Set(operacoes.map(item => String(item.id)));
+        const lotesOrdem = Storage.listarLotesExecucao().filter(item => operacaoIds.has(String(item.operacaoId)) && item.status !== "cancelado");
+        const lotesImpressao = lotesOrdem.filter(lote => Storage.buscarOperacaoProducaoPorId(lote.operacaoId)?.tipo === "impressao");
+        const produzido = Math.min(Number(ordem.quantidade || 0), lotesImpressao.filter(lote => lote.status === "concluido").reduce((total, lote) => total + Number(lote.quantidadeConcluida ?? lote.quantidade ?? 0), 0));
+        ordem.orderId = ordem.pedidoId || null;
+        ordem.orderItemId = ordem.itemPedidoId || null;
+        ordem.produzido = ordem.status === "concluida" ? Number(ordem.quantidade || 0) : produzido;
+        ordem.restante = Math.max(0, Number(ordem.quantidade || 0) - ordem.produzido);
+        ordem.filamentoReservadoGramas = Storage.listarReservasFilamento().filter(reserva => reserva.status === "ativa" && lotesOrdem.some(lote => String(lote.id) === String(reserva.loteExecucaoId))).reduce((total, reserva) => total + Number(reserva.pesoReservadoGramas || 0), 0);
+        ordem.tempoPrevistoMinutos = operacoes.reduce((total, item) => total + Number(item.tempoPrevistoMinutos || 0), 0);
+        ordem.tempoRealMinutos = operacoes.reduce((total, item) => total + Number(item.tempoRealMinutos || 0), 0);
         if (ordem.status === "concluida" && ordem.origem === "estoque" && !ordem.estoqueAtualizadoEm) {
             const produto = Storage.buscarProdutoPorId(ordem.produtoId);
             if (!produto) throw new Error("O produto desta produção para estoque não foi encontrado.");
@@ -576,7 +605,7 @@ const Producao = (() => {
         }
         Storage.salvarOrdemProducao(ordem);
         if (pedido) {
-            const ordensPedido = Storage.listarOrdensProducao().filter(item => String(item.pedidoId) === String(pedido.id) && item.ativo !== false);
+            const ordensPedido = Storage.listarOrdensProducao().filter(item => String(item.pedidoId) === String(pedido.id) && item.ativo !== false && item.status !== "cancelada");
             if (ordensPedido.length && ordensPedido.every(item => item.status === "concluida")) { pedido.statusPedido = "pronto"; registrar("pedido_pronto", { pedido }, `Pedido #${String(pedido.id).slice(-5)} pronto.`); }
             else pedido.statusPedido = "em_producao";
             pedido.itens = (pedido.itens || []).map(item => { const ordemItem = ordensPedido.find(op => String(op.itemPedidoId) === String(item.id)); return ordemItem ? { ...item, statusProducao: ordemItem.status === "concluida" ? "produzido" : "em_producao" } : item; });

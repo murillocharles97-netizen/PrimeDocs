@@ -659,7 +659,8 @@ function obterItensVendidosDashboard(dados, intervalo) {
             const produto = produtos.get(String(i.produtoId));
             const quantidade = Number(i.quantidade || 0);
             const valorTotal = Number(i.valorTotal || quantidade * Number(i.valorUnitario || produto?.preco || 0));
-            return { ...i, quantidade, valorTotal, custo: Number(produto?.custo || 0), categoria: i.categoria || produto?.categoria || "Sem categoria", nome: i.nome || produto?.nome || "Produto" };
+            const custo = quantidade > 0 ? ERPIntegracao.custoItem({ ...i, quantidade }) / quantidade : 0;
+            return { ...i, quantidade, valorTotal, custo, categoria: i.categoria || produto?.categoria || "Sem categoria", nome: i.nome || produto?.nome || "Produto" };
         }));
     const itensConferencia = dados.conferencias
         .filter(c => noPeriodoDashboard(c.criadoEm || c.data, intervalo))
@@ -667,7 +668,8 @@ function obterItensVendidosDashboard(dados, intervalo) {
             const produto = produtos.get(String(i.produtoId));
             const quantidade = Number(i.quantidadeVendida || 0);
             const valorTotal = Number(i.valorVendido || quantidade * Number(i.preco || produto?.preco || 0));
-            return { ...i, quantidade, valorTotal, custo: Number(produto?.custo || 0), categoria: i.categoria || produto?.categoria || "Sem categoria", nome: i.nome || produto?.nome || "Produto" };
+            const custo = quantidade > 0 ? ERPIntegracao.custoItem({ ...i, quantidade }) / quantidade : 0;
+            return { ...i, quantidade, valorTotal, custo, categoria: i.categoria || produto?.categoria || "Sem categoria", nome: i.nome || produto?.nome || "Produto" };
         }));
     return itensPedidos.concat(itensConferencia).filter(i => Number(i.quantidade || 0) > 0);
 }

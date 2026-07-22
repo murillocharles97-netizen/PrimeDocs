@@ -171,7 +171,7 @@ const Producao = (() => {
             });
     }
 
-    function criarOrdensDoPedido(pedidoId, itensSelecionados = []) {
+    function criarOrdensDoPedido(pedidoId, itensSelecionados = [], opcoes = {}) {
         const pedido = Storage.buscarPedidoPorId(pedidoId);
         if (!pedido) throw new Error("Pedido não encontrado.");
         const existentes = Storage.listarOrdensProducao();
@@ -254,7 +254,7 @@ const Producao = (() => {
             const itemId = item.id || `${pedido.id}-item-${indice}`;
             return { ...item, id: itemId, ordemProducaoId: idsCriados.get(String(itemId)) || item.ordemProducaoId || null, statusProducao: idsCriados.has(String(itemId)) ? "em_producao" : item.statusProducao };
         });
-        pedido.statusPedido = "em_producao";
+        if (!opcoes.preservarStatus) pedido.statusPedido = "em_producao";
         pedido.atualizadoEm = agora;
         Storage.salvarPedido(pedido);
         Storage.registrarHistoricoProducao({ tipo: "ordens_criadas", pedidoId: pedido.id, descricao: `${novasOrdens.length} ordem(ns) criada(s) para ${pedido.clienteNome}.` });

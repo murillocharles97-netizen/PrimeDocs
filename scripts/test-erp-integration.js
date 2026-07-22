@@ -62,6 +62,17 @@ teste("pedido não fica pronto enquanto houver produção pendente", () => {
     assert.equal(dados.pedidos[0].statusPedido, "entregue");
 });
 
+teste("pedido aprovado entra automaticamente na fila sem perder o status de aprovação", () => {
+    reset();
+    dados.produtos.push({ id: "prod-aprovado", ativo: true });
+    dados.pedidos.push({ id: "ped-aprovado", ativo: true, statusPedido: "aguardando_aceite", itens: [{ id: "item-aprovado", produtoId: "prod-aprovado", nome: "Produto", quantidade: 1 }] });
+    ERPIntegracao.alterarStatusPedido("ped-aprovado", "aprovado");
+    assert.equal(dados.pedidos[0].statusPedido, "aprovado");
+    assert.equal(dados.ordens.length, 1);
+    assert.equal(dados.ordens[0].pedidoId, "ped-aprovado");
+    assert.equal(dados.ordens[0].itemPedidoId, "item-aprovado");
+});
+
 teste("cancelar pedido cancela produção e libera filamento e impressora", () => {
     reset();
     dados.produtos.push({ id: "prod-1", ativo: true });

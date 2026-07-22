@@ -92,7 +92,7 @@
         if (pedido.statusPedido === "entregue") coluna = "entregue";
         else if (pedido.statusPedido === "pronto") coluna = "pronto";
         else if (acabamentoLiberado || ordens.some(o => o.status === "acabamento")) coluna = "acabamento";
-        else if (pedido.statusPedido === "em_producao" || lotesAtivos.length) coluna = "producao";
+        else if (pedido.statusPedido === "em_producao" || lotesAtivos.length || ordens.some(ordem => ordem.status !== "concluida")) coluna = "producao";
 
         const progressoLotes = lotes.filter(l => l.status !== "falhou");
         const pesoProgresso = soma(progressoLotes, l => Math.max(1, l.tempoPrevistoMinutos));
@@ -116,7 +116,7 @@
         });
         return {
             ...pedido, coluna, prioridade: prioridadePedido(pedido, hoje), progresso: Math.min(100, Math.max(0, progresso)),
-            minutosRestantes, impressoras, categorias, acabamento, custos,
+            minutosRestantes, impressoras, categorias, acabamento, custos, ordens,
             tipos: itens.length, pecas: soma(itens, item => item.quantidade),
             pagamento: pedido.statusPagamento === "pago" ? "pago" : numero(pedido.valorPago) > 0 ? "parcial" : "pendente"
         };

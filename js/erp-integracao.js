@@ -125,12 +125,12 @@ const ERPIntegracao = (() => {
         return Boolean(pedido?.itens?.length) && itensPendentesPedido(pedidoId).length === 0;
     }
 
-    function criarOrdensPendentes(pedidoId) {
+    function criarOrdensPendentes(pedidoId, opcoes = {}) {
         const pedido = Storage.buscarPedidoPorId(pedidoId);
         if (!pedido?.itens?.length) throw new Error("Adicione ao menos um item antes de iniciar a produção.");
         const ordens = ordensDoPedido(pedidoId);
         const idsPendentes = (pedido.itens || []).filter(item => !ordens.some(ordem => id(ordem.itemPedidoId || ordem.orderItemId) === id(item.id))).map(item => item.id);
-        if (idsPendentes.length) Producao.criarOrdensDoPedido(pedidoId, idsPendentes);
+        if (idsPendentes.length) Producao.criarOrdensDoPedido(pedidoId, idsPendentes, opcoes);
         const atualizadas = ordensDoPedido(pedidoId);
         atualizadas.forEach(ordem => {
             const patch = {
@@ -146,6 +146,20 @@ const ERPIntegracao = (() => {
             Storage.salvarOrdemProducao(patch);
         });
         return ordensDoPedido(pedidoId);
+    }
+
+    function sincronizarPedidosAprovados() {
+        let sincronizados = 0;
+        pedidosComerciais().filter(pedido => pedido.statusPedido === "aprovado" && pedido.ativo !== false && pedido.itens?.length).forEach(pedido => {
+            const antes = ordensDoPedido(pedido.id).length;
+            try {
+                const depois = criarOrdensPendentes(pedido.id, { preservarStatus: true }).length;
+                if (depois > antes) sincronizados += depois - antes;
+            } catch (erro) {
+                registrar("pedido_aprovado_sem_fila", `Pedido ${pedido.id} não pôde entrar automaticamente na fila: ${erro.message}`, { pedidoId: pedido.id });
+            }
+        });
+        return sincronizados;
     }
 
     function validarTransicao(pedido, destino, forcar = false) {
@@ -172,6 +186,7 @@ const ERPIntegracao = (() => {
         pedido.atualizadoEm = agora();
         pedido.integridade = { ultimaTransicao: `${anterior}->${destino}`, validadaEm: pedido.atualizadoEm, forcada: Boolean(opcoes.forcar) };
         Storage.salvarPedido(pedido);
+        if (destino === "aprovado") criarOrdensPendentes(pedidoId, { preservarStatus: true });
         registrar("status_pedido_integrado", `Pedido ${pedido.id}: ${anterior} → ${destino}.`, { pedidoId: pedido.id });
         notificar(["pedidos", "producao", "financeiro", "dashboard", "relatorios"], { pedidoId: pedido.id });
         return pedido;
@@ -395,6 +410,7 @@ const ERPIntegracao = (() => {
     function inicializar() {
         Producao.migrarDados();
         migrarDemandasEstoqueLegadas();
+        sincronizarPedidosAprovados();
         const resultado = auditar({ corrigir: true });
         console.info(`[PrimeDocs] Integração ERP: ${resultado.inconsistencias.length} inconsistência(s), ${resultado.correcoes.length} correção(ões).`);
         return resultado;
@@ -410,6 +426,7 @@ const ERPIntegracao = (() => {
         itensPendentesPedido,
         producaoCompleta,
         criarOrdensPendentes,
+        sincronizarPedidosAprovados,
         validarTransicao,
         alterarStatusPedido,
         cancelarProducaoPedido,

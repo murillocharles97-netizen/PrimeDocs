@@ -99,8 +99,8 @@
 
     function acaoPrincipal(pedido) {
         if (["aguardando_orcamento", "aguardando_aceite"].includes(pedido.statusPedido)) return { tipo: "aprovar", rotulo: "Aprovar", icone: "circle-check" };
-        if (pedido.statusPedido === "aprovado") return { tipo: "produzir", rotulo: "Produzir", icone: "play" };
         if (pedido.coluna === "producao") return { tipo: "producao", rotulo: "Ver produção", icone: "factory" };
+        if (pedido.statusPedido === "aprovado") return { tipo: "produzir", rotulo: "Produzir", icone: "play" };
         if (pedido.coluna === "acabamento") return { tipo: "acabamento", rotulo: pedido.acabamento?.status === "em_execucao" ? "Abrir acabamento" : "Finalizar", icone: "wand-sparkles" };
         if (pedido.coluna === "pronto") return { tipo: "entregar", rotulo: "Entregar", icone: "truck" };
         if (pedido.coluna === "entregue" && pedido.pagamento !== "pago") return { tipo: "receber", rotulo: "Receber", icone: "hand-coins" };

@@ -84,6 +84,6 @@ teste("16. CSS e JS são carregados depois da tela base de pedidos", () => {
     ok(index.indexOf("pages/pedidos.js") < index.indexOf("pedidos-editor-mobile.js"));
     ok(index.includes("pedidos-editor-mobile.css?v=1"));
 });
-teste("17. editor fica disponível offline no PWA v65", () => ok(sw.includes("primedocs-v65") && sw.includes("pedidos-editor-mobile.css") && sw.includes("pedidos-editor-mobile.js")));
+teste("17. editor fica disponível offline no PWA v66", () => ok(sw.includes("primedocs-v66") && sw.includes("pedidos-editor-mobile.css") && sw.includes("pedidos-editor-mobile.js")));
 
 if (!process.exitCode) console.log(`\n${passou} testes do editor mobile aprovados.`);

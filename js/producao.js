@@ -135,9 +135,29 @@ const Producao = (() => {
         const selecionados = new Set((itensSelecionados || []).map(String));
         return (pedido.itens || []).map((item, indice) => ({ ...item, id: item.id || `${pedido.id}-item-${indice}` }))
             .filter(item => !selecionados.size || selecionados.has(String(item.id)))
-            .map(item => {
+            .map((item, indice) => {
                 const produto = item.produtoId ? Storage.buscarProdutoPorId(item.produtoId) : null;
-                const receita = produto ? obterReceita(produto) : [normalizarOperacaoModelo({ nome: `Produzir ${item.nome}`, tipo: "outro" })];
+                const tempoPersonalizado = Math.max(0, Number(item.tempoPrevistoMinutos) || 0);
+                const pesoPersonalizado = Math.max(0, Number(item.pesoPrevistoGramas) || 0);
+                const materialPersonalizado = item.filamentoId || item.filamentoNome || pesoPersonalizado
+                    ? [{
+                        id: `material-${item.id || indice}`,
+                        material: item.material || item.filamentoNome || "Filamento principal",
+                        cor: item.cor || "",
+                        pesoGramas: pesoPersonalizado,
+                        filamentoPreferencialId: item.filamentoId || "",
+                        obrigatorio: true
+                    }]
+                    : [];
+                const receita = produto ? obterReceita(produto) : [normalizarOperacaoModelo({
+                    nome: `Imprimir ${item.nome || "produto personalizado"}`,
+                    tipo: "impressao",
+                    tempoHoras: Math.floor(tempoPersonalizado / 60),
+                    tempoMinutos: tempoPersonalizado % 60,
+                    pesoTotalGramas: pesoPersonalizado,
+                    materiais: materialPersonalizado,
+                    observacoes: item.observacao || ""
+                })];
                 return {
                     item,
                     produto,

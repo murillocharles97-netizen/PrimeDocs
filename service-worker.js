@@ -1,4 +1,4 @@
-const CACHE_VERSION = "primedocs-v63";
+const CACHE_VERSION = "primedocs-v64";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -34,6 +34,7 @@ const APP_SHELL = [
     "./css/dashboard-mobile.css",
     "./css/pedidos-premium.css",
     "./css/pedidos-mobile.css",
+    "./css/pedidos-editor-mobile.css",
     "./css/clientes-mobile.css",
     "./css/produtos-mobile.css",
     "./css/estoque-mobile.css",
@@ -53,6 +54,7 @@ const APP_SHELL = [
     "./js/operations-mobile.js",
     "./js/pedidos-premium.js",
     "./js/pedidos-mobile.js",
+    "./js/pedidos-editor-mobile.js",
     "./js/clientes-mobile.js",
     "./js/produtos-mobile.js",
     "./js/estoque-mobile.js",
